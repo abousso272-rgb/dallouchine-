@@ -1,0 +1,6 @@
+{
+  "name": "SinoSenegal - Groupage & Sourcing Chine-Sénégal",
+  "description": "Plateforme moderne de sourcing B2B, groupage et e-commerce entre la Chine et le Sénégal avec calculateur de rentabilité et suivi logistique.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

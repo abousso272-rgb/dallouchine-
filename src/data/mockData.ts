@@ -1,0 +1,1623 @@
+import {
+  Product,
+  Groupage,
+  Order,
+  HubLocation,
+  Supplier,
+  Sourcer,
+  Carrier,
+  B2BRequest,
+  CostVarianceItem,
+  AdminAlert,
+  AdminActivityLog,
+  SourcingPipelineRequest,
+  PaymentRecord,
+  PromotionItem,
+  NotificationTemplate,
+  Customer
+} from '../types';
+
+export const MOCK_CARRIERS: Carrier[] = [
+  {
+    id: 'carr-air-std',
+    name: 'Air Cargo Express Sino-Dakar (Vols directs & transit Addis)',
+    mode: 'air',
+    ratePerKgXOF: 7500,
+    ratePerCbmXOF: 0,
+    minChargeXOF: 15000,
+    volumetricFactor: 6000,
+    baseTransitDaysMin: 12,
+    baseTransitDaysMax: 18,
+    reliabilityScore: 98.4,
+    departureFrequency: '3 départs par semaine (Mardi, Jeudi, Samedi)',
+    notes: 'Idéal pour l\'électronique, les petits appareils, la mode et les commandes urgentes.'
+  },
+  {
+    id: 'carr-sea-grp',
+    name: 'Ligne Maritime Groupage Port de Dakar (LCL Consolidé)',
+    mode: 'sea',
+    ratePerKgXOF: 0,
+    ratePerCbmXOF: 185000,
+    minChargeXOF: 45000,
+    volumetricFactor: 1000,
+    baseTransitDaysMin: 30,
+    baseTransitDaysMax: 45,
+    reliabilityScore: 96.0,
+    departureFrequency: '2 conteneurs groupés par mois',
+    notes: 'Optimisé pour le mobilier, machines lourdes, batteries volumineuses et grandes séries.'
+  },
+  {
+    id: 'carr-exp-fast',
+    name: 'Express Courier VIP (Aérien prioritaire & dédouanement express)',
+    mode: 'express',
+    ratePerKgXOF: 13500,
+    ratePerCbmXOF: 0,
+    minChargeXOF: 25000,
+    volumetricFactor: 5000,
+    baseTransitDaysMin: 5,
+    baseTransitDaysMax: 8,
+    reliabilityScore: 99.5,
+    departureFrequency: 'Départs quotidiens',
+    notes: 'Réservé aux échantillons urgents, pièces détachées et commandes prioritaires.'
+  }
+];
+
+export const MOCK_SUPPLIERS: Supplier[] = [
+  {
+    id: 'sup-01',
+    name: 'Shenzhen MicroVision Optoelectronics Co., Ltd.',
+    platform: '1688',
+    location: 'Baoan District, Shenzhen, Guangdong',
+    city: 'Shenzhen',
+    rating: 4.9,
+    averageLeadTimeDays: 4,
+    status: 'preferred',
+    contactPerson: 'Mr. Liu Kang',
+    phone: '+86 138 2841 9022',
+    weChat: 'wx_microvision_sz',
+    productsCount: 42,
+    notes: 'Fournisseur audité sur site. Taux de défectuosité inférieur à 0.3%. Garantie 1 an.',
+    verifiedSince: '2023-01-15'
+  },
+  {
+    id: 'sup-02',
+    name: 'Yiwu GreenHome Smart Storage Factory',
+    platform: 'yiwu_market',
+    location: 'Futian District 3, Yiwu, Zhejiang',
+    city: 'Yiwu',
+    rating: 4.8,
+    averageLeadTimeDays: 3,
+    status: 'verified',
+    contactPerson: 'Ms. Chen Xiaoling',
+    phone: '+86 159 5892 4110',
+    weChat: 'yiwu_greenhome_exp',
+    productsCount: 115,
+    notes: 'Spécialiste de rangements pliables sans montage. Emballage renforcé spécial grand export.',
+    verifiedSince: '2023-06-10'
+  },
+  {
+    id: 'sup-03',
+    name: 'Guangzhou AutoPower Tech & Tools Co.',
+    platform: 'direct_factory',
+    location: 'Baiyun District, Guangzhou, Guangdong',
+    city: 'Guangzhou',
+    rating: 4.95,
+    averageLeadTimeDays: 5,
+    status: 'preferred',
+    contactPerson: 'Mr. Zhang Jin',
+    phone: '+86 137 1102 7839',
+    weChat: 'autopower_gz_direct',
+    productsCount: 68,
+    notes: 'Certifié CE et RoHS. Moteurs haute pression en cuivre pur.',
+    verifiedSince: '2022-11-20'
+  },
+  {
+    id: 'sup-04',
+    name: 'Dongguan EnergyMax Battery & Solar Tech',
+    platform: 'direct_factory',
+    location: 'Songshan Lake High-Tech Park, Dongguan',
+    city: 'Dongguan',
+    rating: 4.85,
+    averageLeadTimeDays: 7,
+    status: 'verified',
+    contactPerson: 'Mr. Huang Wei',
+    phone: '+86 186 7690 3341',
+    weChat: 'energymax_solar_dg',
+    productsCount: 29,
+    notes: 'Cellules LiFePO4 grade A neuves. Fiches de sécurité transport maritime (MSDS) conformes.',
+    verifiedSince: '2024-02-01'
+  }
+];
+
+export const MOCK_SOURCERS: Sourcer[] = [
+  {
+    id: 'src-01',
+    name: 'Zhang "Moussa" Wei',
+    locationCity: 'Guangzhou',
+    specialties: ['Électronique grand public', 'Outillage auto', 'Machines B2B'],
+    commissionRatePercent: 4.0,
+    rating: 4.95,
+    activeTasksCount: 6,
+    completedOrdersCount: 248,
+    phone: '+86 139 2049 8812',
+    email: 'moussa.zhang@sinosenegal.partner',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80'
+  },
+  {
+    id: 'src-02',
+    name: 'Lin "Fatou" Xiaoyu',
+    locationCity: 'Yiwu',
+    specialties: ['Maison & Décoration', 'Textiles & Bagagerie', 'Bricolage léger'],
+    commissionRatePercent: 3.5,
+    rating: 4.9,
+    activeTasksCount: 9,
+    completedOrdersCount: 312,
+    phone: '+86 158 5791 2234',
+    email: 'fatou.lin@sinosenegal.partner',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'
+  },
+  {
+    id: 'src-03',
+    name: 'Chen "Ousmane" Bo',
+    locationCity: 'Shenzhen',
+    specialties: ['High-Tech', 'Audio & Vidéo', 'Énergie Solaire'],
+    commissionRatePercent: 4.5,
+    rating: 4.88,
+    activeTasksCount: 4,
+    completedOrdersCount: 184,
+    phone: '+86 136 8891 0045',
+    email: 'ousmane.chen@sinosenegal.partner',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&q=80'
+  }
+];
+
+export const MOCK_HUB_LOCATIONS: HubLocation[] = [
+  {
+    id: 'hub-almadies',
+    name: 'Hub SinoSenegal Dakar — Almadies',
+    district: 'Almadies / Ngor',
+    city: 'Dakar',
+    address: 'Route des Almadies, en face de la station Total, Dakar',
+    openingHours: 'Lundi au Samedi : 08h30 – 19h00',
+    managerName: 'Cheikh Tidiane Diop',
+    managerPhone: '+221 77 420 18 19',
+    currentCapacityPercent: 62,
+    activeParcelsCount: 148
+  },
+  {
+    id: 'hub-plateau',
+    name: 'Hub SinoSenegal Dakar — Plateau / Sandaga',
+    district: 'Centre-Ville Plateau',
+    city: 'Dakar',
+    address: 'Avenue Lamine Guèye x Rue Sandiniéry, Dakar',
+    openingHours: 'Lundi au Samedi : 09h00 – 18h30',
+    managerName: 'Mariama Seydi',
+    managerPhone: '+221 78 512 88 44',
+    currentCapacityPercent: 78,
+    activeParcelsCount: 215
+  },
+  {
+    id: 'hub-pikine',
+    name: 'Hub SinoSenegal Banlieue — Pikine / Guédiawaye',
+    district: 'Pikine Tally Boubess',
+    city: 'Pikine',
+    address: 'Tally Boubess, à 100m du Rond-point Canada',
+    openingHours: 'Lundi au Samedi : 09h00 – 19h30',
+    managerName: 'Babacar Ndao',
+    managerPhone: '+221 76 680 91 30',
+    currentCapacityPercent: 45,
+    activeParcelsCount: 96
+  },
+  {
+    id: 'hub-diamniadio',
+    name: 'Hub SinoSenegal Pôle — Diamniadio Tech City',
+    district: 'Pôle Urbain',
+    city: 'Diamniadio',
+    address: 'Centre des Affaires Bâtiment C, Diamniadio',
+    openingHours: 'Lundi au Vendredi : 08h30 – 17h30',
+    managerName: 'Khadidiatou Fall',
+    managerPhone: '+221 77 905 44 21',
+    currentCapacityPercent: 30,
+    activeParcelsCount: 42
+  },
+  {
+    id: 'hub-thies',
+    name: 'Hub SinoSenegal Région — Thiès Escale',
+    district: 'Quartier Escale',
+    city: 'Thiès',
+    address: 'Boulevard de la République, près de la Place de France, Thiès',
+    openingHours: 'Lundi au Samedi : 09h00 – 18h00',
+    managerName: 'Mamadou Lamine Cissé',
+    managerPhone: '+221 70 811 39 02',
+    currentCapacityPercent: 51,
+    activeParcelsCount: 67
+  }
+];
+
+export const MOCK_PRODUCTS: Product[] = [
+  {
+    id: 'prod-01',
+    slug: 'mini-videoprojecteur-portable-smart-hd-1080p',
+    name: 'Mini Vidéoprojecteur Portable Smart HD 1080p Cinema',
+    category: 'High-Tech & Maison',
+    images: [
+      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1000&q=80'
+    ],
+    shortDescription: 'Projecteur intelligent Android avec WiFi 5G, Bluetooth 5.2 et 250 ANSI Lumens réels. Idéal cinéma maison et présentations.',
+    fullDescription: 'Profitez d\'une expérience grand écran jusqu\'à 130 pouces chez vous ou en déplacement. Équipé du système Android intégré (YouTube, Netflix préinstallés), d\'une correction trapézoïdale automatique et d\'une rotation à 180°. Sourcé directement auprès de notre usine partenaire certifiée à Shenzhen.',
+    specifications: {
+      'Résolution native': '1280x720p (Support 1080p & 4K décodage)',
+      'Luminosité': '250 ANSI Lumens réels',
+      'Connectivité': 'WiFi 6 dual-band, Bluetooth 5.2, HDMI, USB, Audio Jack',
+      'Système': 'Android 11.0 avec Play Store',
+      'Projection': '40 à 130 pouces (distance 1.2m à 4m)',
+      'Haut-parleur': 'Enceinte Hi-Fi 5W stéréo intégrée'
+    },
+    features: [
+      'Système Android autonome — aucune box nécessaire',
+      'Rotation 180° pour projection murale ou au plafond',
+      'Silencieux avec dissipation thermique en cuivre',
+      'Double contrôle qualité avant expédition de Chine'
+    ],
+    unitWeightKg: 0.85,
+    dimensionsCm: { length: 19, width: 13, height: 11 },
+    cbm: 0.0027,
+    moq: 1,
+    basePriceCNY: 82,
+    basePriceUSD: 11.5,
+    priceXOF: 15900,
+    previousPriceXOF: 28500,
+    isGroupage: true,
+    activeGroupageId: 'grp-01',
+    supplierId: 'sup-01',
+    sourcerId: 'src-01',
+    defaultTransportMode: 'air',
+    estimatedDeliveryDays: '15–20 jours',
+    stockStatus: 'groupage_only',
+    targetMarginPercent: 34,
+    rating: 4.9,
+    reviewsCount: 68,
+    tags: ['Best-Seller', 'Groupage Actif', 'High-Tech', 'Économie 44%'],
+    createdAt: '2026-08-01'
+  },
+  {
+    id: 'prod-02',
+    slug: 'compresseur-air-sans-fil-portatif-pneus-voiture',
+    name: 'Compresseur d\'Air Sans Fil Numérique 6000mAh Auto/Moto',
+    category: 'Auto & Bricolage',
+    images: [
+      'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1000&q=80'
+    ],
+    shortDescription: 'Gonflage ultra-rapide jusqu\'à 150 PSI. Écran LCD numérique, arrêt automatique à pression cible et lampe torche LED.',
+    fullDescription: 'Indispensable pour tout automobiliste au Sénégal. Permet de regonfler un pneu de voiture dégonflé en moins de 3 minutes sans câble, ou des pneus de moto/vélo et ballons. Fait également office de batterie de secours (Powerbank 6000mAh) pour recharger votre smartphone.',
+    specifications: {
+      'Pression max': '150 PSI / 10.3 BAR',
+      'Batterie': '6000mAh Li-ion rechargeable USB-C',
+      'Fonction Powerbank': 'Sortie USB 5V/2A',
+      'Écran': 'LCD HD affichage pression temps réel',
+      'Éclairage': 'LED 3 modes (Fixe, SOS, Stroboscope)'
+    },
+    features: [
+      'Arrêt automatique dès la pression sélectionnée atteinte',
+      '4 embouts inclus (Voiture, Vélo, Ballon, Matelas gonflable)',
+      'Format compact boîte à gants'
+    ],
+    unitWeightKg: 0.52,
+    dimensionsCm: { length: 17, width: 7, height: 5 },
+    cbm: 0.0006,
+    moq: 1,
+    basePriceCNY: 58,
+    basePriceUSD: 8.1,
+    priceXOF: 12500,
+    previousPriceXOF: 22000,
+    isGroupage: true,
+    activeGroupageId: 'grp-02',
+    supplierId: 'sup-03',
+    sourcerId: 'src-01',
+    defaultTransportMode: 'air',
+    estimatedDeliveryDays: '15–20 jours',
+    stockStatus: 'groupage_only',
+    targetMarginPercent: 36,
+    rating: 4.85,
+    reviewsCount: 114,
+    tags: ['Groupage Actif', 'Auto', 'Clôture Proche'],
+    createdAt: '2026-08-03'
+  },
+  {
+    id: 'prod-03',
+    slug: 'organisateur-rangement-modulaire-6-niveaux-pliable',
+    name: 'Armoire Dressing Modulaire Pliable 6 Niveaux Sans Montage',
+    category: 'Maison & Rangement',
+    images: [
+      'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=1000&q=80'
+    ],
+    shortDescription: 'Déploiement en 3 minutes chrono sans vis ni outils. Portes magnétiques transparentes anti-poussière et structure renforcée.',
+    fullDescription: 'Fini les montages complexes de meubles. Cet organisateur pliable innovant en PP+PET renforcé offre une grande capacité de charge (jusqu\'à 60 kg au total). Idéal pour chambres, salons et dressings avec portes magnétiques hermétiques.',
+    specifications: {
+      'Dimensions': '104 cm (H) x 53 cm (L) x 34 cm (P)',
+      'Matériaux': 'Polypropylène renforcé + Portes PET magnétiques',
+      'Charge max par compartiment': '10 kg (60 kg total)',
+      'Montage': 'Structure accordéon monobloc pliable en 3 minutes'
+    },
+    features: [
+      'Zéro vis ni outil requis',
+      'Portes magnétiques avec poignées dorées élégantes',
+      'Roulettes amovibles avec frein'
+    ],
+    unitWeightKg: 4.3,
+    dimensionsCm: { length: 55, width: 36, height: 26 },
+    cbm: 0.0515,
+    moq: 1,
+    basePriceCNY: 135,
+    basePriceUSD: 18.9,
+    priceXOF: 29900,
+    previousPriceXOF: 48000,
+    isGroupage: true,
+    activeGroupageId: 'grp-03',
+    supplierId: 'sup-02',
+    sourcerId: 'src-02',
+    defaultTransportMode: 'sea',
+    estimatedDeliveryDays: '30–45 jours',
+    stockStatus: 'groupage_only',
+    targetMarginPercent: 32,
+    rating: 4.92,
+    reviewsCount: 43,
+    tags: ['Groupage Maritime', 'Maison', 'Grand Volume'],
+    createdAt: '2026-08-05'
+  },
+  {
+    id: 'prod-04',
+    slug: 'machine-scelleuse-sous-vide-pro-50-sacs',
+    name: 'Machine Scelleuse Professionnelle sous Vide Aliments + 50 Sacs',
+    category: 'Cuisine & Traiteur',
+    images: [
+      'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1000&q=80'
+    ],
+    shortDescription: 'Conservation des aliments multipliée par 5. Aspiration puissante 65kPa, mode sec/humide et arrêt automatique.',
+    fullDescription: 'Idéal pour ménages et restaurateurs/traiteurs à Dakar. Conservez viandes, poissons, légumes et thieb sans brûlure de congélation. Livré avec 50 sacs thermo-soudables alimentaires réutilisables.',
+    specifications: {
+      'Puissance d\'aspiration': '65 kPa',
+      'Largeur de soudure max': '30 cm',
+      'Modes': 'Dry (Sec), Moist (Humide), Seal Only, Pulse',
+      'Alimentation': '220V 50Hz (Standard Sénégal)'
+    },
+    features: [
+      'Bande chauffante en silicone téflon longue durée',
+      'Bac de récupération des liquides amovible et lavable',
+      '50 sacs professionnels gaufrés inclus'
+    ],
+    unitWeightKg: 1.15,
+    dimensionsCm: { length: 38, width: 14, height: 8 },
+    cbm: 0.0042,
+    moq: 1,
+    basePriceCNY: 65,
+    basePriceUSD: 9.1,
+    priceXOF: 14500,
+    previousPriceXOF: 24000,
+    isGroupage: false,
+    supplierId: 'sup-01',
+    sourcerId: 'src-01',
+    defaultTransportMode: 'air',
+    estimatedDeliveryDays: '12–16 jours',
+    stockStatus: 'in_stock',
+    targetMarginPercent: 35,
+    rating: 4.8,
+    reviewsCount: 37,
+    tags: ['Achat Direct', 'Cuisine Pro', 'Qualité Certifiée'],
+    createdAt: '2026-07-28'
+  },
+  {
+    id: 'prod-05',
+    slug: 'centrale-electrique-portable-600w-solaire-lifepo4',
+    name: 'Centrale Électrique Portable 600W / 160 000mAh Onduleur Solaire',
+    category: 'Énergie & Urgence',
+    images: [
+      'https://images.unsplash.com/photo-1508873696983-2df5293cb32f?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1000&q=80'
+    ],
+    shortDescription: 'Solution anti-délestage à Dakar. Alimente TV, ventilateur, routeur WiFi, ordinateurs et éclairage pendant 6 à 10 heures.',
+    fullDescription: 'Batterie lithium fer phosphate (LiFePO4) avec plus de 3000 cycles de recharge (durée de vie +10 ans). Onduleur pur sinus 220V 600W (crête 1200W). Rechargeable sur secteur, allume-cigare ou panneau solaire.',
+    specifications: {
+      'Capacité': '512 Wh / 160 000 mAh',
+      'Sorties 220V': '2 x Prises secteur Pur Sinus 600W (1200W pic)',
+      'Sorties USB': '2 x USB-C PD 60W + 2 x USB-A QC 3.0',
+      'Durée de vie': '3000+ cycles à 80% de capacité',
+      'Entrée Solaire': 'MPPT 12-28V 100W Max'
+    },
+    features: [
+      'Cellules LiFePO4 ultra-sécurisées contre la chaleur',
+      'Protection BMS avancée (surtension, court-circuit)',
+      'Écran LCD couleur avec autonomie restante en temps réel'
+    ],
+    unitWeightKg: 6.2,
+    dimensionsCm: { length: 28, width: 20, height: 21 },
+    cbm: 0.0118,
+    moq: 1,
+    basePriceCNY: 780,
+    basePriceUSD: 109.0,
+    priceXOF: 145000,
+    previousPriceXOF: 215000,
+    isGroupage: true,
+    activeGroupageId: 'grp-04',
+    supplierId: 'sup-04',
+    sourcerId: 'src-03',
+    defaultTransportMode: 'sea',
+    estimatedDeliveryDays: '30–40 jours',
+    stockStatus: 'groupage_only',
+    targetMarginPercent: 30,
+    rating: 4.96,
+    reviewsCount: 29,
+    tags: ['Haute Capacité', 'Anti-Coupure', 'LiFePO4 Premium'],
+    createdAt: '2026-07-20'
+  },
+  {
+    id: 'prod-06',
+    slug: 'support-telephone-voiture-magsafe-induction-15w',
+    name: 'Support Voiture Magnétique MagSafe & Charge Rapide 15W Qi',
+    category: 'Auto & Téléphonie',
+    images: [
+      'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=1000&q=80'
+    ],
+    shortDescription: 'Aimant néodyme N52 ultra-puissant (résiste aux dos-d\'âne). Rotation 360° et charge par induction rapide 15W.',
+    fullDescription: 'Spécialement adapté pour les routes de Dakar avec un clip en acier trempé pour grille d\'aération et un bras ventouse pour tableau de bord. Compatible iPhone MagSafe et smartphones Android avec anneau magnétique fourni.',
+    specifications: {
+      'Puissance': '15W / 10W / 7.5W / 5W induction automatique',
+      'Aimantation': '16 aimants N52 haute intensité',
+      'Fixation': 'Double système (Grille aération anti-chute + Ventouse)',
+      'Câble': 'USB-C tressé 1.2m inclus'
+    },
+    features: [
+      'Maintien parfait même sur routes cahoteuses',
+      'Recharge rapide certifiée Qi sans surchauffe',
+      'Anneau métallique universel fourni pour téléphones Android'
+    ],
+    unitWeightKg: 0.22,
+    dimensionsCm: { length: 12, width: 9, height: 6 },
+    cbm: 0.0006,
+    moq: 1,
+    basePriceCNY: 28,
+    basePriceUSD: 3.9,
+    priceXOF: 6900,
+    previousPriceXOF: 13500,
+    isGroupage: false,
+    supplierId: 'sup-03',
+    sourcerId: 'src-03',
+    defaultTransportMode: 'air',
+    estimatedDeliveryDays: '12–15 jours',
+    stockStatus: 'in_stock',
+    targetMarginPercent: 40,
+    rating: 4.87,
+    reviewsCount: 89,
+    tags: ['Achat Rapide', 'Accessoire Auto', 'Charge Sans Fil'],
+    createdAt: '2026-08-04'
+  }
+];
+
+export const MOCK_GROUPAGES: Groupage[] = [
+  {
+    id: 'grp-01',
+    code: 'GRP-024',
+    title: 'Groupage #024 — Mini Vidéoprojecteur Portable Smart HD 1080p',
+    productId: 'prod-01',
+    unitPriceXOF: 15900,
+    originalPriceXOF: 28500,
+    targetUnits: 50,
+    currentUnits: 37,
+    participantsCount: 34,
+    startDate: '2026-08-01',
+    closingDate: '2026-08-30',
+    estimatedDepartureDate: '2026-09-03',
+    estimatedArrivalDate: '2026-09-18',
+    transportMode: 'air',
+    status: 'open',
+    minOrderPerUser: 1,
+    maxOrderPerUser: 5,
+    savingsPercent: 44,
+    logisticsRoute: 'Guangzhou Sourcing Hub → Vol Cargo International → Dakar Hub Almadies',
+    guaranteeNote: 'Produit testé unitairement à l\'usine avant conditionnement. Remplacement garanti si non conforme.',
+    keyBenefits: [
+      'Économisez 12 600 FCFA par rapport au prix boutique local',
+      'Transport aérien inclus et formalités douanières prises en charge',
+      'Notification WhatsApp et SMS à chaque étape clé'
+    ]
+  },
+  {
+    id: 'grp-02',
+    code: 'GRP-025',
+    title: 'Groupage #025 — Compresseur d\'Air Sans Fil 6000mAh Auto/Moto',
+    productId: 'prod-02',
+    unitPriceXOF: 12500,
+    originalPriceXOF: 22000,
+    targetUnits: 100,
+    currentUnits: 82,
+    participantsCount: 71,
+    startDate: '2026-08-03',
+    closingDate: '2026-08-25',
+    estimatedDepartureDate: '2026-08-28',
+    estimatedArrivalDate: '2026-09-12',
+    transportMode: 'air',
+    status: 'closing_soon',
+    minOrderPerUser: 1,
+    maxOrderPerUser: 10,
+    savingsPercent: 43,
+    logisticsRoute: 'Baiyun Guangzhou Hub → Fret Aérien Prioritaire → Hubs Sénégal',
+    guaranteeNote: 'Test de pression et contrôle batterie 100% exécutés par notre équipe sur place.',
+    keyBenefits: [
+      'Plus que 18 unités disponibles pour clôturer le lot',
+      'Départ fret express garanti le 28 Août 2026',
+      'Fournisseur noté 4.9/5 avec 3 ans de collaboration'
+    ]
+  },
+  {
+    id: 'grp-03',
+    code: 'GRP-026',
+    title: 'Groupage #026 — Armoire Dressing Modulaire Pliable 6 Niveaux',
+    productId: 'prod-03',
+    unitPriceXOF: 29900,
+    originalPriceXOF: 48000,
+    targetUnits: 30,
+    currentUnits: 21,
+    participantsCount: 19,
+    startDate: '2026-08-05',
+    closingDate: '2026-09-05',
+    estimatedDepartureDate: '2026-09-10',
+    estimatedArrivalDate: '2026-10-15',
+    transportMode: 'sea',
+    status: 'open',
+    minOrderPerUser: 1,
+    maxOrderPerUser: 4,
+    savingsPercent: 38,
+    logisticsRoute: 'Yiwu Consolidation Center → Ningbo Port → Port Autonome de Dakar',
+    guaranteeNote: 'Emballage caisse bois et cornières d\'angles renforcées pour transport maritime sécurisé.',
+    keyBenefits: [
+      'Transport maritime économique pour meuble volumineux',
+      'Prix tout compris incluant le dédouanement au Port de Dakar',
+      'Retrait possible au Hub ou livraison à domicile dans tout Dakar'
+    ]
+  },
+  {
+    id: 'grp-04',
+    code: 'GRP-023',
+    title: 'Groupage #023 — Centrale Électrique Portable 600W Solaire LiFePO4',
+    productId: 'prod-05',
+    unitPriceXOF: 145000,
+    originalPriceXOF: 215000,
+    targetUnits: 20,
+    currentUnits: 20,
+    participantsCount: 18,
+    startDate: '2026-07-10',
+    closingDate: '2026-07-28',
+    estimatedDepartureDate: '2026-08-04',
+    estimatedArrivalDate: '2026-09-08',
+    transportMode: 'sea',
+    status: 'shipped',
+    minOrderPerUser: 1,
+    maxOrderPerUser: 2,
+    savingsPercent: 33,
+    logisticsRoute: 'Dongguan Factory → Shenzhen Port → Port Autonome de Dakar',
+    guaranteeNote: 'Certification de transport maritime de batteries (Certificat UN38.3 + MSDS).',
+    keyBenefits: [
+      'Campagne 100% complétée — Conteneur en mer',
+      'Arrivée estimée au Port de Dakar le 08 Septembre 2026'
+    ]
+  }
+];
+
+export const MOCK_ORDERS: Order[] = [
+  {
+    id: 'ord-10482',
+    trackingCode: 'AWP-10482',
+    customer: {
+      id: 'cust-01',
+      fullName: 'Amadou Diallo',
+      phone: '+221 77 540 22 11',
+      email: 'amadou.diallo@gmail.com',
+      city: 'Dakar',
+      totalOrdersCount: 4
+    },
+    items: [
+      {
+        productId: 'prod-01',
+        productName: 'Mini Vidéoprojecteur Portable Smart HD 1080p',
+        productImage: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80',
+        quantity: 1,
+        unitPriceXOF: 15900,
+        totalPriceXOF: 15900,
+        isGroupage: true,
+        groupageId: 'grp-01',
+        transportMode: 'air'
+      }
+    ],
+    subtotalXOF: 15900,
+    shippingFeeXOF: 2000,
+    totalXOF: 17900,
+    paymentMethod: 'wave',
+    paymentStatus: 'paid',
+    currentStatus: 'shipped_from_china',
+    deliveryType: 'home_delivery',
+    deliveryAddress: {
+      fullName: 'Amadou Diallo',
+      phone: '+221 77 540 22 11',
+      region: 'Dakar',
+      city: 'Dakar',
+      district: 'Almadies',
+      landmark: 'Près de l\'Hôtel King Fahd Palace'
+    },
+    createdAt: '2026-08-04T11:24:00Z',
+    estimatedDeliveryDate: '2026-09-18',
+    notes: 'Livraison express à domicile demandée par le client.',
+    trackingTimeline: [
+      {
+        id: 't-1',
+        status: 'order_confirmed',
+        title: 'Commande confirmée',
+        description: 'Votre participation au groupage #024 a été validée avec succès.',
+        location: 'Plateforme SinoSenegal',
+        timestamp: '04 Août 2026 - 11:24',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-2',
+        status: 'payment_received',
+        title: 'Paiement Wave reçu',
+        description: 'Montant de 17 900 FCFA reçu et sécurisé sur le compte séquestre.',
+        location: 'Dakar, Sénégal',
+        timestamp: '04 Août 2026 - 11:26',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-3',
+        status: 'groupage_consolidated',
+        title: 'Groupage consolidé',
+        description: 'Le lot de 50 projecteurs a été clôturé et envoyé au fournisseur.',
+        location: 'Pôle Opérations SinoSenegal',
+        timestamp: '07 Août 2026 - 09:15',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-4',
+        status: 'purchased_in_china',
+        title: 'Achat effectué en usine',
+        description: 'Notre sourceur Zhang Wei a réglé la commande auprès de l\'usine Shenzhen MicroVision.',
+        location: 'Shenzhen, Chine',
+        timestamp: '09 Août 2026 - 14:30',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-5',
+        status: 'quality_control_passed',
+        title: 'Contrôle qualité réussi',
+        description: 'Inspection visuelle et test d\'allumage 100% validés à l\'entrepôt de Guangzhou.',
+        location: 'Hub Guangzhou, Chine',
+        timestamp: '11 Août 2026 - 16:45',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-6',
+        status: 'shipped_from_china',
+        title: 'Expédition par fret aérien',
+        description: 'Le colis a été remis à la compagnie aérienne cargo. En vol vers Dakar.',
+        location: 'Aéroport Int. Baiyun Guangzhou (CAN)',
+        timestamp: '14 Août 2026 - 08:20',
+        completed: true,
+        current: true
+      },
+      {
+        id: 't-7',
+        status: 'arrived_in_senegal',
+        title: 'Arrivée à Dakar (AIBD)',
+        description: 'Atterrissage prévu à l\'Aéroport International Blaise Diagne.',
+        location: 'AIBD Diass, Sénégal',
+        timestamp: 'Prévu le 17 Août 2026',
+        completed: false,
+        current: false
+      },
+      {
+        id: 't-8',
+        status: 'customs_cleared',
+        title: 'Dédouanement & Formalités',
+        description: 'Prise en charge douanière par notre transitaire agréé.',
+        location: 'Terminal Fret AIBD',
+        timestamp: 'Prévu le 18 Août 2026',
+        completed: false,
+        current: false
+      },
+      {
+        id: 't-9',
+        status: 'arrived_at_hub',
+        title: 'Arrivée au Hub Sénégal',
+        description: 'Enregistrement et scan du colis au Hub Almadies.',
+        location: 'Hub SinoSenegal Dakar Almadies',
+        timestamp: 'Prévu le 19 Août 2026',
+        completed: false,
+        current: false
+      },
+      {
+        id: 't-10',
+        status: 'delivered',
+        title: 'Livraison finale',
+        description: 'Remise en main propre à l\'adresse du client.',
+        location: 'Almadies, Dakar',
+        timestamp: 'Prévu le 20 Août 2026',
+        completed: false,
+        current: false
+      }
+    ]
+  },
+  {
+    id: 'ord-10483',
+    trackingCode: 'AWP-10483',
+    customer: {
+      id: 'cust-02',
+      fullName: 'Fatou Sow',
+      phone: '+221 78 331 40 88',
+      email: 'fatou.sow@orange.sn',
+      city: 'Thiès',
+      totalOrdersCount: 2
+    },
+    items: [
+      {
+        productId: 'prod-02',
+        productName: 'Compresseur d\'Air Sans Fil 6000mAh Auto/Moto',
+        productImage: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=600&q=80',
+        quantity: 2,
+        unitPriceXOF: 12500,
+        totalPriceXOF: 25000,
+        isGroupage: true,
+        groupageId: 'grp-02',
+        transportMode: 'air'
+      }
+    ],
+    subtotalXOF: 25000,
+    shippingFeeXOF: 0,
+    totalXOF: 25000,
+    paymentMethod: 'orange_money',
+    paymentStatus: 'paid',
+    currentStatus: 'quality_control_passed',
+    deliveryType: 'hub_pickup',
+    hubLocationId: 'hub-thies',
+    createdAt: '2026-08-08T15:10:00Z',
+    estimatedDeliveryDate: '2026-09-12',
+    trackingTimeline: [
+      {
+        id: 't-20',
+        status: 'order_confirmed',
+        title: 'Commande validée',
+        description: '2 unités réservées sur le groupage #025.',
+        location: 'SinoSenegal',
+        timestamp: '08 Août 2026 - 15:10',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-21',
+        status: 'payment_received',
+        title: 'Paiement Orange Money reçu',
+        description: 'Transaction OM #OM-778942 validée.',
+        location: 'Dakar',
+        timestamp: '08 Août 2026 - 15:12',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-22',
+        status: 'purchased_in_china',
+        title: 'Achat usine effectué',
+        description: 'Commande transmise à AutoPower Tech Guangzhou.',
+        location: 'Guangzhou, Chine',
+        timestamp: '10 Août 2026 - 10:00',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-23',
+        status: 'quality_control_passed',
+        title: 'Contrôle qualité réussi',
+        description: 'Test de conformité moteurs et batteries conforme.',
+        location: 'Hub Guangzhou',
+        timestamp: '12 Août 2026 - 17:30',
+        completed: true,
+        current: true
+      },
+      {
+        id: 't-24',
+        status: 'shipped_from_china',
+        title: 'Préparation au vol cargo',
+        description: 'Palettisation en cours pour le prochain départ avion.',
+        location: 'Guangzhou',
+        timestamp: 'En cours',
+        completed: false,
+        current: false
+      }
+    ]
+  },
+  {
+    id: 'ord-10484',
+    trackingCode: 'AWP-10484',
+    customer: {
+      id: 'cust-03',
+      fullName: 'Moussa Ndiaye',
+      phone: '+221 70 822 55 90',
+      email: 'moussa.ndiaye@terangabiz.com',
+      city: 'Dakar',
+      totalOrdersCount: 6
+    },
+    items: [
+      {
+        productId: 'prod-05',
+        productName: 'Centrale Électrique Portable 600W Solaire LiFePO4',
+        productImage: 'https://images.unsplash.com/photo-1508873696983-2df5293cb32f?auto=format&fit=crop&w=600&q=80',
+        quantity: 1,
+        unitPriceXOF: 145000,
+        totalPriceXOF: 145000,
+        isGroupage: true,
+        groupageId: 'grp-04',
+        transportMode: 'sea'
+      }
+    ],
+    subtotalXOF: 145000,
+    shippingFeeXOF: 0,
+    totalXOF: 145000,
+    paymentMethod: 'card',
+    paymentStatus: 'paid',
+    currentStatus: 'arrived_in_senegal',
+    deliveryType: 'hub_pickup',
+    hubLocationId: 'hub-plateau',
+    createdAt: '2026-07-15T09:40:00Z',
+    estimatedDeliveryDate: '2026-08-20',
+    trackingTimeline: [
+      {
+        id: 't-30',
+        status: 'order_confirmed',
+        title: 'Commande validée',
+        description: 'Réservation centrale solaire validée.',
+        location: 'Dakar',
+        timestamp: '15 Juillet 2026',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-31',
+        status: 'shipped_from_china',
+        title: 'Embarquement conteneur maritime',
+        description: 'Conteneur MSC Sino-Dakar chargé au port de Shenzhen.',
+        location: 'Port de Shenzhen',
+        timestamp: '04 Août 2026',
+        completed: true,
+        current: false
+      },
+      {
+        id: 't-32',
+        status: 'arrived_in_senegal',
+        title: 'Navire accosté au Port de Dakar',
+        description: 'Le conteneur est déchargé au Môle 4 du Port Autonome de Dakar.',
+        location: 'Port Autonome de Dakar (PAD)',
+        timestamp: '14 Août 2026 - 19:00',
+        completed: true,
+        current: true
+      },
+      {
+        id: 't-33',
+        status: 'customs_cleared',
+        title: 'Dédouanement maritime',
+        description: 'Formalités Gaindé / Douanes sénégalaises en cours.',
+        location: 'Port de Dakar',
+        timestamp: 'En cours',
+        completed: false,
+        current: false
+      }
+    ]
+  }
+];
+
+export const MOCK_B2B_REQUESTS: B2BRequest[] = [
+  {
+    id: 'b2b-01',
+    code: 'B2B-8921',
+    companyName: 'SARL Teranga Équipements Pro',
+    contactName: 'El Hadj Malick Guèye',
+    phone: '+221 77 610 99 23',
+    email: 'direction@teranga-equipements.sn',
+    productType: 'Mobilier de bureau ergonomique & Chaises dactylo mesh',
+    quantity: 150,
+    targetBudgetXOF: 7500000,
+    transportPreference: 'sea',
+    specifications: 'Chaises de bureau ergonomiques avec support lombaire réglable, assise mousse haute densité et accoudoirs 3D. Couleur noire mate.',
+    attachments: ['devis_modele_souhaite.pdf'],
+    status: 'quote_ready',
+    createdAt: '2026-08-06',
+    quote: {
+      id: 'q-8921',
+      unitCostSupplierCNY: 185,
+      freightEstimatedXOF: 1850000,
+      customsEstimatedXOF: 650000,
+      totalPerUnitXOF: 34500,
+      suggestedSellingPriceXOF: 45000,
+      leadTimeDays: 40,
+      recommendedTransport: 'sea',
+      validUntil: '2026-08-30',
+      notes: 'Devis usine certifiée Foshan avec garantie 3 ans sur vérins pneumatiques Class 4.'
+    }
+  },
+  {
+    id: 'b2b-02',
+    code: 'B2B-8922',
+    companyName: 'GIE SenAgro Maraîchage Niayes',
+    contactName: 'Ablaye Sène',
+    phone: '+221 76 590 12 77',
+    email: 'senagro.contact@gmail.com',
+    productType: 'Pulvérisateurs agricoles rechargeables 16L à batterie',
+    quantity: 500,
+    targetBudgetXOF: 6500000,
+    transportPreference: 'recommended',
+    specifications: 'Pulvérisateurs à dos avec batterie lithium 12V 8Ah, lance télescopique en inox et 4 buses de précision.',
+    status: 'sourcing_in_progress',
+    createdAt: '2026-08-10'
+  },
+  {
+    id: 'b2b-03',
+    code: 'B2B-8923',
+    companyName: 'Horizon Boutique Tech Dakar',
+    contactName: 'Aminata Kane',
+    phone: '+221 78 412 90 01',
+    email: 'kane.horizon@gmail.com',
+    productType: 'Coques magnétiques iPhone & Chargeurs 30W GaN sous marque blanche',
+    quantity: 2000,
+    targetBudgetXOF: 4200000,
+    transportPreference: 'air',
+    specifications: 'Packaging personnalisé avec logo Horizon imprimé en dorure à chaud. Certification CE requise.',
+    status: 'approved',
+    createdAt: '2026-07-29',
+    quote: {
+      id: 'q-8923',
+      unitCostSupplierCNY: 8.5,
+      freightEstimatedXOF: 620000,
+      customsEstimatedXOF: 280000,
+      totalPerUnitXOF: 1450,
+      suggestedSellingPriceXOF: 2100,
+      leadTimeDays: 16,
+      recommendedTransport: 'air',
+      validUntil: '2026-08-25',
+      notes: 'Production en cours à Shenzhen Huaqiangbei.'
+    }
+  }
+];
+
+export const MOCK_COST_VARIANCES: CostVarianceItem[] = [
+  {
+    id: 'var-01',
+    groupageCode: 'GRP-022',
+    productName: 'Machine Scelleuse Professionnelle sous Vide',
+    date: '2026-07-30',
+    estimatedWeightKg: 46.0,
+    actualWeightKg: 50.6,
+    weightVarianceKg: +4.6,
+    estimatedFreightXOF: 345000,
+    actualFreightXOF: 379500,
+    freightVarianceXOF: +34500,
+    freightVariancePercent: +10.0,
+    estimatedCustomsXOF: 85000,
+    actualCustomsXOF: 89000,
+    estimatedMarginPercent: 35.0,
+    actualMarginPercent: 33.2,
+    marginImpactPercent: -1.8,
+    causeNote: 'Emballage carton usine plus épais que la fiche technique préliminaire (+100g par unité).'
+  },
+  {
+    id: 'var-02',
+    groupageCode: 'GRP-021',
+    productName: 'Kit Panneau Solaire Pliable 100W',
+    date: '2026-07-18',
+    estimatedWeightKg: 120.0,
+    actualWeightKg: 118.0,
+    weightVarianceKg: -2.0,
+    estimatedFreightXOF: 900000,
+    actualFreightXOF: 885000,
+    freightVarianceXOF: -15000,
+    freightVariancePercent: -1.6,
+    estimatedCustomsXOF: 140000,
+    actualCustomsXOF: 135000,
+    estimatedMarginPercent: 32.0,
+    actualMarginPercent: 32.8,
+    marginImpactPercent: +0.8,
+    causeNote: 'Consolidation optimisée en entrepôt Yiwu avec élimination du suremballage inutile.'
+  },
+  {
+    id: 'var-03',
+    groupageCode: 'GRP-020',
+    productName: 'Enceinte Bluetooth Waterproof 40W',
+    date: '2026-07-02',
+    estimatedWeightKg: 85.0,
+    actualWeightKg: 91.5,
+    weightVarianceKg: +6.5,
+    estimatedFreightXOF: 637500,
+    actualFreightXOF: 686250,
+    freightVarianceXOF: +48750,
+    freightVariancePercent: +7.6,
+    estimatedCustomsXOF: 95000,
+    actualCustomsXOF: 98000,
+    estimatedMarginPercent: 36.5,
+    actualMarginPercent: 34.1,
+    marginImpactPercent: -2.4,
+    causeNote: 'Poids volumétrique appliqué par la compagnie aérienne à cause de la forme du packaging tubulaire.'
+  }
+];
+
+export const MOCK_ADMIN_ALERTS: AdminAlert[] = [
+  {
+    id: 'alt-01',
+    type: 'warning',
+    title: 'Clôture imminente Groupage #025',
+    message: 'Le groupage Compresseur d\'air atteint 82% (82/100). Clôture automatique dans 3 jours.',
+    linkTo: '/admin/groupages',
+    timestamp: 'Il y a 25 min',
+    isRead: false
+  },
+  {
+    id: 'alt-02',
+    type: 'danger',
+    title: 'Alerte Poids Volumétrique : Produit Armoire Modulaire',
+    message: 'Le rapport poids volumétrique / poids réel est élevé (0.0515 CBM). Vérifier l\'option fret maritime.',
+    linkTo: '/admin/calculator',
+    timestamp: 'Il y a 2h',
+    isRead: false
+  },
+  {
+    id: 'alt-03',
+    type: 'info',
+    title: 'Nouvelle demande B2B reçue (GIE SenAgro)',
+    message: '500 Pulvérisateurs agricoles 16L à chiffrer sous 48h.',
+    linkTo: '/admin/b2b',
+    timestamp: 'Il y a 4h',
+    isRead: false
+  },
+  {
+    id: 'alt-04',
+    type: 'success',
+    title: 'Conteneur MSC Sino-Dakar accosté au Port',
+    message: 'Le lot GRP-023 Centrale Électrique est prêt pour dédouanement Gaindé.',
+    linkTo: '/admin/hub',
+    timestamp: 'Hier à 19:00',
+    isRead: true
+  }
+];
+
+export const MOCK_CATEGORIES: import('../types').CategoryItem[] = [
+  {
+    id: 'cat-elec',
+    name: 'Électronique & High-Tech',
+    slug: 'electronique-high-tech',
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
+    productCount: 142,
+    description: 'Vidéoprojecteurs, écouteurs ANC, chargeurs GaN, caméras et smart audio.',
+    popularSearchTerms: ['Projecteur', 'Écouteurs', 'Chargeur GaN', 'Enceinte Bluetooth', 'Micro sans fil'],
+    featuredTag: '🔥 Très demandé'
+  },
+  {
+    id: 'cat-home',
+    name: 'Maison & Décoration',
+    slug: 'maison-decoration',
+    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80',
+    productCount: 98,
+    description: 'Rangements pliables, organisateurs dressing, éclairage LED et cuisine.',
+    popularSearchTerms: ['Armoire pliable', 'Rangement', 'Lampe solaire', 'Mixeur portable', 'Aspirateur'],
+    featuredTag: '✨ Tendance'
+  },
+  {
+    id: 'cat-auto',
+    name: 'Automobile & Outillage',
+    slug: 'automobile-outillage',
+    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80',
+    productCount: 76,
+    description: 'Compresseurs pneus, pompes haute pression, boosters batterie et outillage.',
+    popularSearchTerms: ['Compresseur auto', 'Nettoyeur haute pression', 'Booster batterie', 'Clé à choc'],
+    featuredTag: '⚡ Essentiel'
+  },
+  {
+    id: 'cat-b2b-pro',
+    name: 'Équipements Professionnels & B2B',
+    slug: 'equipements-professionnels',
+    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80',
+    productCount: 84,
+    description: 'Machines d\'emballage, scelleuses industrielles, balances et matériel commerce.',
+    popularSearchTerms: ['Scelleuse', 'Imprimante thermique', 'Machine sous-vide', 'Groupe électrogène'],
+    featuredTag: '🏢 Grossistes'
+  },
+  {
+    id: 'cat-mode',
+    name: 'Mode, Sacs & Maroquinerie',
+    slug: 'mode-maroquinerie',
+    image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=800&q=80',
+    productCount: 110,
+    description: 'Sacs à dos antivol, montres, lunettes solaires et maroquinerie moderne.',
+    popularSearchTerms: ['Sac antivol', 'Montre connectée', 'Lunettes UV400', 'Portefeuille cuir'],
+    featuredTag: '💎 Premium'
+  },
+  {
+    id: 'cat-energy',
+    name: 'Énergie Solaire & Batteries',
+    slug: 'energie-solaire-batteries',
+    image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80',
+    productCount: 52,
+    description: 'Panneaux solaires pliables, stations d\'énergie LiFePO4 et projecteurs solaires.',
+    popularSearchTerms: ['Panneau solaire 100W', 'Centrale électrique', 'Batterie LiFePO4', 'Kit secours'],
+    featuredTag: '☀️ Économies'
+  },
+  {
+    id: 'cat-beauty',
+    name: 'Beauté & Soins Personnels',
+    slug: 'beaute-soins',
+    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
+    productCount: 64,
+    description: 'Tondeuses de précision, fers à lisser ioniques, brosses thermiques et soins visage.',
+    popularSearchTerms: ['Tondeuse pro', 'Fer à boucler', 'Miroir LED', 'Brosse soufflante'],
+    featuredTag: '🌟 Populaire'
+  },
+  {
+    id: 'cat-sport',
+    name: 'Sport & Plein Air',
+    slug: 'sport-plein-air',
+    image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+    productCount: 45,
+    description: 'Pistolets de massage, élastiques musculation, gourdes isothermes et outdoor.',
+    popularSearchTerms: ['Pistolet massage', 'Bandes fitness', 'Gourde inox', 'Sac sport'],
+    featuredTag: '🏋️‍♂️ Forme'
+  },
+  {
+    id: 'cat-office',
+    name: 'Bureau & Télétravail',
+    slug: 'bureau-teletravail',
+    image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=800&q=80',
+    productCount: 58,
+    description: 'Supports d\'ordinateur réglables, hubs USB-C 10-en-1, tapis ergonomiques.',
+    popularSearchTerms: ['Support laptop alu', 'Hub USB-C', 'Clavier silencieux', 'Lampe écran'],
+    featuredTag: '💼 Pro'
+  },
+  {
+    id: 'cat-phone',
+    name: 'Accessoires Téléphone',
+    slug: 'accessoires-telephone',
+    image: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80',
+    productCount: 130,
+    description: 'Powerbanks 20000mAh, chargeurs sans fil MagSafe, coques blindées et câbles nylon.',
+    popularSearchTerms: ['Powerbank 65W', 'Câble rapide 100W', 'Support voiture induction', 'Verre trempé'],
+    featuredTag: '⚡ Best-seller'
+  }
+];
+
+export const MOCK_CUSTOMERS: Customer[] = [
+  {
+    id: 'cust-01',
+    fullName: 'Mamadou Lamine Diop',
+    phone: '+221 77 654 32 10',
+    email: 'm.diop@techdakar.sn',
+    city: 'Dakar (Plateau)',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    totalOrdersCount: 8
+  },
+  {
+    id: 'cust-02',
+    fullName: 'Aïssatou Ndiaye',
+    phone: '+221 78 123 45 67',
+    email: 'aissatou.ndiaye@gmail.com',
+    city: 'Dakar (Almadies)',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+    totalOrdersCount: 5
+  },
+  {
+    id: 'cust-03',
+    fullName: 'Ibrahima Sarr',
+    phone: '+221 76 987 65 43',
+    email: 'ibrahima.sarr@senelec-group.sn',
+    city: 'Thiès',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    totalOrdersCount: 3
+  },
+  {
+    id: 'cust-04',
+    fullName: 'Fatou Bintou Fall',
+    phone: '+221 77 234 56 78',
+    email: 'fatou.fall@boutiquedakar.com',
+    city: 'Saint-Louis',
+    avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&w=200&q=80',
+    totalOrdersCount: 12
+  },
+  {
+    id: 'cust-05',
+    fullName: 'Cheikh Tidiane Sy',
+    phone: '+221 70 888 99 00',
+    email: 'cheikh.sy@commerce-senegal.com',
+    city: 'Mbour',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+    totalOrdersCount: 6
+  }
+];
+
+export const MOCK_ACTIVITY_LOGS: AdminActivityLog[] = [
+  {
+    id: 'act-01',
+    timestamp: '2026-08-15 15:42',
+    time: '15:42',
+    actor: 'Système Wave',
+    actorRole: 'Passerelle Paiement',
+    action: 'Paiement de 28 500 FCFA reçu avec succès',
+    targetType: 'payment',
+    targetId: 'AWP-10484',
+    targetLabel: 'Commande AWP-10484 (Mamadou Diop)',
+    statusBadge: 'Payé'
+  },
+  {
+    id: 'act-02',
+    timestamp: '2026-08-15 14:18',
+    time: '14:18',
+    actor: 'Zhang Wei',
+    actorRole: 'Sourceur Guangzhou',
+    action: 'Audit usine validé avec 12 photos de conformité',
+    targetType: 'groupage',
+    targetId: 'GRP-024',
+    targetLabel: 'Groupage Projecteur 4K Hy300 Ultra',
+    statusBadge: 'QC Conforme'
+  },
+  {
+    id: 'act-03',
+    timestamp: '2026-08-15 11:30',
+    time: '11:30',
+    actor: 'Moussa Kane',
+    actorRole: 'Hub Manager Dakar',
+    action: 'Colis réceptionné et scanné au Rayon B-04',
+    targetType: 'hub',
+    targetId: 'AWP-10482',
+    targetLabel: 'Colis AWP-10482 prêt pour retrait',
+    statusBadge: 'Disponible Hub'
+  },
+  {
+    id: 'act-04',
+    timestamp: '2026-08-15 09:15',
+    time: '09:15',
+    actor: 'Amadou (Super Admin)',
+    actorRole: 'Super Admin',
+    action: 'Publication du nouveau groupage Station Énergie 600W',
+    targetType: 'groupage',
+    targetId: 'GRP-026',
+    targetLabel: 'Lot GRP-026 ouvert aux réservations',
+    statusBadge: 'Publié'
+  },
+  {
+    id: 'act-05',
+    timestamp: '2026-08-14 18:05',
+    time: 'Hier 18:05',
+    actor: 'Transitaire MSC',
+    actorRole: 'Fret Maritime',
+    action: 'Conteneur LCL dédouané au Port Autonome de Dakar',
+    targetType: 'order',
+    targetId: 'CONT-DKR-89',
+    targetLabel: 'Gaindé Validé - 450 colis acheminés vers Hub',
+    statusBadge: 'Dédouané'
+  },
+  {
+    id: 'act-06',
+    timestamp: '2026-08-14 16:20',
+    time: 'Hier 16:20',
+    actor: 'Li Na',
+    actorRole: 'Sourceur Yiwu',
+    action: 'Négociation fournisseur terminée : -4.5% sur MOQ 100',
+    targetType: 'supplier',
+    targetId: 'sup-02',
+    targetLabel: 'Yiwu GreenHome Storage',
+    statusBadge: 'Négocié'
+  }
+];
+
+export const MOCK_SOURCING_PIPELINE: SourcingPipelineRequest[] = [
+  {
+    id: 'src-01',
+    code: 'SRC-2041',
+    productName: 'Panneaux Solaires Monocristallins Pliables 200W',
+    category: 'Maison & Solaire',
+    clientName: 'Solaire Plus Sénégal (GIE)',
+    clientPhone: '+221 77 432 10 98',
+    targetQuantity: 150,
+    targetBudgetXOF: 7500000,
+    specifications: 'Rendement > 22.5%, sorties DC + USB-C PD 65W, étanchéité IP67, poignée de transport renforcée.',
+    imageUrl: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80',
+    platformSource: '1688',
+    assignedSourcerId: 'src-01',
+    assignedSourcerName: 'Zhang Wei (Guangzhou)',
+    deadlineDate: '2026-08-25',
+    createdAt: '2026-08-12',
+    status: 'offers_received',
+    offersCount: 4,
+    bestOfferSupplierCNY: 285,
+    bestOfferTotalXOF: 38500,
+    notes: '3 usines sélectionnées à Shenzhen. Échantillon testé en laboratoire conforme.'
+  },
+  {
+    id: 'src-02',
+    code: 'SRC-2042',
+    productName: 'Machines à Coudre Industrielles Automatiques',
+    category: 'Industrie & Textile',
+    clientName: 'Ateliers Dakar Couture',
+    clientPhone: '+221 78 555 44 33',
+    targetQuantity: 20,
+    targetBudgetXOF: 6000000,
+    specifications: 'Moteur direct drive 550W silencieux, coupe-fil automatique, positionneur d\'aiguille numérique.',
+    imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
+    platformSource: 'direct_factory',
+    assignedSourcerId: 'src-02',
+    assignedSourcerName: 'Li Na (Yiwu/Zhejiang)',
+    deadlineDate: '2026-08-28',
+    createdAt: '2026-08-14',
+    status: 'searching',
+    offersCount: 2,
+    notes: 'Recherche directe auprès des fabricants de Taizhou.'
+  },
+  {
+    id: 'src-03',
+    code: 'SRC-2043',
+    productName: 'Motos Électriques Urbaines 72V 3000W avec Batterie Amovible',
+    category: 'Automobile & Mobilité',
+    clientName: 'Express Moto Dakar',
+    clientPhone: '+221 76 333 22 11',
+    targetQuantity: 10,
+    targetBudgetXOF: 12000000,
+    specifications: 'Autonomie 100km, batterie Lithium 72V 45Ah amovible, freinage combiné CBS, homologation CEE.',
+    imageUrl: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80',
+    platformSource: 'direct_factory',
+    assignedSourcerId: 'src-03',
+    assignedSourcerName: 'Chen Tao (Shenzhen)',
+    deadlineDate: '2026-09-05',
+    createdAt: '2026-08-10',
+    status: 'validation',
+    offersCount: 3,
+    bestOfferSupplierCNY: 4800,
+    bestOfferTotalXOF: 780000,
+    notes: 'Certificats de batterie MSDS et UN38.3 validés pour le transport maritime.'
+  },
+  {
+    id: 'src-04',
+    code: 'SRC-2044',
+    productName: 'Packaging Carton Personnalisé & Boîtes Kraft Alimentaires',
+    category: 'Emballage & Pro',
+    clientName: 'Resto Gourmet Almadies',
+    clientPhone: '+221 77 111 22 33',
+    targetQuantity: 10000,
+    targetBudgetXOF: 2500000,
+    specifications: 'Carton ondulé biodégradable 350g, impression logo 2 couleurs offset, résistance à l\'huile.',
+    imageUrl: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80',
+    platformSource: 'yiwu',
+    assignedSourcerId: 'src-02',
+    assignedSourcerName: 'Li Na (Yiwu)',
+    deadlineDate: '2026-08-20',
+    createdAt: '2026-08-08',
+    status: 'ordered',
+    offersCount: 5,
+    bestOfferSupplierCNY: 0.85,
+    bestOfferTotalXOF: 135,
+    notes: 'BAT d\'impression validé par le client. Production en cours à Yiwu.'
+  }
+];
+
+export const MOCK_PAYMENTS: PaymentRecord[] = [
+  {
+    id: 'pay-01',
+    orderId: 'ord-01',
+    orderCode: 'AWP-10482',
+    customerName: 'Mamadou Lamine Diop',
+    customerPhone: '+221 77 654 32 10',
+    amountXOF: 28500,
+    method: 'wave',
+    status: 'received',
+    reference: 'WAVE-SN-98218492',
+    date: '2026-08-15',
+    time: '15:42',
+    operatorFeeXOF: 285,
+    netReceivedXOF: 28215,
+    verifiedBy: 'Système Auto'
+  },
+  {
+    id: 'pay-02',
+    orderId: 'ord-02',
+    orderCode: 'AWP-10483',
+    customerName: 'Aïssatou Ndiaye',
+    customerPhone: '+221 78 123 45 67',
+    amountXOF: 45000,
+    method: 'orange_money',
+    status: 'received',
+    reference: 'OM-SN-44910283',
+    date: '2026-08-15',
+    time: '14:20',
+    operatorFeeXOF: 450,
+    netReceivedXOF: 44550,
+    verifiedBy: 'Système Auto'
+  },
+  {
+    id: 'pay-03',
+    orderId: 'ord-03',
+    orderCode: 'AWP-10484',
+    customerName: 'Ibrahima Sarr',
+    customerPhone: '+221 76 987 65 43',
+    amountXOF: 185000,
+    method: 'card',
+    status: 'received',
+    reference: 'VISA-STRIPE-78912',
+    date: '2026-08-14',
+    time: '19:10',
+    operatorFeeXOF: 4625,
+    netReceivedXOF: 180375,
+    verifiedBy: 'Stripe Gateway'
+  },
+  {
+    id: 'pay-04',
+    orderId: 'ord-04',
+    orderCode: 'AWP-10485',
+    customerName: 'Fatou Bintou Fall',
+    customerPhone: '+221 77 234 56 78',
+    amountXOF: 74000,
+    method: 'free_money',
+    status: 'received',
+    reference: 'FM-SN-39018247',
+    date: '2026-08-14',
+    time: '11:45',
+    operatorFeeXOF: 740,
+    netReceivedXOF: 73260,
+    verifiedBy: 'Système Auto'
+  },
+  {
+    id: 'pay-05',
+    orderId: 'ord-05',
+    orderCode: 'AWP-10486',
+    customerName: 'Cheikh Tidiane Sy',
+    customerPhone: '+221 70 888 99 00',
+    amountXOF: 52000,
+    method: 'wave',
+    status: 'pending',
+    reference: 'WAVE-SN-INIT-4819',
+    date: '2026-08-15',
+    time: '16:05',
+    operatorFeeXOF: 520,
+    netReceivedXOF: 51480
+  },
+  {
+    id: 'pay-06',
+    orderId: 'ord-06',
+    orderCode: 'AWP-10487',
+    customerName: 'Ousmane Ba',
+    customerPhone: '+221 77 900 11 22',
+    amountXOF: 19500,
+    method: 'hub_cash',
+    status: 'received',
+    reference: 'CASH-HUB-DKR-094',
+    date: '2026-08-13',
+    time: '17:30',
+    operatorFeeXOF: 0,
+    netReceivedXOF: 19500,
+    verifiedBy: 'Moussa Kane (Hub Dakar)'
+  }
+];
+
+export const MOCK_PROMOTIONS: PromotionItem[] = [
+  {
+    id: 'prm-01',
+    code: 'SINO2026',
+    title: 'Bienvenue Chine-Sénégal',
+    description: '10% de réduction sur la première commande aérienne ou maritime.',
+    discountType: 'percentage',
+    discountValue: 10,
+    minOrderAmountXOF: 25000,
+    usageCount: 142,
+    maxUsageLimit: 500,
+    startDate: '2026-08-01',
+    endDate: '2026-09-30',
+    status: 'active',
+    isFeatured: true
+  },
+  {
+    id: 'prm-02',
+    code: 'FRETGRATUIT',
+    title: 'Livraison Hub Offerte',
+    description: 'Frais de gestion et retrait au Hub Dakar offerts sur les groupages.',
+    discountType: 'free_shipping',
+    discountValue: 2500,
+    minOrderAmountXOF: 50000,
+    usageCount: 88,
+    maxUsageLimit: 200,
+    startDate: '2026-08-10',
+    endDate: '2026-08-31',
+    status: 'active',
+    isFeatured: false
+  },
+  {
+    id: 'prm-03',
+    code: 'B2BFLASH50',
+    title: 'Remise Volume Grossistes',
+    description: '50 000 FCFA de remise sur toute commande B2B supérieure à 1 000 000 FCFA.',
+    discountType: 'fixed',
+    discountValue: 50000,
+    minOrderAmountXOF: 1000000,
+    usageCount: 14,
+    maxUsageLimit: 50,
+    startDate: '2026-08-01',
+    endDate: '2026-10-31',
+    status: 'active',
+    isFeatured: true
+  },
+  {
+    id: 'prm-04',
+    code: 'TABASKI2026',
+    title: 'Opération Spéciale Fêtes',
+    description: 'Offre expirée sur les luminaires et outillage.',
+    discountType: 'percentage',
+    discountValue: 15,
+    minOrderAmountXOF: 30000,
+    usageCount: 300,
+    maxUsageLimit: 300,
+    startDate: '2026-06-01',
+    endDate: '2026-07-05',
+    status: 'expired',
+    isFeatured: false
+  }
+];
+
+export const MOCK_NOTIFICATION_TEMPLATES: NotificationTemplate[] = [
+  {
+    id: 'notif-01',
+    title: 'Confirmation de Paiement & Commande',
+    eventTrigger: 'payment_received',
+    channels: ['sms', 'whatsapp', 'email'],
+    subject: 'Confirmation de votre commande {{order_code}} - SinoSenegal',
+    bodyTemplate: 'Bonjour {{customer_name}}, votre paiement de {{amount}} FCFA pour la commande {{order_code}} a bien été reçu. Vos articles sont pris en charge par notre hub de consolidation en Chine.',
+    variables: ['customer_name', 'order_code', 'amount'],
+    isActive: true,
+    lastSentAt: 'Aujourd\'hui à 15:42',
+    totalSentCount: 1240
+  },
+  {
+    id: 'notif-02',
+    title: 'Clôture de Groupage & Lancement Usine',
+    eventTrigger: 'groupage_closed',
+    channels: ['whatsapp', 'sms'],
+    subject: 'Objectif atteint ! Lot {{groupage_code}} en production',
+    bodyTemplate: 'Excellente nouvelle {{customer_name}} ! Le groupage {{groupage_title}} est clôturé avec succès ({{units}} unités). L\'ordre de fabrication usine est validé. Suivi AWP : {{tracking_url}}',
+    variables: ['customer_name', 'groupage_code', 'groupage_title', 'units', 'tracking_url'],
+    isActive: true,
+    lastSentAt: 'Hier à 18:00',
+    totalSentCount: 680
+  },
+  {
+    id: 'notif-03',
+    title: 'Expédition depuis la Chine (AWP Actif)',
+    eventTrigger: 'shipped_china',
+    channels: ['sms', 'whatsapp', 'email'],
+    subject: 'Votre colis {{order_code}} a décollé de Chine !',
+    bodyTemplate: 'Votre colis {{order_code}} a quitté notre entrepôt de {{origin_city}} par vol direct vers Dakar. Arrivée et dédouanement estimés le {{eta_date}}.',
+    variables: ['customer_name', 'order_code', 'origin_city', 'eta_date'],
+    isActive: true,
+    lastSentAt: 'Hier à 09:30',
+    totalSentCount: 915
+  },
+  {
+    id: 'notif-04',
+    title: 'Colis Prêt pour Retrait au Hub Dakar / Région',
+    eventTrigger: 'hub_ready',
+    channels: ['sms', 'whatsapp'],
+    subject: 'Votre colis est disponible au {{hub_name}}',
+    bodyTemplate: 'Bonjour {{customer_name}}, votre commande {{order_code}} est prête au {{hub_name}} ({{hub_address}}). Code de retrait secret : {{pickup_code}}. Horaires : {{opening_hours}}.',
+    variables: ['customer_name', 'order_code', 'hub_name', 'hub_address', 'pickup_code', 'opening_hours'],
+    isActive: true,
+    lastSentAt: 'Aujourd\'hui à 11:30',
+    totalSentCount: 820
+  }
+];
+
+
