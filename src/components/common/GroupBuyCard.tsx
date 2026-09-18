@@ -78,11 +78,31 @@ export const GroupBuyCard: React.FC<GroupBuyCardProps> = ({ groupage, className 
           </div>
 
           {/* Pricing */}
-          <PriceDisplay
-            priceXOF={groupage.unitPriceXOF}
-            previousPriceXOF={groupage.originalPriceXOF}
-            size="sm"
-          />
+          <div className="space-y-1.5">
+            <PriceDisplay
+              priceXOF={groupage.unitPriceXOF}
+              previousPriceXOF={groupage.originalPriceXOF}
+              size="sm"
+            />
+
+            {/* Décomposition Prix Produit vs Fret */}
+            <div className="rounded-xl bg-slate-50 p-2 border border-slate-200/60 grid grid-cols-2 gap-2 text-[11px]">
+              <div>
+                <span className="text-[10px] text-slate-500 block">Produit Usine</span>
+                <span className="font-mono-numeric font-bold text-[#0D2C7A]">
+                  {(groupage.productPriceXOF || Math.round(groupage.unitPriceXOF * 0.65)).toLocaleString('fr-FR')} F
+                </span>
+                <span className="text-[9px] font-bold text-emerald-700 block">✓ Confirmé</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 block">Fret Estimé</span>
+                <span className="font-mono-numeric font-bold text-amber-700">
+                  ~{(groupage.estimatedLogisticsXOF || Math.round(groupage.unitPriceXOF * 0.35)).toLocaleString('fr-FR')} F
+                </span>
+                <span className="text-[9px] font-bold text-amber-700 block">~ Estimatif</span>
+              </div>
+            </div>
+          </div>
 
           {/* Progress Bar */}
           <div className="pt-0.5">

@@ -21,7 +21,9 @@ import {
   SourcingPipelineRequest,
   PaymentRecord,
   PromotionItem,
-  NotificationTemplate
+  NotificationTemplate,
+  Quote,
+  PlatformDocument
 } from '../types';
 import {
   MOCK_PRODUCTS,
@@ -40,8 +42,11 @@ import {
   MOCK_SOURCING_PIPELINE,
   MOCK_PAYMENTS,
   MOCK_PROMOTIONS,
-  MOCK_NOTIFICATION_TEMPLATES
+  MOCK_NOTIFICATION_TEMPLATES,
+  MOCK_QUOTES,
+  MOCK_DOCUMENTS
 } from '../data/mockData';
+import { CommercialDocumentModal } from '../components/documents/CommercialDocumentModal';
 import { DEFAULT_CALCULATION_SETTINGS } from '../services/calculationEngine';
 
 export interface ToastNotification {
@@ -146,6 +151,17 @@ interface AppContextType {
   sourcingPipeline: SourcingPipelineRequest[];
   addSourcingPipelineRequest: (req: Omit<SourcingPipelineRequest, 'id' | 'code' | 'createdAt' | 'status' | 'offersCount'>) => SourcingPipelineRequest;
   updateSourcingPipelineStatus: (id: string, status: SourcingPipelineRequest['status'], note?: string) => void;
+
+  // Quotes & Commercial Documents
+  quotes: Quote[];
+  addQuote: (quote: Omit<Quote, 'id' | 'code' | 'createdAt'>) => Quote;
+  updateQuoteStatus: (id: string, status: Quote['status']) => void;
+  getQuoteById: (id: string) => Quote | undefined;
+  getQuoteByCode: (code: string) => Quote | undefined;
+  documents: PlatformDocument[];
+  addDocument: (doc: Omit<PlatformDocument, 'id'>) => PlatformDocument;
+  openDocumentModal: (type: 'quote' | 'invoice' | 'receipt' | 'awp_waybill', payload: { quote?: Quote; order?: Order; doc?: PlatformDocument }) => void;
+  closeDocumentModal: () => void;
 
   // Payments & Ledger
   payments: PaymentRecord[];
@@ -272,6 +288,109 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notificationTemplates, setNotificationTemplates] = useState<NotificationTemplate[]>(MOCK_NOTIFICATION_TEMPLATES);
   const [calcSettings, setCalcSettings] = useState<CalculationSettings>(DEFAULT_CALCULATION_SETTINGS);
   const [currentRole, setCurrentRole] = useState<AdminRole>('SUPER_ADMIN');
+
+  // Quotes & Commercial Documents State
+  const [quotes, setQuotes] = useState<Quote[]>(() => {
+    try {
+      const saved = localStorage.getItem('sinosenegal_quotes');
+      return saved ? JSON.parse(saved) : MOCK_QUOTES;
+    } catch {
+      return MOCK_QUOTES;
+    }
+  });
+
+  const [documents, setDocuments] = useState<PlatformDocument[]>(() => {
+    try {
+      const saved = localStorage.getItem('sinosenegal_documents');
+      return saved ? JSON.parse(saved) : MOCK_DOCUMENTS;
+    } catch {
+      return MOCK_DOCUMENTS;
+    }
+  });
+
+  const [documentModal, setDocumentModal] = useState<{
+    isOpen: boolean;
+    type: 'quote' | 'invoice' | 'receipt' | 'awp_waybill';
+    quote?: Quote;
+    order?: Order;
+    doc?: PlatformDocument;
+  }>({
+    isOpen: false,
+    type: 'quote'
+  });
+
+  const addQuote = (quoteData: Omit<Quote, 'id' | 'code' | 'createdAt'>): Quote => {
+    const code = `DEV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newQuote: Quote = {
+      ...quoteData,
+      id: `quote-${Date.now()}`,
+      code,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    const updated = [newQuote, ...quotes];
+    setQuotes(updated);
+    try {
+      localStorage.setItem('sinosenegal_quotes', JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    const newDoc: PlatformDocument = {
+      id: `doc-${Date.now()}`,
+      type: 'quote',
+      reference: code,
+      title: `Devis Commercial — ${quoteData.productName}`,
+      clientName: quoteData.clientName,
+      amountXOF: quoteData.totalEstimatedXOF,
+      date: newQuote.createdAt,
+      status: 'valid',
+      quoteId: newQuote.id,
+      pdfDownloadName: `Devis_${code}_SinoSenegal.pdf`
+    };
+    setDocuments(prev => [newDoc, ...prev]);
+    showToast('success', 'Devis émis avec succès', `Le devis ${code} a été généré avec séparation stricte prix/logistique.`);
+    return newQuote;
+  };
+
+  const updateQuoteStatus = (id: string, status: Quote['status']) => {
+    setQuotes(prev => {
+      const updated = prev.map(q => (q.id === id ? { ...q, status } : q));
+      try {
+        localStorage.setItem('sinosenegal_quotes', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    showToast('info', 'Statut du devis mis à jour', `Le statut du devis est désormais : ${status}.`);
+  };
+
+  const getQuoteById = (id: string) => quotes.find(q => q.id === id);
+  const getQuoteByCode = (code: string) =>
+    quotes.find(q => q.code.toUpperCase() === code.toUpperCase().trim());
+
+  const addDocument = (docData: Omit<PlatformDocument, 'id'>): PlatformDocument => {
+    const newDoc: PlatformDocument = {
+      ...docData,
+      id: `doc-${Date.now()}`
+    };
+    setDocuments(prev => [newDoc, ...prev]);
+    return newDoc;
+  };
+
+  const openDocumentModal = (
+    type: 'quote' | 'invoice' | 'receipt' | 'awp_waybill',
+    payload: { quote?: Quote; order?: Order; doc?: PlatformDocument }
+  ) => {
+    setDocumentModal({
+      isOpen: true,
+      type,
+      quote: payload.quote,
+      order: payload.order,
+      doc: payload.doc
+    });
+  };
+
+  const closeDocumentModal = () => {
+    setDocumentModal(prev => ({ ...prev, isOpen: false }));
+  };
 
   // User State (Persisted in localStorage if available)
   const [currentUser, setCurrentUser] = useState<{
@@ -1036,6 +1155,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sourcingPipeline,
         addSourcingPipelineRequest,
         updateSourcingPipelineStatus,
+        quotes,
+        addQuote,
+        updateQuoteStatus,
+        getQuoteById,
+        getQuoteByCode,
+        documents,
+        addDocument,
+        openDocumentModal,
+        closeDocumentModal,
         payments,
         addPayment,
         updatePaymentStatus,
@@ -1069,6 +1197,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }}
     >
       {children}
+      <CommercialDocumentModal
+        isOpen={documentModal.isOpen}
+        onClose={closeDocumentModal}
+        documentType={documentModal.type}
+        quote={documentModal.quote}
+        order={documentModal.order}
+        documentData={documentModal.doc}
+      />
     </AppContext.Provider>
   );
 };

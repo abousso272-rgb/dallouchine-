@@ -8,17 +8,26 @@ export type AdminRole =
 
 export type TransportMode = 'air' | 'sea' | 'express';
 
+export type AmountStatus = 'confirmed' | 'estimated' | 'to_confirm';
+
 export type GroupageStatus = 
+  | 'open'               // Ouvert
+  | 'almost_full'        // Presque complet
+  | 'full'               // Complet
+  | 'supplier_ordered'   // Commande fournisseur
+  | 'in_transit'         // Transport
+  | 'arrived'            // Arrivé
+  | 'delivered'          // Livré
+  | 'cancelled'          // Annulé
+  | 'refunded'           // Remboursé
+  | 'moq_unreached'      // MOQ non atteint
   | 'draft' 
-  | 'open' 
   | 'closing_soon' 
   | 'closed' 
   | 'purchasing' 
   | 'quality_check' 
   | 'shipped' 
-  | 'arrived' 
-  | 'completed' 
-  | 'cancelled';
+  | 'completed';
 
 export type TrackingStatus = 
   | 'order_confirmed'
@@ -34,6 +43,28 @@ export type TrackingStatus =
   | 'ready_for_pickup'
   | 'out_for_delivery'
   | 'delivered';
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  sku: string;
+  color?: string;
+  size?: string;
+  specs?: string;
+  priceDiffXOF?: number;
+  imageUrl?: string;
+}
+
+export interface ProductCustomization {
+  isAvailable: boolean;
+  minUnits: number;
+  logoPrintingAvailable: boolean;
+  customPackagingAvailable: boolean;
+  sampleAvailable: boolean;
+  additionalCostPerUnitXOF?: number;
+  leadTimeAdditionalDays?: number;
+  description: string;
+}
 
 export interface Product {
   id: string;
@@ -55,7 +86,9 @@ export interface Product {
   moq: number;
   basePriceCNY: number;
   basePriceUSD: number;
-  priceXOF: number;
+  priceXOF: number; // Prix total estimé catalogue
+  productPriceXOF?: number; // Prix spécifique marchandise sortie usine
+  estimatedLogisticsXOF?: number; // Coût logistique estimatif fret + douane
   previousPriceXOF?: number;
   isGroupage: boolean;
   activeGroupageId?: string;
@@ -68,6 +101,9 @@ export interface Product {
   rating: number;
   reviewsCount: number;
   tags: string[];
+  isCustomizable?: boolean;
+  customization?: ProductCustomization;
+  variants?: ProductVariant[];
   createdAt: string;
 }
 
@@ -77,10 +113,14 @@ export interface Groupage {
   title: string;
   productId: string;
   product?: Product;
-  unitPriceXOF: number;
+  unitPriceXOF: number; // Total estimatif unitaire
+  productPriceXOF?: number; // Prix produit négocié usine
+  estimatedLogisticsXOF?: number; // Fret international estimatif
   originalPriceXOF: number;
   targetUnits: number;
   currentUnits: number;
+  minOrderPerUser: number;
+  maxOrderPerUser: number;
   participantsCount: number;
   startDate: string;
   closingDate: string;
@@ -88,8 +128,8 @@ export interface Groupage {
   estimatedArrivalDate: string;
   transportMode: TransportMode;
   status: GroupageStatus;
-  minOrderPerUser: number;
-  maxOrderPerUser: number;
+  statusNote?: string;
+  exceptionCase?: 'none' | 'moq_not_reached' | 'price_changed' | 'flight_delayed' | 'supplier_delayed' | 'refunded';
   savingsPercent: number;
   logisticsRoute: string; // e.g. "Yiwu Hub -> Dakar Port/Airport"
   guaranteeNote: string;
@@ -168,8 +208,12 @@ export interface Order {
   customer: Customer;
   items: OrderItem[];
   subtotalXOF: number;
+  productCostStatus?: AmountStatus;
   shippingFeeXOF: number;
+  logisticsCostStatus?: AmountStatus;
   totalXOF: number;
+  depositAmountXOF?: number;
+  balanceDueXOF?: number;
   paymentMethod: 'wave' | 'orange_money' | 'free_money' | 'card' | 'hub_cash';
   paymentStatus: 'pending' | 'paid' | 'partially_paid' | 'refunded';
   currentStatus: TrackingStatus;
@@ -180,6 +224,58 @@ export interface Order {
   estimatedDeliveryDate: string;
   trackingTimeline: TrackingEvent[];
   notes?: string;
+}
+
+export interface Quote {
+  id: string;
+  code: string; // e.g. DEV-2026-0048
+  clientName: string;
+  companyName: string;
+  phone: string;
+  email: string;
+  productName: string;
+  productId?: string;
+  productImage?: string;
+  quantity: number;
+  unitProductPriceXOF: number;
+  totalProductPriceXOF: number;
+  productPriceStatus: AmountStatus; // 'confirmed'
+  estimatedLogisticsXOF: number;
+  logisticsStatus: AmountStatus; // 'estimated'
+  estimatedCustomsXOF: number;
+  customsStatus: AmountStatus; // 'estimated'
+  additionalFeesXOF: number;
+  // Marges internes STRICTEMENT MASQUÉES AU CLIENT
+  internalMarginXOF?: number;
+  internalMarginPercent?: number;
+  totalEstimatedXOF: number;
+  depositRequiredPercent: number; // e.g. 60%
+  depositAmountXOF: number;
+  balanceDueXOF: number;
+  amountPaidXOF: number;
+  paymentStatus: 'pending' | 'deposit_paid' | 'fully_paid';
+  leadTimeDays: string; // e.g. "15-20 jours"
+  conditions: string[];
+  validUntil: string;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'in_production' | 'in_transit' | 'delivered';
+  transportMode: TransportMode;
+  notes?: string;
+  customizationDetails?: string;
+  createdAt: string;
+}
+
+export interface PlatformDocument {
+  id: string;
+  type: 'quote' | 'invoice' | 'receipt' | 'order_confirmation' | 'delivery_note';
+  reference: string;
+  title: string;
+  clientName: string;
+  amountXOF: number;
+  date: string;
+  status: 'valid' | 'paid' | 'provisional';
+  orderId?: string;
+  quoteId?: string;
+  pdfDownloadName?: string;
 }
 
 export interface HubLocation {
@@ -267,8 +363,16 @@ export interface B2BRequest {
   transportPreference: 'air' | 'sea' | 'express' | 'recommended';
   specifications: string;
   attachments?: string[];
+  alibabaUrl?: string;
+  url1688?: string;
+  otherSupplierUrl?: string;
+  isCustomizationRequested?: boolean;
+  logoUrl?: string;
+  logoInstructions?: string;
+  packagingRequested?: boolean;
   status: 'draft' | 'submitted' | 'sourcing_in_progress' | 'quote_ready' | 'negotiation' | 'approved' | 'in_production' | 'shipped' | 'delivered';
   quote?: B2BQuote;
+  formalQuote?: Quote;
   createdAt: string;
 }
 
@@ -398,20 +502,44 @@ export interface SourcingPipelineRequest {
   productName: string;
   category: string;
   clientName: string;
+  clientCompany?: string;
   clientPhone: string;
+  clientEmail?: string;
   targetQuantity: number;
   targetBudgetXOF: number;
   specifications: string;
   imageUrl?: string;
-  platformSource?: '1688' | 'taobao' | 'direct_factory' | 'yiwu';
+  additionalImages?: string[];
+  alibabaUrl?: string;
+  url1688?: string;
+  otherSupplierUrl?: string;
+  customizationRequested?: boolean;
+  logoInstructions?: string;
+  packagingRequested?: boolean;
+  platformSource?: '1688' | 'taobao' | 'direct_factory' | 'yiwu' | 'alibaba';
   assignedSourcerId?: string;
   assignedSourcerName?: string;
   deadlineDate: string;
   createdAt: string;
   status: 'pending' | 'searching' | 'offers_received' | 'validation' | 'ordered' | 'completed' | 'cancelled';
+  workflowStage?: 
+    | 'request_submitted' 
+    | 'request_analyzed' 
+    | 'supplier_sourcing' 
+    | 'negotiation' 
+    | 'cost_calculation' 
+    | 'quote_issued' 
+    | 'quote_accepted' 
+    | 'deposit_paid' 
+    | 'supplier_ordered' 
+    | 'in_production' 
+    | 'shipped_china' 
+    | 'arrived_senegal' 
+    | 'delivered';
   offersCount: number;
   bestOfferSupplierCNY?: number;
   bestOfferTotalXOF?: number;
+  formalQuote?: Quote;
   notes?: string;
 }
 

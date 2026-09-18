@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { PriceDisplay } from '../../components/common/PriceDisplay';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { ProductCard } from '../../components/common/ProductCard';
+import { LogisticsPriceSplit } from '../../components/common/LogisticsPriceSplit';
 import {
   ShieldCheck,
   Star,
@@ -20,7 +21,10 @@ import {
   ChevronRight,
   Flame,
   ArrowRight,
-  Truck
+  Truck,
+  FileText,
+  BadgePercent,
+  Sliders
 } from 'lucide-react';
 
 interface ProductDetailPageProps {
@@ -220,52 +224,45 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
             </div>
           )}
 
-          {/* Pricing Box */}
-          <div className="glass-panel bg-white/90 rounded-3xl p-5 border border-slate-200 space-y-4">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Prix TTC livré Sénégal (Fret + Douane)
-                </span>
-                <PriceDisplay
-                  priceXOF={product.priceXOF}
-                  previousPriceXOF={product.previousPriceXOF}
-                  size="lg"
-                />
-              </div>
-
-              <div className="text-right">
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg inline-block">
-                  ✓ En stock usine
-                </span>
-                <span className="text-[10px] text-slate-400 block mt-1">Expédition sous 48h</span>
-              </div>
-            </div>
+          {/* Pricing Box with Strict Separation */}
+          <div className="glass-panel bg-white/95 rounded-3xl p-5 border border-slate-200 space-y-4">
+            <LogisticsPriceSplit
+              productPriceXOF={(product.productPriceXOF || Math.round(product.priceXOF * 0.65)) * selectedQuantity}
+              logisticsPriceXOF={(product.estimatedLogisticsXOF || Math.round(product.priceXOF * 0.35)) * selectedQuantity}
+              totalPriceXOF={product.priceXOF * selectedQuantity}
+              productStatus="confirmed"
+              logisticsStatus="estimated"
+              transportMode={product.defaultTransportMode}
+              weightKg={product.weightKg ? product.weightKg * selectedQuantity : undefined}
+              cbm={product.cbm ? product.cbm * selectedQuantity : undefined}
+            />
 
             {/* Quantity Selector & Order Buttons */}
             <div className="space-y-3 pt-3 border-t border-slate-100">
-              <div className="flex items-center gap-4">
-                <span className="text-xs font-bold text-slate-700">Quantité :</span>
-                <div className="flex items-center border border-slate-200 rounded-xl bg-white p-1">
-                  <button
-                    onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
-                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 flex items-center justify-center transition-colors"
-                  >
-                    -
-                  </button>
-                  <span className="w-12 text-center font-bold text-[#0D2C7A] text-sm font-mono-numeric">
-                    {selectedQuantity}
-                  </span>
-                  <button
-                    onClick={() => setSelectedQuantity(selectedQuantity + 1)}
-                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 flex items-center justify-center transition-colors"
-                  >
-                    +
-                  </button>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-slate-700">Quantité :</span>
+                  <div className="flex items-center border border-slate-200 rounded-xl bg-white p-1">
+                    <button
+                      onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
+                      className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 flex items-center justify-center transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className="w-12 text-center font-bold text-[#0D2C7A] text-sm font-mono-numeric">
+                      {selectedQuantity}
+                    </span>
+                    <button
+                      onClick={() => setSelectedQuantity(selectedQuantity + 1)}
+                      className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 flex items-center justify-center transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
 
                 <span className="text-xs text-slate-500 font-mono-numeric font-medium">
-                  Total : <strong>{(((product?.priceXOF || 0) * selectedQuantity) || 0).toLocaleString('fr-FR')} FCFA</strong>
+                  MOQ : <strong>{product.moq} pc</strong>
                 </span>
               </div>
 
@@ -285,6 +282,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
                 >
                   <span>Commander maintenant</span>
                   <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* B2B / Custom Sourcing CTA */}
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    navigate(`/b2b?product=${encodeURIComponent(product.name)}&moq=${product.moq * 5}`);
+                  }}
+                  className="w-full bg-blue-50/80 hover:bg-blue-100 text-[#0D2C7A] font-bold text-xs py-2.5 px-4 rounded-xl border border-blue-200 flex items-center justify-center gap-2 transition-colors"
+                >
+                  <FileText className="w-4 h-4 text-[#2A6DFF]" />
+                  <span>Demander un devis B2B / Personnalisation (logo, volume gros)</span>
                 </button>
               </div>
             </div>

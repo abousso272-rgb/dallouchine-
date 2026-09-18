@@ -120,13 +120,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             size="sm"
           />
 
+          {/* Décomposition Produit vs Transport */}
+          <div className="rounded-lg bg-slate-50 p-1.5 border border-slate-200/60 space-y-0.5 text-[10px]">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="truncate">Produit Usine :</span>
+              <span className="font-mono-numeric font-bold text-[#0D2C7A]">
+                {(product.productPriceXOF || Math.round(product.priceXOF * 0.65)).toLocaleString('fr-FR')} F
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="truncate">Fret estimé :</span>
+              <span className="font-mono-numeric font-semibold text-amber-700">
+                ~{(product.estimatedLogisticsXOF || Math.round(product.priceXOF * 0.35)).toLocaleString('fr-FR')} F
+              </span>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 pt-0.5">
             <span className="font-mono-numeric text-slate-600 font-medium truncate">
-              🔥 <strong>{product.moq * 7 + 18}</strong> cmds
+              MOQ: <strong>{product.moq} pc</strong>
             </span>
             <span className="text-emerald-700 font-semibold flex items-center gap-0.5 shrink-0 text-[10px]">
               <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600" />
-              <span>Stock Chine</span>
+              <span>Contrôle Chine</span>
             </span>
           </div>
         </div>

@@ -13,11 +13,13 @@ import {
   Send,
   X,
   Building,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  FileCheck
 } from 'lucide-react';
 
 export const AdminB2BPage: React.FC = () => {
-  const { b2bRequests, updateB2BStatus, showToast } = useApp();
+  const { b2bRequests, updateB2BStatus, showToast, addQuote, openDocumentModal, quotes } = useApp();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedReq, setSelectedReq] = useState<B2BRequest | null>(null);
@@ -26,13 +28,63 @@ export const AdminB2BPage: React.FC = () => {
     const q = (search || '').toLowerCase();
     const matchSearch =
       (req?.code || '').toLowerCase().includes(q) ||
-      (req?.productName || '').toLowerCase().includes(q) ||
+      (req?.productType || '').toLowerCase().includes(q) ||
       (req?.contactName || '').toLowerCase().includes(q) ||
       (req?.companyName || '').toLowerCase().includes(q);
 
     const matchStatus = statusFilter === 'all' || req.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const handleGenerateQuote = (req: B2BRequest) => {
+    const qty = req.quantity || 50;
+    const unitPrice = 14500;
+    const unitLogistics = 4200;
+    const customsUnit = 1100;
+    const prodTotal = qty * unitPrice;
+    const logTotal = qty * unitLogistics;
+    const customsTotal = qty * customsUnit;
+    const totalEst = prodTotal + logTotal + customsTotal;
+    const depPercent = 40;
+    const depAmount = Math.round(totalEst * (depPercent / 100));
+
+    const newQuote = addQuote({
+      clientName: req.contactName,
+      companyName: req.companyName || 'Entreprise Cliente',
+      phone: req.phone,
+      email: req.email || 'contact@client.sn',
+      productName: req.productType,
+      quantity: qty,
+      unitProductPriceXOF: unitPrice,
+      totalProductPriceXOF: prodTotal,
+      productPriceStatus: 'confirmed',
+      estimatedLogisticsXOF: logTotal,
+      logisticsStatus: 'estimated',
+      estimatedCustomsXOF: customsTotal,
+      customsStatus: 'estimated',
+      additionalFeesXOF: 0,
+      totalEstimatedXOF: totalEst,
+      depositRequiredPercent: depPercent,
+      depositAmountXOF: depAmount,
+      balanceDueXOF: totalEst - depAmount,
+      amountPaidXOF: 0,
+      paymentStatus: 'pending',
+      leadTimeDays: req.transportPreference === 'sea' ? '30-40 jours' : '12-16 jours',
+      conditions: [
+        'Prix usine garanti après audit et négociation sur place',
+        'Contrôle qualité photos/vidéos avant paiement du solde',
+        'Dédouanement Gaindé DDP Port de Dakar / AIBD inclus'
+      ],
+      validUntil: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      status: 'sent',
+      transportMode: req.transportPreference === 'sea' ? 'sea' : 'air',
+      notes: `Devis généré suite au cahier des charges : ${req.specifications}`
+    });
+
+    updateB2BStatus(req.id, 'quote_ready');
+    showToast('success', 'Devis Formel Créé', `Devis ${newQuote.code} prêt avec décomposition Produit/Fret.`);
+    openDocumentModal('quote', { quote: newQuote });
+  };
 
   return (
     <div className="space-y-6">
@@ -46,7 +98,7 @@ export const AdminB2BPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Gérez les demandes de cotation gros volume pour commerçants, revendeurs et entreprises.
+            Gérez les demandes de cotation gros volume avec séparation stricte prix d'achat usine vs fret/douane Gaindé.
           </p>
         </div>
       </div>
@@ -100,15 +152,15 @@ export const AdminB2BPage: React.FC = () => {
                     {req.code}
                   </span>
                   <h3 className="font-bold text-sm text-white mt-1.5 group-hover:text-blue-300 transition-colors">
-                    {req.productName}
+                    {req.productType}
                   </h3>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  req.status === 'quote_sent'
+                  req.status === 'quote_ready' || req.status === 'approved'
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                 }`}>
-                  {req.status === 'quote_sent' ? 'Devis Envoyé' : 'En Analyse'}
+                  {req.status === 'quote_ready' ? 'Devis Transmis' : 'En Analyse'}
                 </span>
               </div>
 
@@ -119,16 +171,16 @@ export const AdminB2BPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Quantité :</span>
-                  <strong className="text-white font-mono">{req.targetQuantity} pcs</strong>
+                  <strong className="text-white font-mono">{req.quantity} pcs</strong>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Budget Cible :</span>
-                  <strong className="text-emerald-300 font-mono">{req.budgetUSD} $</strong>
+                  <strong className="text-emerald-300 font-mono">{(req.targetBudgetXOF || 0).toLocaleString('fr-FR')} F</strong>
                 </div>
               </div>
 
               <p className="text-[11px] text-slate-300 line-clamp-2 italic">
-                &ldquo;{req.description}&rdquo;
+                &ldquo;{req.specifications}&rdquo;
               </p>
             </div>
 
@@ -153,7 +205,7 @@ export const AdminB2BPage: React.FC = () => {
                   <span className="font-mono text-xs font-bold text-blue-300 bg-blue-950 px-2 py-0.5 rounded border border-blue-800">
                     {selectedReq.code}
                   </span>
-                  <h2 className="text-base font-black text-white">{selectedReq.productName}</h2>
+                  <h2 className="text-base font-black text-white">{selectedReq.productType}</h2>
                 </div>
                 <button
                   onClick={() => setSelectedReq(null)}
@@ -174,31 +226,43 @@ export const AdminB2BPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Volume Demandé</span>
-                  <strong className="text-white font-mono">{selectedReq.targetQuantity} unités</strong>
+                  <strong className="text-white font-mono">{selectedReq.quantity} unités</strong>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Budget Estimé</span>
-                  <strong className="text-emerald-300 font-mono">{selectedReq.budgetUSD} USD</strong>
+                  <strong className="text-emerald-300 font-mono">{(selectedReq.targetBudgetXOF || 0).toLocaleString('fr-FR')} FCFA</strong>
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-white/5 space-y-2 text-xs">
                 <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block">Cahier des charges</span>
-                <p className="text-slate-200 leading-relaxed">{selectedReq.description}</p>
+                <p className="text-slate-200 leading-relaxed">{selectedReq.specifications}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-blue-950/40 border border-blue-800/50 space-y-3 text-xs">
-                <span className="text-blue-300 font-bold block">Actions Commerciales</span>
+                <span className="text-blue-300 font-bold block">Génération de Devis & Contrat</span>
+                
                 <button
                   onClick={() => {
-                    updateB2BStatus(selectedReq.id, 'quote_sent');
-                    showToast('success', 'Devis Envoyé', `Devis pour ${selectedReq.productName} transmis.`);
+                    handleGenerateQuote(selectedReq);
                     setSelectedReq(null);
                   }}
-                  className="w-full py-2.5 rounded-xl bg-[#2A6DFF] hover:bg-blue-500 text-white font-bold flex items-center justify-center gap-2 shadow-md"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold flex items-center justify-center gap-2 shadow-md"
                 >
-                  <Send className="w-4 h-4" />
-                  <span>Marquer le devis comme envoyé</span>
+                  <FileCheck className="w-4 h-4" />
+                  <span>Émettre Devis Formel (Prix Usine + Fret Séparé)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    updateB2BStatus(selectedReq.id, 'quote_ready');
+                    showToast('success', 'Statut mis à jour', `Devis pour ${selectedReq.productType} marqué comme prêt.`);
+                    setSelectedReq(null);
+                  }}
+                  className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-semibold flex items-center justify-center gap-2"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Basculer en Devis Prêt sans regénérer</span>
                 </button>
               </div>
             </div>
@@ -217,3 +281,4 @@ export const AdminB2BPage: React.FC = () => {
     </div>
   );
 };
+

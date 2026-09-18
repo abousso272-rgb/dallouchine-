@@ -13,7 +13,8 @@ import {
   Send,
   X,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  FileCheck
 } from 'lucide-react';
 
 export const AdminSourcingPage: React.FC = () => {
@@ -22,7 +23,9 @@ export const AdminSourcingPage: React.FC = () => {
     addSourcingPipelineRequest,
     updateSourcingPipelineStatus,
     sourcers,
-    showToast
+    showToast,
+    addQuote,
+    openDocumentModal
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'sourcing_in_progress' | 'quotes_received' | 'sample_ordered' | 'validated' | 'closed'>('all');
@@ -310,6 +313,63 @@ export const AdminSourcingPage: React.FC = () => {
                     className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
                   >
                     Conforme & Validé
+                  </button>
+                </div>
+
+                <div className="pt-2 border-t border-blue-900/50">
+                  <button
+                    onClick={() => {
+                      const qty = selectedRequest.targetQuantity || 50;
+                      const unitProd = 12500;
+                      const unitFreight = 3500;
+                      const unitCustoms = 1200;
+                      const prodTot = qty * unitProd;
+                      const logTot = qty * unitFreight;
+                      const custTot = qty * unitCustoms;
+                      const grandTot = prodTot + logTot + custTot;
+                      const depAmt = Math.round(grandTot * 0.4);
+
+                      const q = addQuote({
+                        clientName: selectedRequest.clientName,
+                        companyName: 'Importateur Mandataire',
+                        phone: selectedRequest.clientPhone,
+                        email: 'sourcing@client.sn',
+                        productName: selectedRequest.productName,
+                        quantity: qty,
+                        unitProductPriceXOF: unitProd,
+                        totalProductPriceXOF: prodTot,
+                        productPriceStatus: 'confirmed',
+                        estimatedLogisticsXOF: logTot,
+                        logisticsStatus: 'estimated',
+                        estimatedCustomsXOF: custTot,
+                        customsStatus: 'estimated',
+                        additionalFeesXOF: 0,
+                        totalEstimatedXOF: grandTot,
+                        depositRequiredPercent: 40,
+                        depositAmountXOF: depAmt,
+                        balanceDueXOF: grandTot - depAmt,
+                        amountPaidXOF: 0,
+                        paymentStatus: 'pending',
+                        leadTimeDays: '15-20 jours',
+                        conditions: [
+                          'Tarif usine certifié vérifié sur site (Guangzhou/Yiwu)',
+                          'Assurance maritime et inspection avant conteneurisation',
+                          'Dédouanement Gaindé Dakar inclus'
+                        ],
+                        validUntil: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+                        status: 'sent',
+                        transportMode: 'sea',
+                        notes: `Mission sourcing ${selectedRequest.code}. Référence usine : ${selectedRequest.referenceUrl || 'Audit usine direct'}`
+                      });
+
+                      updateSourcingPipelineStatus(selectedRequest.id, 'quotes_received', `Devis ${q.code} généré avec transparence totale.`);
+                      setSelectedRequest(null);
+                      openDocumentModal('quote', { quote: q });
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold flex items-center justify-center gap-2 shadow-md text-xs"
+                  >
+                    <FileCheck className="w-4 h-4" />
+                    <span>Générer Devis Séparé (Prix Usine + Fret Séparé)</span>
                   </button>
                 </div>
               </div>
