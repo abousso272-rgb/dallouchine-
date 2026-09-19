@@ -5,7 +5,8 @@ import dotenv from 'dotenv';
 import { shipmentsRouter } from './server/api/shipmentsRouter';
 import { sourcingRouter } from './server/api/sourcingRouter';
 import { paymentsRouter } from './server/api/paymentsRouter';
-import { authRouter } from './server/api/authRouter';
+import { logisticsRouter } from './server/api/logisticsRouter';
+import { sourcingRouter } from './server/api/sourcingRouter';
 import { config, logServerConfig } from './server/config';
 
 dotenv.config();
@@ -45,7 +46,6 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 // 2. API Routes
-app.use('/api/auth', authRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api', paymentsRouter); // Supporte aussi /api/webhooks/geniuspay
 app.use('/api/shipments', shipmentsRouter);
@@ -68,14 +68,10 @@ app.get('*', (req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
-  const PORT = config.port;
-  app.listen(PORT, '0.0.0.0', () => {
-    logServerConfig();
-    console.log(`[Dallou Chine Server] Express server running on port ${PORT}`);
-  });
-}
+const PORT = config.port;
+app.listen(PORT, '0.0.0.0', () => {
+  logServerConfig();
+  console.log(`[SinoSenegal Server] Express server running on port ${PORT}`);
+});
 
-export { app };
 export default app;
-

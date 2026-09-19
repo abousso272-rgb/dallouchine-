@@ -156,10 +156,18 @@ interface AppContextType {
   activityLogs: AdminActivityLog[];
   addActivityLog: (log: Omit<AdminActivityLog, 'id' | 'timestamp' | 'time'>) => void;
 
-  // Sourcing Chine
+  // Sourcing Chine & Négociation Réelle (Étape 9)
   sourcingPipeline: SourcingPipelineRequest[];
   addSourcingPipelineRequest: (req: Omit<SourcingPipelineRequest, 'id' | 'code' | 'createdAt' | 'status' | 'offersCount'>) => SourcingPipelineRequest;
   updateSourcingPipelineStatus: (id: string, status: SourcingPipelineRequest['status'], note?: string) => void;
+  submitRealSourcingRequest: (payload: any) => Promise<any>;
+  assignSourcerToRequest: (requestId: string, sourcerId: string, sourcerName: string) => Promise<any>;
+  addSupplierToRequest: (requestId: string, supplierData: any) => Promise<any>;
+  createRealQuote: (requestId: string, quoteData: any) => Promise<any>;
+  sendRealQuote: (quoteId: string) => Promise<any>;
+  acceptRealQuote: (quoteId: string) => Promise<any>;
+  rejectRealQuote: (quoteId: string, reason?: string) => Promise<any>;
+  refreshSourcingData: () => Promise<void>;
 
   // Quotes & Commercial Documents
   quotes: Quote[];
@@ -1116,6 +1124,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setSourcingPipeline(prev => [newReq, ...prev]);
     showToast('success', 'Demande Sourcing créée', `Dossier ${code} assigné à l'équipe en Chine.`);
+
+    // Persistance asynchrone sur le serveur réel
+    fetch('/api/sourcing/requests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': currentUser.id,
+        'x-user-role': currentUser.role,
+        'x-user-name': currentUser.name
+      },
+      body: JSON.stringify({
+        productName: req.productName,
+        customerName: req.clientName,
+        customerPhone: req.clientPhone,
+        customerEmail: req.clientEmail,
+        customerCompany: req.clientCompany,
+        quantity: req.targetQuantity,
+        targetBudget: (req as any).targetBudgetUSD || req.targetBudgetXOF,
+        currency: (req as any).targetBudgetUSD ? 'USD' : 'XOF',
+        specifications: req.specifications || req.notes,
+        productLink: req.alibabaUrl || req.url1688 || (req as any).referenceUrl,
+        productImages: req.imageUrl ? [req.imageUrl] : []
+      })
+    }).catch(err => console.warn('Sync sourcing to server:', err));
+
     return newReq;
   };
 
@@ -1124,6 +1157,277 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map(s => (s.id === id ? { ...s, status, notes: note ? `${s.notes || ''}\n${note}` : s.notes } : s))
     );
     showToast('info', 'Sourcing actualisé', `Nouveau statut : ${status}`);
+  };
+
+  // Synchronisation avec le serveur réel pour le sourcing (Étape 9)
+  const refreshSourcingData = async () => {
+    try {
+      const isStaff = ['admin', 'SUPER_ADMIN', 'OPERATIONS', 'SOURCING', 'sourcer'].includes(currentUser.role) || currentUser.role === 'admin';
+      const roleHeader = isStaff ? 'admin' : 'client';
+      const res = await fetch('/api/sourcing/requests', {
+        headers: {
+          'x-user-id': currentUser.id,
+          'x-user-role': roleHeader,
+          'x-user-name': currentUser.name
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.requests)) {
+          const serverItems: SourcingPipelineRequest[] = data.requests.map((r: any) => ({
+            id: r.id,
+            code: r.code || r.id,
+            productName: r.productName,
+            category: 'Sourcing Chine',
+            clientName: r.customerName || 'Client Mandataire',
+            clientCompany: r.customerCompany,
+            clientPhone: r.customerPhone || '+221 77 000 00 00',
+            clientEmail: r.customerEmail,
+            targetQuantity: r.quantity || 1,
+            targetBudgetXOF: r.targetBudget || 0,
+            specifications: r.specifications || r.productDescription || '',
+            imageUrl: r.productImages && r.productImages[0] ? r.productImages[0] : undefined,
+            additionalImages: r.productImages || [],
+            alibabaUrl: r.productLink,
+            assignedSourcerId: r.assignedSourcerId,
+            assignedSourcerName: r.assignedSourcerName,
+            deadlineDate: r.desiredDeadline || '30 jours',
+            createdAt: r.createdAt ? r.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            status: r.status === 'in_sourcing' ? 'searching' : r.status === 'quote_ready' ? 'offers_received' : r.status === 'quote_accepted' ? 'ordered' : (r.status || 'pending'),
+            workflowStage: r.status,
+            offersCount: (r.suppliers || []).length || 1,
+            notes: r.notes
+          }));
+
+          setSourcingPipeline(prev => {
+            const existingCodes = new Set(serverItems.map(s => s.code));
+            const retained = prev.filter(p => !existingCodes.has(p.code) && !existingCodes.has(p.id));
+            return [...serverItems, ...retained];
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Silent fallback for sourcing server sync:', err);
+    }
+  };
+
+  useEffect(() => {
+    refreshSourcingData();
+  }, [currentUser.id, currentUser.role]);
+
+  const submitRealSourcingRequest = async (payload: any) => {
+    try {
+      const isStaff = ['admin', 'SUPER_ADMIN', 'OPERATIONS', 'SOURCING', 'sourcer'].includes(currentUser.role) || currentUser.role === 'admin';
+      const roleHeader = isStaff ? 'admin' : 'client';
+
+      const res = await fetch('/api/sourcing/requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-role': roleHeader,
+          'x-user-name': currentUser.name
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de la création de la demande.');
+      }
+
+      await refreshSourcingData();
+      showToast('success', 'Demande Enregistrée', `Votre dossier ${data.request?.code || ''} a été pris en charge.`);
+      return data.request;
+    } catch (error: any) {
+      showToast('error', 'Échec Sourcing', error.message);
+      throw error;
+    }
+  };
+
+  const assignSourcerToRequest = async (requestId: string, sourcerId: string, sourcerName: string) => {
+    try {
+      const res = await fetch(`/api/sourcing/requests/${requestId}/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-role': 'admin',
+          'x-user-name': currentUser.name
+        },
+        body: JSON.stringify({ sourcerId, sourcerName })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      setSourcingPipeline(prev =>
+        prev.map(s => (s.id === requestId || s.code === requestId ? { ...s, assignedSourcerId: sourcerId, assignedSourcerName: sourcerName } : s))
+      );
+      showToast('success', 'Sourceur assigné', `Le dossier est confié à ${sourcerName}.`);
+      return data;
+    } catch (error: any) {
+      showToast('error', 'Erreur assignation', error.message);
+      throw error;
+    }
+  };
+
+  const addSupplierToRequest = async (requestId: string, supplierData: any) => {
+    try {
+      const res = await fetch(`/api/sourcing/requests/${requestId}/suppliers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-role': 'admin',
+          'x-user-name': currentUser.name
+        },
+        body: JSON.stringify(supplierData)
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      showToast('success', 'Fournisseur candidat ajouté', 'Offre fabricant enregistrée.');
+      await refreshSourcingData();
+      return data.supplier;
+    } catch (error: any) {
+      showToast('error', 'Erreur fournisseur', error.message);
+      throw error;
+    }
+  };
+
+  const createRealQuote = async (requestId: string, quoteData: any) => {
+    try {
+      const res = await fetch(`/api/sourcing/requests/${requestId}/quotes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-role': 'admin',
+          'x-user-name': currentUser.name
+        },
+        body: JSON.stringify(quoteData)
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      const q = data.quote;
+      const newQuote: Quote = {
+        id: q.id,
+        code: q.code,
+        clientName: q.customerName || currentUser.name,
+        companyName: 'Client Sourcing B2B',
+        phone: currentUser.phone,
+        email: currentUser.email,
+        productName: q.productName || 'Matériel Industriel',
+        productId: q.sourcingRequestId,
+        quantity: q.quantity,
+        unitProductPriceXOF: q.unitProductPriceXOF,
+        totalProductPriceXOF: q.totalProductPriceXOF,
+        productPriceStatus: 'confirmed',
+        estimatedLogisticsXOF: q.estimatedLogisticsXOF,
+        logisticsStatus: 'estimated',
+        estimatedCustomsXOF: q.estimatedCustomsXOF,
+        customsStatus: 'estimated',
+        additionalFeesXOF: q.additionalFeesXOF || 0,
+        totalEstimatedXOF: q.totalXOF,
+        depositRequiredPercent: q.depositRequiredPercent,
+        depositAmountXOF: q.depositAmountXOF,
+        balanceDueXOF: q.balanceDueXOF,
+        amountPaidXOF: 0,
+        paymentStatus: 'pending',
+        leadTimeDays: `${q.leadTimeDays} jours`,
+        conditions: q.conditions || ['Paiement acompte sécurisé', 'Contrôle qualité usine'],
+        validUntil: q.validUntil ? q.validUntil.split('T')[0] : new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+        status: 'draft',
+        transportMode: (q.transportMode as any) || 'sea',
+        createdAt: q.createdAt ? q.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]
+      };
+
+      setQuotes(prev => [newQuote, ...prev.filter(x => x.id !== newQuote.id)]);
+      showToast('success', 'Devis généré', `Devis ${q.code} calculé avec séparation stricte.`);
+      return q;
+    } catch (error: any) {
+      showToast('error', 'Erreur calcul devis', error.message);
+      throw error;
+    }
+  };
+
+  const sendRealQuote = async (quoteId: string) => {
+    try {
+      const res = await fetch(`/api/sourcing/quotes/${quoteId}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-role': 'admin',
+          'x-user-name': currentUser.name
+        }
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      setQuotes(prev => prev.map(q => (q.id === quoteId || q.code === quoteId ? { ...q, status: 'sent' } : q)));
+      showToast('success', 'Devis envoyé', `Le client peut maintenant consulter et valider le devis.`);
+      return data.quote;
+    } catch (error: any) {
+      showToast('error', 'Erreur envoi devis', error.message);
+      throw error;
+    }
+  };
+
+  const acceptRealQuote = async (quoteId: string) => {
+    try {
+      const isStaff = ['admin', 'SUPER_ADMIN', 'OPERATIONS', 'SOURCING', 'sourcer'].includes(currentUser.role) || currentUser.role === 'admin';
+      const roleHeader = isStaff ? 'admin' : 'client';
+
+      const res = await fetch(`/api/sourcing/quotes/${quoteId}/accept`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-role': roleHeader,
+          'x-user-name': currentUser.name
+        }
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      setQuotes(prev => prev.map(q => (q.id === quoteId || q.code === quoteId ? { ...q, status: 'accepted' } : q)));
+      await refreshSourcingData();
+      showToast('success', 'Devis accepté !', `La validation est confirmée. Votre commande passe en production/logistique.`);
+      return data.quote;
+    } catch (error: any) {
+      showToast('error', 'Échec validation devis', error.message);
+      throw error;
+    }
+  };
+
+  const rejectRealQuote = async (quoteId: string, reason?: string) => {
+    try {
+      const isStaff = ['admin', 'SUPER_ADMIN', 'OPERATIONS', 'SOURCING', 'sourcer'].includes(currentUser.role) || currentUser.role === 'admin';
+      const roleHeader = isStaff ? 'admin' : 'client';
+
+      const res = await fetch(`/api/sourcing/quotes/${quoteId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-role': roleHeader,
+          'x-user-name': currentUser.name
+        },
+        body: JSON.stringify({ reason: reason || 'Refusé par le client.' })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      setQuotes(prev => prev.map(q => (q.id === quoteId || q.code === quoteId ? { ...q, status: 'rejected' } : q)));
+      await refreshSourcingData();
+      showToast('info', 'Devis refusé', `Le dossier a été clôturé ou remis en recherche.`);
+      return data.quote;
+    } catch (error: any) {
+      showToast('error', 'Erreur refus devis', error.message);
+      throw error;
+    }
   };
 
   // Payments Ledger
@@ -1423,6 +1727,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sourcingPipeline,
         addSourcingPipelineRequest,
         updateSourcingPipelineStatus,
+        submitRealSourcingRequest,
+        assignSourcerToRequest,
+        addSupplierToRequest,
+        createRealQuote,
+        sendRealQuote,
+        acceptRealQuote,
+        rejectRealQuote,
+        refreshSourcingData,
         quotes,
         addQuote,
         updateQuoteStatus,

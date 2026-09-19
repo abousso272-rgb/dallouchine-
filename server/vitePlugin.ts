@@ -3,7 +3,8 @@ import express, { Request, Response } from 'express';
 import { shipmentsRouter } from './api/shipmentsRouter';
 import { sourcingRouter } from './api/sourcingRouter';
 import { paymentsRouter } from './api/paymentsRouter';
-import { authRouter } from './api/authRouter';
+import { logisticsRouter } from './api/logisticsRouter';
+import { sourcingRouter } from './api/sourcingRouter';
 
 export function expressApiPlugin(): Plugin {
   return {
@@ -24,7 +25,6 @@ export function expressApiPlugin(): Plugin {
         res.json({ status: 'online', mode: 'vite-dev', gateway: 'GeniusPay' });
       });
 
-      app.use('/api/auth', authRouter);
       app.use('/api/payments', paymentsRouter);
       app.use('/api', paymentsRouter);
       app.use('/api/shipments', shipmentsRouter);

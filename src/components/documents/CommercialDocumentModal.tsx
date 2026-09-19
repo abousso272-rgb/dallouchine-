@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Quote, Order, PlatformDocument } from '../../types';
 import { StatusBadge } from '../common/LogisticsPriceSplit';
+import { useApp } from '../../context/AppContext';
 
 interface CommercialDocumentModalProps {
   isOpen: boolean;
@@ -37,7 +38,43 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
 }) => {
   const printableRef = useRef<HTMLDivElement>(null);
 
+  const { acceptRealQuote, rejectRealQuote } = useApp();
+  const [isActionPending, setIsActionPending] = React.useState(false);
+  const [localQuoteStatus, setLocalQuoteStatus] = React.useState<string | undefined>(quote?.status);
+
+  React.useEffect(() => {
+    setLocalQuoteStatus(quote?.status);
+  }, [quote?.status]);
+
   if (!isOpen) return null;
+
+  const handleAcceptQuote = async () => {
+    if (!quote?.id) return;
+    setIsActionPending(true);
+    try {
+      await acceptRealQuote(quote.id);
+      setLocalQuoteStatus('accepted');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleRejectQuote = async () => {
+    if (!quote?.id) return;
+    const reason = window.prompt('Motif du refus (optionnel) :', 'Prix trop élevé / Spécifications modifiées');
+    if (reason === null) return; // User cancelled prompt
+    setIsActionPending(true);
+    try {
+      await rejectRealQuote(quote.id, reason);
+      setLocalQuoteStatus('rejected');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
 
   const handlePrint = () => {
     window.print();
@@ -408,21 +445,65 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
 
         {/* Footer actions */}
         <div className="bg-slate-50 p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-slate-500">
-            Dossier référencé sur la blockchain logistique SinoSenegal.
+          <div className="flex items-center gap-2">
+            {isQuote && (
+              <>
+                {localQuoteStatus === 'accepted' ? (
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ✓ Devis Validé — Commande et logistique initiées
+                  </span>
+                ) : localQuoteStatus === 'rejected' ? (
+                  <span className="px-3 py-1 rounded-full bg-rose-100 border border-rose-300 text-rose-800 text-xs font-bold">
+                    ✕ Devis Refusé par le client
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-600">
+                    Validation sous conditions contractuelles DALLOU CHINE.
+                  </span>
+                )}
+              </>
+            )}
+            {!isQuote && (
+              <div className="text-xs text-slate-500">
+                Dossier référencé sur la blockchain logistique SinoSenegal.
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
+            {isQuote && (localQuoteStatus === 'sent' || localQuoteStatus === 'draft' || !localQuoteStatus) && (
+              <>
+                <button
+                  type="button"
+                  disabled={isActionPending}
+                  onClick={handleRejectQuote}
+                  className="px-3 py-2 rounded-xl border border-rose-300 hover:bg-rose-50 text-rose-700 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Décliner l'offre
+                </button>
+                <button
+                  type="button"
+                  disabled={isActionPending}
+                  onClick={handleAcceptQuote}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isActionPending ? 'Validation en cours...' : 'Accepter le devis & Valider'}</span>
+                </button>
+              </>
+            )}
+
             <button
               onClick={handlePrint}
-              className="bg-[#0B192C] hover:bg-[#FF4500] text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2 shadow-xs"
+              className="bg-[#0B192C] hover:bg-[#FF4500] text-white font-bold text-xs px-4 py-2 rounded-xl transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
             >
               <Download className="w-4 h-4" />
-              <span>Télécharger le document</span>
+              <span>Télécharger</span>
             </button>
             <button
               onClick={onClose}
-              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl transition-colors"
+              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
             >
               Fermer
             </button>

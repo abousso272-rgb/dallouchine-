@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
+import { PublicShipmentDTO } from '../../types';
 import {
   Search,
   Package,
@@ -24,7 +25,8 @@ import {
   Boxes,
   ArrowRight,
   ExternalLink,
-  Navigation
+  Navigation,
+  AlertTriangle
 } from 'lucide-react';
 
 import { shipmentClientService, PublicTrackingDetails } from '../../services/shipmentService';
@@ -41,9 +43,9 @@ interface Milestone {
 }
 
 export const TrackingPage: React.FC = () => {
-  const { currentPath, addToast, navigate } = useApp();
-  const [trackingInput, setTrackingInput] = useState('CMD-2026-0048');
-  const [activeCode, setActiveCode] = useState('CMD-2026-0048');
+  const { currentPath, addToast } = useApp();
+  const [trackingInput, setTrackingInput] = useState('AWP-10482');
+  const [activeCode, setActiveCode] = useState('AWP-10482');
   const [isSearching, setIsSearching] = useState(false);
   const [liveShipment, setLiveShipment] = useState<PublicTrackingDetails | null>(null);
   const [recentShipments, setRecentShipments] = useState<Array<{ tracking_code: string; label: string }>>([]);
@@ -103,11 +105,19 @@ export const TrackingPage: React.FC = () => {
     if (currentPath.includes('code=')) {
       const paramCode = currentPath.split('code=')[1]?.split('&')[0];
       if (paramCode) {
-        setTrackingInput(paramCode);
-        setActiveCode(paramCode);
+        const clean = decodeURIComponent(paramCode).trim();
+        setTrackingInput(clean);
+        setActiveCode(clean);
       }
     }
   }, [currentPath]);
+
+  // Fetch when activeCode changes
+  useEffect(() => {
+    if (activeCode) {
+      fetchRealTracking(activeCode);
+    }
+  }, [activeCode, fetchRealTracking]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +134,7 @@ export const TrackingPage: React.FC = () => {
   const setQuery = (code: string) => {
     setTrackingInput(code);
     setActiveCode(code);
+    fetchRealTracking(code);
     addToast({
       title: 'Dossier chargé',
       message: `Affichage des jalons logistiques pour ${code}.`,
@@ -405,6 +416,13 @@ export const TrackingPage: React.FC = () => {
               </>
             )}
           </div>
+
+          {fetchError && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2 justify-center">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+              <span>{fetchError}</span>
+            </div>
+          )}
         </div>
       </section>
 
@@ -468,7 +486,7 @@ export const TrackingPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Destination
+                Destination Finale
               </span>
               <MapPin className="w-4 h-4 text-[#FF4500]" />
             </div>
@@ -766,73 +784,103 @@ export const TrackingPage: React.FC = () => {
                   <span className="text-xs text-slate-500">Archivage numérique sécurisé Dallou Chine</span>
                 </div>
               </div>
-              <span className="text-xs text-slate-400 font-medium">4 Fichiers</span>
+              <span className="text-xs text-slate-400 font-medium">
+                {serverShipment ? `${serverShipment.documents.length} Fichier(s)` : '4 Fichiers'}
+              </span>
             </div>
 
             {/* Documents downloads list */}
             <div className="flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleDownloadDoc('Rapport vidéo inspection')}
-                className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
-                    <Video className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
-                      Rapport d'inspection vidéo HD (Guangzhou)
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      MP4 · 42 MB · Test d'accélération &amp; étanchéité
-                    </span>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
-              </button>
+              {serverShipment && serverShipment.documents.length > 0 ? (
+                serverShipment.documents.map(doc => (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    onClick={() => handleDownloadDoc(doc.title)}
+                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
+                          {doc.title}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          Format: {doc.docType.toUpperCase()} · Certifié public
+                        </span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+                  </button>
+                ))
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc('Rapport vidéo inspection')}
+                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
+                        <Video className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
+                          Rapport d'inspection vidéo HD (Guangzhou)
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          MP4 · 42 MB · Test d'accélération &amp; étanchéité
+                        </span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => handleDownloadDoc('Certificat d\'Origine Form E')}
-                className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
-                      Certificat d'Origine Form E &amp; Fiche CE
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      PDF certifié · 2.1 MB · Tampon chambre de commerce
-                    </span>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc('Certificat d\'Origine Form E')}
+                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
+                          Certificat d'Origine Form E &amp; Fiche CE
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          PDF certifié · 2.1 MB · Tampon chambre de commerce
+                        </span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => handleDownloadDoc('Connaissement Maritime B/L')}
-                className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
-                    <Ship className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
-                      Connaissement Maritime (Bill of Lading LCL)
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      PDF original · 1.4 MB · Maersk / Line Partner
-                    </span>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc('Connaissement Maritime B/L')}
+                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
+                        <Ship className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
+                          Connaissement Maritime (Bill of Lading LCL)
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          PDF original · 1.4 MB · Maersk / Line Partner
+                        </span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+                  </button>
+                </>
+              )}
 
               <button
                 type="button"
@@ -853,15 +901,6 @@ export const TrackingPage: React.FC = () => {
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/devis-documents')}
-                className="pt-2 text-xs font-bold text-[#FF4500] hover:text-[#E03D00] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Accéder au Centre de Documents Complet</span>
-                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
