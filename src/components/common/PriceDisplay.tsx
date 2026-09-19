@@ -51,11 +51,11 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({
 
   return (
     <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 ${className}`}>
-      <div className="flex items-baseline gap-1 text-[#0D2C7A]">
+      <div className="flex items-baseline gap-1 text-[#0B192C]">
         <span className={`font-mono-numeric tracking-tight ${s.price}`}>
           {priceXOF.toLocaleString('fr-FR')}
         </span>
-        <span className={`text-[#2A6DFF] ${s.currency}`}>FCFA</span>
+        <span className={`text-[#FF4500] ${s.currency}`}>FCFA</span>
       </div>
 
       {previousPriceXOF && previousPriceXOF > priceXOF && (

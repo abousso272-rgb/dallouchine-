@@ -17,15 +17,30 @@ import {
 } from 'lucide-react';
 
 export const CatalogPage: React.FC = () => {
-  const { products, categories, searchQuery, setSearchQuery } = useApp();
+  const { products, categories, searchQuery, setSearchQuery, currentPath } = useApp();
 
   // Filter States
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    if (currentPath === '/auto-mobilite') return 'Auto';
+    if (currentPath.includes('category=')) {
+      return decodeURIComponent(currentPath.split('category=')[1]?.split('&')[0] || 'all');
+    }
+    return 'all';
+  });
   const [selectedTransport, setSelectedTransport] = useState<string>('all'); // all | air | sea
   const [onlyGroupages, setOnlyGroupages] = useState<boolean>(false);
-  const [maxPrice, setMaxPrice] = useState<number>(300000);
+  const [maxPrice, setMaxPrice] = useState<number>(1500000);
   const [sortBy, setSortBy] = useState<string>('popular');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
+
+  // Sync category when path changes
+  React.useEffect(() => {
+    if (currentPath === '/auto-mobilite') {
+      setSelectedCategory('Auto');
+    } else if (currentPath.includes('category=')) {
+      setSelectedCategory(decodeURIComponent(currentPath.split('category=')[1]?.split('&')[0] || 'all'));
+    }
+  }, [currentPath]);
 
   // Filter products
   const filteredProducts = useMemo(() => {
@@ -87,10 +102,10 @@ export const CatalogPage: React.FC = () => {
       <div className="glass-panel bg-white/70 rounded-3xl p-6 sm:p-8 border border-white/90 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#2A6DFF] block">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#FF4500] block">
               Catalogue Produits SinoSenegal
             </span>
-            <h1 className="text-2xl sm:text-4xl font-black text-[#0D2C7A] tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-black text-[#0B192C] tracking-tight">
               Explorer tous les articles ({filteredProducts.length})
             </h1>
             <p className="text-xs sm:text-sm text-slate-600">
@@ -110,16 +125,16 @@ export const CatalogPage: React.FC = () => {
         <div className="lg:hidden flex items-center justify-between gap-2">
           <button
             onClick={() => setIsMobileFilterOpen(true)}
-            className="flex-1 bg-white glass-panel text-[#0D2C7A] font-bold text-xs py-3 px-4 rounded-2xl border border-slate-200 flex items-center justify-center gap-2 shadow-xs"
+            className="flex-1 bg-white glass-panel text-[#0B192C] font-bold text-xs py-3 px-4 rounded-2xl border border-slate-200 flex items-center justify-center gap-2 shadow-xs"
           >
-            <SlidersHorizontal className="w-4 h-4 text-[#2A6DFF]" />
+            <SlidersHorizontal className="w-4 h-4 text-[#FF4500]" />
             <span>Filtres ({onlyGroupages ? '1 actif' : 'Personnaliser'})</span>
           </button>
 
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
-            className="bg-white text-xs font-bold text-[#0D2C7A] border border-slate-200 rounded-2xl px-4 py-3 outline-hidden"
+            className="bg-white text-xs font-bold text-[#0B192C] border border-slate-200 rounded-2xl px-4 py-3 outline-hidden"
           >
             <option value="popular">Popularité</option>
             <option value="rating">Meilleures notes ★</option>
@@ -142,15 +157,15 @@ export const CatalogPage: React.FC = () => {
             }`}
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-black text-[#0D2C7A] flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-[#2A6DFF]" />
+              <h3 className="text-base font-black text-[#0B192C] flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-[#FF4500]" />
                 <span>Filtres</span>
               </h3>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={resetFilters}
-                  className="text-xs font-bold text-slate-500 hover:text-[#2A6DFF]"
+                  className="text-xs font-bold text-slate-500 hover:text-[#FF4500]"
                 >
                   Réinitialiser
                 </button>
@@ -175,7 +190,7 @@ export const CatalogPage: React.FC = () => {
                   onClick={() => setSelectedCategory('all')}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
                     selectedCategory === 'all'
-                      ? 'bg-[#0D2C7A] text-white'
+                      ? 'bg-[#0B192C] text-white'
                       : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
@@ -189,7 +204,7 @@ export const CatalogPage: React.FC = () => {
                     onClick={() => setSelectedCategory((cat.name || '').split('&')[0].trim())}
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
                       (selectedCategory || '').toLowerCase().includes(((cat?.name || '').split('&')[0] || '').trim().toLowerCase())
-                        ? 'bg-[#0D2C7A] text-white'
+                        ? 'bg-[#0B192C] text-white'
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
@@ -210,7 +225,7 @@ export const CatalogPage: React.FC = () => {
                   type="checkbox"
                   checked={onlyGroupages}
                   onChange={e => setOnlyGroupages(e.target.checked)}
-                  className="w-4 h-4 text-[#0D2C7A] rounded-md accent-[#0D2C7A]"
+                  className="w-4 h-4 text-[#FF4500] rounded-md accent-[#FF4500]"
                 />
                 <div className="text-xs">
                   <strong className="text-amber-950 font-bold block flex items-center gap-1">
@@ -232,7 +247,7 @@ export const CatalogPage: React.FC = () => {
                   onClick={() => setSelectedTransport(selectedTransport === 'air' ? 'all' : 'air')}
                   className={`p-2.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 ${
                     selectedTransport === 'air'
-                      ? 'bg-[#0D2C7A] text-white border-[#0D2C7A]'
+                      ? 'bg-[#0B192C] text-white border-[#0B192C]'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -244,7 +259,7 @@ export const CatalogPage: React.FC = () => {
                   onClick={() => setSelectedTransport(selectedTransport === 'sea' ? 'all' : 'sea')}
                   className={`p-2.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 ${
                     selectedTransport === 'sea'
-                      ? 'bg-[#0D2C7A] text-white border-[#0D2C7A]'
+                      ? 'bg-[#0B192C] text-white border-[#0B192C]'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -258,7 +273,7 @@ export const CatalogPage: React.FC = () => {
             <div className="space-y-2 pt-2 border-t border-slate-100">
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="uppercase tracking-wider text-slate-400">Prix max</span>
-                <span className="text-[#0D2C7A] font-mono-numeric">
+                <span className="text-[#0B192C] font-mono-numeric">
                   {(maxPrice || 0).toLocaleString('fr-FR')} FCFA
                 </span>
               </div>
@@ -269,14 +284,14 @@ export const CatalogPage: React.FC = () => {
                 step="5000"
                 value={maxPrice}
                 onChange={e => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-[#0D2C7A]"
+                className="w-full accent-[#FF4500]"
               />
             </div>
 
             {isMobileFilterOpen && (
               <button
                 onClick={() => setIsMobileFilterOpen(false)}
-                className="w-full bg-[#0D2C7A] text-white font-bold text-xs py-3 rounded-2xl shadow-md"
+                className="w-full bg-[#0B192C] text-white font-bold text-xs py-3 rounded-2xl shadow-md hover:bg-[#FF4500] transition-colors"
               >
                 Appliquer les filtres ({filteredProducts.length} résultats)
               </button>
@@ -297,7 +312,7 @@ export const CatalogPage: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value)}
-                className="bg-white text-xs font-bold text-[#0D2C7A] border border-slate-200 rounded-xl px-3 py-1.5 outline-hidden cursor-pointer"
+                className="bg-white text-xs font-bold text-[#0B192C] border border-slate-200 rounded-xl px-3 py-1.5 outline-hidden cursor-pointer"
               >
                 <option value="popular">Popularité & Commandes</option>
                 <option value="rating">Meilleures notes ★</option>
@@ -321,14 +336,14 @@ export const CatalogPage: React.FC = () => {
                 🔍
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-[#0D2C7A]">Aucun produit trouvé</h3>
+                <h3 className="text-lg font-bold text-[#0B192C]">Aucun produit trouvé</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
                   Aucun article ne correspond à vos critères de recherche. Essayez d'ajuster vos filtres.
                 </p>
               </div>
               <button
                 onClick={resetFilters}
-                className="bg-[#0D2C7A] text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-xs hover:bg-[#2A6DFF]"
+                className="bg-[#0B192C] text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-xs hover:bg-[#FF4500] transition-colors"
               >
                 Réinitialiser tous les filtres
               </button>

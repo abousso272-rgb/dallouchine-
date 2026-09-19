@@ -30,26 +30,26 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, className 
           loading="lazy"
         />
         {/* Soft Glass gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0D2C7A]/90 via-[#0D2C7A]/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B192C]/90 via-[#0B192C]/40 to-transparent" />
       </div>
 
       {/* Top Tag */}
       {category.featuredTag && (
         <div className="absolute top-3.5 left-3.5 z-10">
-          <span className="glass-panel text-[10px] font-bold text-white px-2.5 py-1 rounded-full shadow-xs bg-[#0D2C7A]/60 border-white/30 backdrop-blur-md">
+          <span className="glass-panel text-[10px] font-bold text-white px-2.5 py-1 rounded-full shadow-xs bg-[#0B192C]/60 border-white/30 backdrop-blur-md">
             {category.featuredTag}
           </span>
         </div>
       )}
 
       {/* Top Right Arrow */}
-      <div className="absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full glass-panel bg-white/80 text-[#0D2C7A] flex items-center justify-center transform group-hover:rotate-45 group-hover:bg-[#2A6DFF] group-hover:text-white transition-all duration-300 shadow-xs">
+      <div className="absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full glass-panel bg-white/80 text-[#0B192C] flex items-center justify-center transform group-hover:rotate-45 group-hover:bg-[#FF4500] group-hover:text-white transition-all duration-300 shadow-xs">
         <ArrowUpRight className="w-4 h-4" />
       </div>
 
       {/* Card Details */}
       <div className="relative z-10 text-white space-y-1">
-        <span className="text-[11px] font-semibold text-blue-200 uppercase tracking-wider block font-mono-numeric">
+        <span className="text-[11px] font-semibold text-orange-200 uppercase tracking-wider block font-mono-numeric">
           {category.productCount} articles sourcés
         </span>
         <h3 className="text-base sm:text-lg font-black tracking-tight leading-snug group-hover:text-amber-300 transition-colors">

@@ -498,10 +498,97 @@ export const MOCK_PRODUCTS: Product[] = [
     reviewsCount: 89,
     tags: ['Achat Rapide', 'Accessoire Auto', 'Charge Sans Fil'],
     createdAt: '2026-08-04'
+  },
+  {
+    id: 'prod-moto',
+    slug: 'moto-electrique-urbaine-72v-3000w',
+    name: 'Moto Électrique Urbaine 72V 3000W Batterie Amovible',
+    category: 'Véhicules & Mobilité',
+    images: [
+      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=1200&q=80'
+    ],
+    shortDescription: 'Moteur 3000W Brushless haute puissance, batterie amovible 72V 40Ah, autonomie 100-120 km. Zéro essence, homologuée pour les routes de Dakar.',
+    fullDescription: 'La solution par excellence contre la hausse du carburant à Dakar. Équipée d\'un moteur brushless étanche IP67 de 3000W capable de gravir les pentes les plus raides avec passager. Sa batterie lithium amovible se recharge en 4 à 6 heures sur n\'importe quelle prise domestique standard 220V à la maison ou au bureau. Conçue avec un châssis renforcé anti-corrosion marine adapté à l\'air salin de Dakar, des suspensions hydrauliques inversées et des freins à disques hydrauliques CBS.',
+    specifications: {
+      'Puissance Moteur': '3000W Brushless High-Torque étanche IP67',
+      'Batterie': 'Lithium-Ion 72V 40Ah amovible avec serrure antivol',
+      'Autonomie réelle': '100 à 120 km par charge complète',
+      'Vitesse maximale': '85 km/h (3 modes de conduite : Eco, Ville, Sport)',
+      'Temps de charge': '4h30 à 6h sur prise standard 220V (Chargeur rapide intelligent inclus)',
+      'Freinage': 'Double disque hydraulique avant / arrière avec répartiteur CBS',
+      'Poids à vide': '85 kg (avec batterie)',
+      'Charge maximale': '180 kg (2 adultes + bagages)',
+      'Pneus': 'Tubeless renforcés 12 pouces tout-terrain urbain',
+      'Éclairage': 'Full LED avant haute intensité et feux stop dynamiques',
+      'Écran': 'Compteur digital LCD couleur antireflet haute luminosité',
+      'Garantie': '1 an usine + SAV assuré au Hub Dallou Chine Dakar'
+    },
+    features: [
+      'Zéro essence — Économie moyenne de 45 000 FCFA de carburant par mois',
+      'Batterie amovible — Rechargez chez vous sans avoir besoin d\'un garage équipé',
+      'Homologuée Sénégal — Dossier complet fourni pour immatriculation et carte grise',
+      'Pièces de rechange & techniciens certifiés disponibles au Hub de Dakar',
+      'Port de charge USB au guidon pour votre smartphone / GPS de livraison',
+      'Alarme antivol avec télécommande intelligente et blocage automatique de la roue'
+    ],
+    unitWeightKg: 85,
+    dimensionsCm: { length: 185, width: 72, height: 110 },
+    cbm: 0.95,
+    moq: 1,
+    basePriceCNY: 4800,
+    basePriceUSD: 680,
+    priceXOF: 850000,
+    previousPriceXOF: 1450000,
+    isGroupage: true,
+    activeGroupageId: 'grp-moto',
+    supplierId: 'sup-02',
+    sourcerId: 'src-02',
+    defaultTransportMode: 'sea',
+    estimatedDeliveryDays: '30–40 jours (Fret maritime sécurisé)',
+    stockStatus: 'groupage_only',
+    targetMarginPercent: 32,
+    rating: 4.94,
+    reviewsCount: 48,
+    tags: ['Best-Seller', 'Groupage Actif', 'Électrique', 'Zéro Essence', 'Mobilité'],
+    createdAt: '2026-08-10'
   }
 ];
 
 export const MOCK_GROUPAGES: Groupage[] = [
+  {
+    id: 'grp-moto',
+    code: 'GRP-MOTO-01',
+    title: 'Groupage #MOTO — Motos Électriques Urbaines 72V 3000W',
+    productId: 'prod-moto',
+    unitPriceXOF: 850000,
+    productPriceXOF: 520000,
+    estimatedLogisticsXOF: 330000,
+    originalPriceXOF: 1450000,
+    targetUnits: 20,
+    currentUnits: 14,
+    participantsCount: 12,
+    startDate: '2026-08-01',
+    closingDate: '2026-10-28',
+    estimatedDepartureDate: '2026-11-05',
+    estimatedArrivalDate: '2026-12-15',
+    transportMode: 'sea',
+    status: 'open',
+    statusNote: 'Campagne de groupage ouverte — 14/20 réservées. Plus que 6 motos pour valider le conteneur maritime.',
+    minOrderPerUser: 1,
+    maxOrderPerUser: 4,
+    savingsPercent: 41,
+    logisticsRoute: 'Guangzhou Sourcing Hub → Conteneur Maritime 40HQ → Port Autonome de Dakar → Hub Dallou',
+    guaranteeNote: 'Inspection vidéo unitaire à l\'usine avant scellement du conteneur. Garantie 1 an pièces et batterie.',
+    keyBenefits: [
+      'Économisez 600 000 FCFA par rapport au prix boutique à Dakar',
+      'Fret maritime sécurisé, assurance cargo et formalités douanières Gaindé DDP 100% incluses',
+      'Batterie lithium amovible incluse + chargeur rapide secteur 220V',
+      'Assistance immatriculation et carte grise Sénégal offerte'
+    ]
+  },
   {
     id: 'grp-01',
     code: 'GRP-024',

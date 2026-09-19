@@ -65,7 +65,7 @@ export const Modal: React.FC<ModalProps> = ({
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5 bg-gradient-to-r from-slate-50 to-white">
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-[#0D2C7A]">{title}</h3>
+              <h3 className="text-base sm:text-lg font-bold text-[#0B192C]">{title}</h3>
               {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
             </div>
             {showCloseButton && (

@@ -18,15 +18,15 @@ export const Footer: React.FC = () => {
   const { navigate } = useApp();
 
   return (
-    <footer className="mt-20 bg-[#071945] text-slate-300 pt-16 pb-24 lg:pb-12 border-t border-blue-900/50 relative overflow-hidden">
+    <footer className="mt-20 bg-[#0B192C] text-slate-300 pt-16 pb-24 lg:pb-12 border-t border-slate-800 relative overflow-hidden">
       {/* Soft background glow */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#2A6DFF]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#FF4500]/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-12">
         {/* Top Newsletter / Trust Strip */}
         <div className="glass-panel-dark rounded-3xl p-6 sm:p-8 border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1 max-w-xl text-center md:text-left">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#2A6DFF]">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#FF4500]">
               Alertes Nouveaux Groupages & Usines
             </span>
             <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
@@ -41,11 +41,11 @@ export const Footer: React.FC = () => {
             <input
               type="text"
               placeholder="Numéro WhatsApp ou Email"
-              className="bg-slate-900/90 border border-white/20 rounded-2xl px-4 py-3 text-xs text-white placeholder:text-slate-400 outline-hidden focus:border-[#2A6DFF] flex-1"
+              className="bg-slate-900/90 border border-white/20 rounded-2xl px-4 py-3 text-xs text-white placeholder:text-slate-400 outline-hidden focus:border-[#FF4500] flex-1"
             />
             <button
               onClick={() => alert('Merci pour votre inscription aux alertes groupages !')}
-              className="bg-[#2A6DFF] hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-2xl transition-colors shadow-md shrink-0"
+              className="bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-xs px-6 py-3 rounded-2xl transition-colors shadow-md shrink-0"
             >
               S'inscrire
             </button>
@@ -57,29 +57,29 @@ export const Footer: React.FC = () => {
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0D2C7A] to-[#2A6DFF] text-white flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0B192C] to-[#FF4500] text-white flex items-center justify-center shadow-md">
                 <Plane className="w-5 h-5 -rotate-45" />
               </div>
               <span className="text-xl font-black text-white tracking-tight">
-                Sino<span className="text-[#2A6DFF]">Senegal</span>
+                Dallou <span className="text-[#FF4500]">Chine</span>
               </span>
             </div>
 
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
-              La plateforme e-commerce et de sourcing de référence pour acheter directement en Chine, participer à des achats groupés négociés et recevoir ses colis à Dakar et dans les régions du Sénégal.
+              Votre passerelle logistique et sourcing de référence entre la Chine et l’Afrique. Fret aérien express hebdomadaire, groupage maritime sécurisé et achat direct sur 1688 & Taobao avec livraison à Dakar.
             </p>
 
             <div className="pt-2 space-y-2 text-xs text-slate-400">
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#2A6DFF] shrink-0" />
-                <span>Hubs à Dakar (Almadies, Sandaga, Pikine, Diamniadio) & Thiès</span>
+                <MapPin className="w-4 h-4 text-[#FF4500] shrink-0" />
+                <span>Hubs au Sénégal : Sacré-Cœur (Siège), Sandaga, Pikine & Thiès</span>
               </div>
               <div className="flex items-center gap-2">
-                <Building className="w-4 h-4 text-[#2A6DFF] shrink-0" />
-                <span>Bureaux & Entrepôts partenaires : Guangzhou & Yiwu (Chine)</span>
+                <Building className="w-4 h-4 text-[#FF4500] shrink-0" />
+                <span>Entrepôts en Chine : Guangzhou (Baiyun) & Yiwu (Zhejiang)</span>
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-[#2A6DFF] shrink-0" />
+                <Phone className="w-4 h-4 text-[#FF4500] shrink-0" />
                 <span>+221 77 420 18 19 / +221 33 820 00 00</span>
               </div>
             </div>
@@ -92,12 +92,12 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs text-slate-300">
               <li>
-                <button onClick={() => navigate('/products')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/products')} className="hover:text-[#FF4500] transition-colors">
                   Catalogue Produits
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/groupages')} className="hover:text-[#2A6DFF] transition-colors flex items-center gap-1">
+                <button onClick={() => navigate('/groupages')} className="hover:text-[#FF4500] transition-colors flex items-center gap-1">
                   <span>Achats Groupés</span>
                   <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">
                     Nouveau
@@ -105,26 +105,26 @@ export const Footer: React.FC = () => {
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/b2b')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/b2b')} className="hover:text-[#FF4500] transition-colors">
                   Sourcing B2B & Grossistes
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/tracking')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/tracking')} className="hover:text-[#FF4500] transition-colors">
                   Suivi de Colis AWP
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/how-it-works')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/how-it-works')} className="hover:text-[#FF4500] transition-colors">
                   Comment ça marche ?
                 </button>
               </li>
               <li className="pt-2 border-t border-white/10">
                 <button
                   onClick={() => navigate('/admin')}
-                  className="text-blue-300 hover:text-white font-bold transition-colors flex items-center gap-1.5"
+                  className="text-orange-300 hover:text-white font-bold transition-colors flex items-center gap-1.5"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#2A6DFF]" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#FF4500]" />
                   <span>Espace Administrateur HQ</span>
                 </button>
               </li>
@@ -138,27 +138,27 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs text-slate-300">
               <li>
-                <button onClick={() => navigate('/products?category=electronique-high-tech')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/products?category=electronique-high-tech')} className="hover:text-[#FF4500] transition-colors">
                   Électronique & Vidéo
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/products?category=maison-decoration')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/products?category=maison-decoration')} className="hover:text-[#FF4500] transition-colors">
                   Maison & Rangement
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/products?category=automobile-outillage')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/products?category=automobile-outillage')} className="hover:text-[#FF4500] transition-colors">
                   Automobile & Outillage
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/products?category=energie-solaire-batteries')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/products?category=energie-solaire-batteries')} className="hover:text-[#FF4500] transition-colors">
                   Énergie Solaire & LiFePO4
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/products?category=equipements-professionnels')} className="hover:text-[#2A6DFF] transition-colors">
+                <button onClick={() => navigate('/products?category=equipements-professionnels')} className="hover:text-[#FF4500] transition-colors">
                   Équipements Professionnels
                 </button>
               </li>
@@ -208,7 +208,7 @@ export const Footer: React.FC = () => {
             </button>
             <span>•</span>
             <div>
-              © 2026 SinoSenegal Platform. Tous droits réservés.
+              © 2026 Dallou Chine Logistique & Transit. Tous droits réservés.
             </div>
           </div>
         </div>

@@ -102,12 +102,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <div
           className={`flex items-center w-full rounded-2xl sm:rounded-3xl transition-all duration-300 ${sizeClasses[size]} ${
             variant === 'hero'
-              ? 'glass-panel bg-white/90 border-2 border-[#2A6DFF]/30 shadow-xl focus-within:border-[#2A6DFF] focus-within:bg-white focus-within:shadow-2xl'
-              : 'glass-panel bg-white/80 border border-slate-200 shadow-xs focus-within:border-[#2A6DFF] focus-within:bg-white'
+              ? 'glass-panel bg-white/90 border-2 border-[#FF4500]/30 shadow-xl focus-within:border-[#FF4500] focus-within:bg-white focus-within:shadow-2xl'
+              : 'glass-panel bg-white/80 border border-slate-200 shadow-xs focus-within:border-[#FF4500] focus-within:bg-white'
           }`}
         >
           <Search
-            className={`${iconSizes[size]} text-[#2A6DFF] shrink-0 mr-3 transition-transform group-focus-within:scale-110`}
+            className={`${iconSizes[size]} text-[#FF4500] shrink-0 mr-3 transition-transform group-focus-within:scale-110`}
           />
 
           <input
@@ -119,7 +119,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             }}
             onFocus={() => setIsOpen(true)}
             placeholder={placeholder}
-            className="w-full bg-transparent text-[#0D2C7A] placeholder:text-slate-400 font-medium outline-hidden"
+            className="w-full bg-transparent text-[#0B192C] placeholder:text-slate-400 font-medium outline-hidden"
           />
 
           {inputValue && (
@@ -138,7 +138,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           {variant === 'header' ? (
             <button
               type="submit"
-              className="bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white p-1.5 rounded-lg transition-all shrink-0 flex items-center justify-center shadow-xs"
+              className="bg-[#0B192C] hover:bg-[#FF4500] text-white p-1.5 rounded-lg transition-all shrink-0 flex items-center justify-center shadow-xs"
               title="Rechercher"
             >
               <Search className="w-3.5 h-3.5" />
@@ -146,7 +146,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           ) : (
             <button
               type="submit"
-              className="bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-2 rounded-xl sm:rounded-2xl transition-all duration-200 shrink-0 flex items-center gap-1.5 shadow-md active:scale-95"
+              className="bg-[#0B192C] hover:bg-[#FF4500] text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-2 rounded-xl sm:rounded-2xl transition-all duration-200 shrink-0 flex items-center gap-1.5 shadow-md active:scale-95"
             >
               <span>Rechercher</span>
               <ArrowRight className="w-3.5 h-3.5 hidden sm:inline" />
@@ -162,7 +162,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             <div className="space-y-4">
               <div>
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-[#2A6DFF]" />
+                  <TrendingUp className="w-3.5 h-3.5 text-[#FF4500]" />
                   <span>Recherches tendances au Sénégal</span>
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -170,9 +170,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                     <button
                       key={idx}
                       onClick={() => handleSelectTerm(term)}
-                      className="bg-slate-100 hover:bg-[#2A6DFF]/10 hover:text-[#0D2C7A] hover:border-[#2A6DFF]/30 text-xs font-semibold text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200/80 transition-all duration-150 flex items-center gap-1"
+                      className="bg-slate-100 hover:bg-[#FF4500]/10 hover:text-[#0B192C] hover:border-[#FF4500]/30 text-xs font-semibold text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200/80 transition-all duration-150 flex items-center gap-1"
                     >
-                      <Sparkles className="w-3 h-3 text-[#2A6DFF]" />
+                      <Sparkles className="w-3 h-3 text-[#FF4500]" />
                       <span>{term}</span>
                     </button>
                   ))}
@@ -181,7 +181,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
               <div className="pt-2 border-t border-slate-100">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                  <Tag className="w-3.5 h-3.5 text-[#2A6DFF]" />
+                  <Tag className="w-3.5 h-3.5 text-[#FF4500]" />
                   <span>Catégories Populaires</span>
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -192,7 +192,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                         setIsOpen(false);
                         navigate(`/products?category=${c.slug}`);
                       }}
-                      className="text-left text-xs font-semibold text-slate-700 hover:text-[#2A6DFF] p-2 rounded-xl hover:bg-slate-50 transition-colors"
+                      className="text-left text-xs font-semibold text-slate-700 hover:text-[#FF4500] p-2 rounded-xl hover:bg-slate-50 transition-colors"
                     >
                       • {c.name}
                     </button>
@@ -220,7 +220,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                           className="w-10 h-10 rounded-xl object-cover border border-slate-200"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-bold text-[#0D2C7A] truncate">{p.name}</h4>
+                          <h4 className="text-xs font-bold text-[#0B192C] truncate">{p.name}</h4>
                           <span className="text-[11px] text-slate-500 font-mono-numeric">
                             {p.priceXOF.toLocaleString('fr-FR')} FCFA • {p.category}
                           </span>
@@ -249,7 +249,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                           setIsOpen(false);
                           navigate(`/products?category=${c.slug}`);
                         }}
-                        className="w-full text-left flex items-center justify-between p-2 rounded-xl hover:bg-slate-100/80 text-xs font-semibold text-[#0D2C7A]"
+                        className="w-full text-left flex items-center justify-between p-2 rounded-xl hover:bg-slate-100/80 text-xs font-semibold text-[#0B192C]"
                       >
                         <span>{c.name}</span>
                         <span className="text-slate-400 font-mono-numeric">
@@ -267,7 +267,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   <p>Aucun produit ne correspond à "{inputValue}".</p>
                   <button
                     onClick={() => handleSelectTerm(inputValue)}
-                    className="text-[#2A6DFF] font-bold underline text-xs"
+                    className="text-[#FF4500] font-bold underline text-xs"
                   >
                     Voir tous les résultats dans le catalogue
                   </button>

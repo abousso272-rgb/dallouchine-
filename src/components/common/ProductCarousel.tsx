@@ -51,7 +51,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({ products = [],
       <button
         onClick={() => handleScroll('left')}
         aria-label="Précédent"
-        className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full glass-panel bg-white/90 text-[#0D2C7A] hover:bg-[#2A6DFF] hover:text-white items-center justify-center shadow-lg transition-all active:scale-90"
+        className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full glass-panel bg-white/90 text-[#0B192C] hover:bg-[#FF4500] hover:text-white items-center justify-center shadow-lg transition-all active:scale-90"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
@@ -59,7 +59,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({ products = [],
       <button
         onClick={() => handleScroll('right')}
         aria-label="Suivant"
-        className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full glass-panel bg-white/90 text-[#0D2C7A] hover:bg-[#2A6DFF] hover:text-white items-center justify-center shadow-lg transition-all active:scale-90"
+        className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full glass-panel bg-white/90 text-[#0B192C] hover:bg-[#FF4500] hover:text-white items-center justify-center shadow-lg transition-all active:scale-90"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
@@ -86,7 +86,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({ products = [],
 
               {/* Badges Container Top Row */}
               <div className="absolute top-2 inset-x-2 flex items-center justify-between gap-1 z-10 pointer-events-none">
-                <div className="bg-[#0D2C7A]/90 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                <div className="bg-[#0B192C]/90 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
                   <Flame className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
                   <span>Tendance</span>
                 </div>
@@ -101,20 +101,20 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({ products = [],
 
             {/* Details */}
             <div className="space-y-1.5">
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[#2A6DFF] uppercase tracking-wider block truncate">
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[#FF4500] uppercase tracking-wider block truncate">
                 {prod.category}
               </span>
 
-              <h4 className="text-xs sm:text-sm font-bold text-[#0D2C7A] group-hover:text-[#2A6DFF] transition-colors line-clamp-1">
+              <h4 className="text-xs sm:text-sm font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors line-clamp-1">
                 {prod.name}
               </h4>
 
               <div className="flex items-baseline justify-between pt-1 border-t border-slate-100">
-                <div className="flex items-baseline gap-1 text-[#0D2C7A] font-mono-numeric">
+                <div className="flex items-baseline gap-1 text-[#0B192C] font-mono-numeric">
                   <strong className="text-sm sm:text-base font-black">
                     {prod.priceXOF.toLocaleString('fr-FR')}
                   </strong>
-                  <span className="text-[9px] sm:text-[10px] font-bold text-[#2A6DFF]">FCFA</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-[#FF4500]">FCFA</span>
                 </div>
 
                 <span className="text-[9px] sm:text-[10px] text-slate-500 font-mono-numeric font-medium truncate">

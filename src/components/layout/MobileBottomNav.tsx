@@ -30,8 +30,8 @@ export const MobileBottomNav: React.FC = () => {
                 onClick={() => navigate(item.path)}
                 className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 ${
                   isActive
-                    ? 'bg-[#0D2C7A] text-white shadow-md scale-102'
-                    : 'text-slate-600 hover:text-[#0D2C7A] hover:bg-slate-100/50'
+                    ? 'bg-[#0B192C] text-white shadow-md scale-102'
+                    : 'text-slate-600 hover:text-[#0B192C] hover:bg-slate-100/50'
                 }`}
               >
                 <div className="relative">
@@ -40,11 +40,7 @@ export const MobileBottomNav: React.FC = () => {
                   {/* Cart Counter Badge */}
                   {item.count !== undefined && item.count > 0 && (
                     <span
-                      className={`absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black flex items-center justify-center font-mono-numeric shadow-xs ${
-                        isActive
-                          ? 'bg-amber-400 text-slate-950'
-                          : 'bg-[#2A6DFF] text-white'
-                      }`}
+                      className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black flex items-center justify-center font-mono-numeric shadow-xs bg-[#FF4500] text-white"
                     >
                       {item.count}
                     </span>

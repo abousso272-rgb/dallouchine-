@@ -1,468 +1,769 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SectionHeader } from '../../components/common/SectionHeader';
-import { LogisticsPriceSplit } from '../../components/common/LogisticsPriceSplit';
-import {
-  Building2,
-  ShieldCheck,
-  Plane,
-  Ship,
-  CheckCircle2,
-  Phone,
-  Mail,
-  ArrowRight,
-  Sparkles,
-  Package,
-  Layers,
-  Award,
-  Globe2,
-  FileText,
-  Eye,
-  Sliders,
-  Check,
-  HelpCircle,
-  ExternalLink
-} from 'lucide-react';
 
 export const B2BPage: React.FC = () => {
-  const { submitB2BRequest, navigate, quotes, openDocumentModal, currentPath } = useApp();
+  const { navigate, submitB2BRequest } = useApp();
 
-  const [formData, setFormData] = useState({
-    companyName: '',
-    contactName: '',
-    phone: '',
-    email: '',
-    productType: '',
-    quantity: 100,
-    targetBudgetXOF: 1500000,
-    transportPreference: 'recommended' as 'air' | 'sea' | 'express' | 'recommended',
-    specifications: '',
-    customizationNeeded: false,
-    customizationDetails: '',
-    alibabaUrl: '',
-    destinationCity: 'Dakar',
-    paymentPreference: 'standard_split' // 30% acompte / 70% après contrôle avant embarquement
-  });
+  const [companyName, setCompanyName] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [industrySector, setIndustrySector] = useState('auto-ev');
+  const [expectedVolume, setExpectedVolume] = useState('40hq');
+  const [specifications, setSpecifications] = useState('');
+  const [sampleNeeded, setSampleNeeded] = useState(false);
 
   const [submittedCode, setSubmittedCode] = useState<string | null>(null);
 
-  // Pre-populate if query params exist (e.g. ?product=...&moq=...)
-  useEffect(() => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const productParam = urlParams.get('product');
-      const moqParam = urlParams.get('moq');
-      if (productParam) {
-        setFormData(prev => ({
-          ...prev,
-          productType: decodeURIComponent(productParam),
-          quantity: moqParam ? Number(moqParam) : 100
-        }));
-      }
-    } catch {}
-  }, []);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.contactName || !formData.phone || !formData.productType) {
-      alert('Veuillez remplir les champs obligatoires (Nom, Téléphone, Produit).');
+    if (!contactName || !phone) {
+      alert('Veuillez renseigner votre nom et votre numéro de téléphone.');
       return;
     }
 
     const newReq = submitB2BRequest({
-      companyName: formData.companyName || 'Particulier / Auto-entrepreneur',
-      contactName: formData.contactName,
-      phone: formData.phone,
-      email: formData.email || 'contact@client.sn',
-      productType: formData.productType,
-      quantity: Number(formData.quantity) || 50,
-      targetBudgetXOF: Number(formData.targetBudgetXOF) || 500000,
-      transportPreference: formData.transportPreference,
-      specifications: `${formData.specifications} ${
-        formData.customizationNeeded ? `\n[Personnalisation requise: ${formData.customizationDetails}]` : ''
-      } ${formData.alibabaUrl ? `\n[Lien source: ${formData.alibabaUrl}]` : ''} \n[Ville de destination: ${formData.destinationCity}]`,
-      customizationNeeded: formData.customizationNeeded,
-      customizationDetails: formData.customizationDetails,
-      destinationCity: formData.destinationCity,
-      sourceUrl: formData.alibabaUrl
+      companyName: companyName || 'Société Grands Comptes',
+      contactName,
+      phone,
+      email: email || 'b2b@entreprise.sn',
+      productType: `[B2B ${industrySector}] Volume: ${expectedVolume}`,
+      quantity: expectedVolume === '40hq' ? 100 : 50,
+      targetBudgetXOF: 15000000,
+      transportPreference: 'sea',
+      specifications: `${specifications} \n[Filière: ${industrySector}] \n[Volume prévisionnel: ${expectedVolume}] \n[Échantillon requis: ${sampleNeeded ? 'Oui' : 'Non'}]`
     });
 
-    setSubmittedCode(newReq.code);
+    setSubmittedCode(newReq.code || 'DLC-2026-B2B88');
+  };
+
+  const scrollToDevis = () => {
+    const el = document.getElementById('devis-b2b');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
-    <div className="space-y-16 pb-16">
-      {/* Hero Section */}
-      <section className="glass-panel-dark rounded-3xl p-8 sm:p-12 text-white border border-white/10 relative overflow-hidden space-y-6">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#2A6DFF]/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="flex flex-col w-full space-y-16 pb-16">
+      {/* Success Modal */}
+      {submittedCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-md">
+          <div className="bg-surface-container-lowest rounded-3xl p-6 sm:p-10 max-w-lg w-full shadow-2xl border border-slate-100 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+              <span className="material-symbols-outlined text-[36px]">verified</span>
+            </div>
+            <h3 className="font-headline-lg text-headline-lg text-on-surface font-bold">
+              Demande Grands Comptes Validée
+            </h3>
+            <p className="font-body-md text-body-md text-on-surface-variant">
+              Votre dossier B2B prioritaire a été transmis à la direction commerciale Dakar et au desk achats de Guangzhou. Votre code de référence est :
+            </p>
+            <div className="bg-surface-container-low p-3.5 rounded-2xl flex items-center justify-between">
+              <span className="font-label-md text-label-md text-on-surface-variant">Réf. Contrat B2B :</span>
+              <span className="font-headline-sm text-headline-sm text-primary font-mono font-bold">
+                {submittedCode}
+              </span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+              <button
+                onClick={() => {
+                  setSubmittedCode(null);
+                  navigate('/tracking');
+                }}
+                className="flex-1 h-12 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold hover:bg-secondary-container transition-all cursor-pointer"
+                type="button"
+              >
+                Suivre mon dossier
+              </button>
+              <button
+                onClick={() => setSubmittedCode(null)}
+                className="flex-1 h-12 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg font-semibold transition-all cursor-pointer"
+                type="button"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-        <div className="max-w-3xl space-y-4 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30 text-xs font-bold uppercase tracking-wider">
-            <Building2 className="w-4 h-4 text-[#2A6DFF]" />
-            <span>Service Grossistes & Entreprises Sénégalaises</span>
+      {/* =================================================================== */}
+      {/* 1. HERO B2B CORPORATE & DIRECT USINE */}
+      {/* =================================================================== */}
+      <section className="relative rounded-3xl overflow-hidden bg-surface-container-lowest/80 backdrop-blur-2xl p-6 sm:p-12 lg:p-16 border border-slate-100 shadow-xl shadow-on-surface/5">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-container/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-0 w-[350px] h-[350px] bg-secondary-container/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
+
+        <div className="relative z-10 max-w-4xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-fixed/20 border border-primary/20">
+            <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse" />
+            <span className="font-label-sm text-label-sm uppercase font-extrabold tracking-wider text-primary">
+              Division Corporate • FCL & Projets Industriels
+            </span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-            Votre bureau d'achat en Chine,{' '}
-            <span className="text-[#2A6DFF]">directement depuis Dakar.</span>
+          <h1 className="font-display-lg text-display-lg text-on-surface tracking-tight font-extrabold leading-tight">
+            Votre approvisionnement professionnel direct depuis les usines en Chine.
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
-            Importez des conteneurs complets ou des lots industriels auprès de fabricants chinois audités. Nous gérons la négociation, le contrôle qualité sur place, le fret et le dédouanement Gaindé DDP, avec une séparation claire entre prix d'achat usine et coût logistique.
+          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
+            Pour les grossistes, concessionnaires, entreprises de logistique, revendeurs et industriels d'Afrique de l'Ouest. Bénéficiez de prix FOB usine, d'un contrôle qualité physique sur site et d'une logistique conteneurisée de bout en bout vers le Port de Dakar.
           </p>
+
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <button
+              onClick={scrollToDevis}
+              className="h-14 px-8 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center gap-2 shadow-lg shadow-primary-container/30 hover:bg-secondary-container hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+              type="button"
+            >
+              <span>Demander un devis B2B Grands Comptes</span>
+              <span className="material-symbols-outlined text-[20px]">arrow_downward</span>
+            </button>
+
+            <a
+              href="https://wa.me/221338000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-14 px-7 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg font-semibold flex items-center gap-2.5 transition-all border border-slate-200/80 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[20px] text-emerald-600">call</span>
+              <span>Planifier un échange Desk B2B Dakar</span>
+            </a>
+          </div>
         </div>
 
-        {/* 3 Pillars Strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/10 relative z-10 text-xs sm:text-sm">
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1">
-            <strong className="text-white block font-bold">1. Sourcing Usines Vérifiées</strong>
-            <span className="text-slate-400">Audits physiques à Guangzhou, Shenzhen, Yiwu et Ningbo.</span>
+        {/* Live Key Metrics Strip */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 pt-8 border-t border-surface-container">
+          <div className="flex flex-col">
+            <span className="font-display-lg text-display-lg font-extrabold text-primary-container">40HQ</span>
+            <span className="font-label-md text-label-md text-on-surface-variant mt-1">
+              FCL Direct Ningbo • Dakar
+            </span>
           </div>
-
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1">
-            <strong className="text-white block font-bold">2. Contrôle Qualité Pré-Embarquement</strong>
-            <span className="text-slate-400">Rapport d'inspection photos/vidéos avant paiement du solde.</span>
+          <div className="flex flex-col">
+            <span className="font-display-lg text-display-lg font-extrabold text-on-surface">100%</span>
+            <span className="font-label-md text-label-md text-on-surface-variant mt-1">
+              Audit Usine & Licences
+            </span>
           </div>
-
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1">
-            <strong className="text-white block font-bold">3. Acheminement Port de Dakar / AIBD</strong>
-            <span className="text-slate-400">FCL / LCL maritime ou vol cargo avec dédouanement tout inclus.</span>
+          <div className="flex flex-col">
+            <span className="font-display-lg text-display-lg font-extrabold text-secondary-container">0% Risque</span>
+            <span className="font-label-md text-label-md text-on-surface-variant mt-1">
+              Assurance Maritime CIF
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="font-display-lg text-display-lg font-extrabold text-on-surface">OHADA</span>
+            <span className="font-label-md text-label-md text-on-surface-variant mt-1">
+              Facturation avec TVA légale
+            </span>
           </div>
         </div>
       </section>
 
-      {/* Main Quote Request Form + Assistance */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Side: Interactive Quote Form (7 cols) */}
-        <div className="lg:col-span-7 glass-panel bg-white/95 rounded-3xl p-6 sm:p-8 border border-white shadow-md space-y-6">
-          {submittedCode ? (
-            <div className="text-center py-10 space-y-4 animate-in zoom-in-95">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl">
-                ✓
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black text-[#0D2C7A]">Demande B2B Enregistrée !</h3>
-                <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
-                  Votre référence dossier est <strong className="text-[#2A6DFF] font-mono-numeric">{submittedCode}</strong>. Nos équipes à Guangzhou et Dakar analysent votre cahier des charges et vous transmettront un devis détaillé avec séparation stricte prix/logistique sous 24 à 48h.
-                </p>
-              </div>
-
-              <div className="pt-4 flex justify-center gap-3">
-                <button
-                  onClick={() => setSubmittedCode(null)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-5 py-2.5 rounded-xl"
-                >
-                  Faire une autre demande
-                </button>
-                <button
-                  onClick={() => navigate('/')}
-                  className="bg-[#0D2C7A] text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-xs"
-                >
-                  Retour à l'accueil
-                </button>
-              </div>
+      {/* =================================================================== */}
+      {/* 2. FILIÈRE STRATÉGIQUE : FLOTTES & MOBILITÉ DÉCARBONÉE */}
+      {/* =================================================================== */}
+      <section className="space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-secondary-container font-label-sm text-label-sm font-bold uppercase tracking-wider mb-1">
+              <span className="material-symbols-outlined text-[16px]">electric_bolt</span>
+              <span>Filière Stratégique Prioritaire</span>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <h2 className="font-headline-xl text-headline-xl text-on-surface font-extrabold">
+              Flottes, Concessions & Mobilité Décarbonée
+            </h2>
+            <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+              Approvisionnement direct usine pour les professionnels du transport, de la livraison et les revendeurs auto-moto au Sénégal.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/products?cat=Auto%20%26%20Mobilit%C3%A9')}
+            className="self-start sm:self-auto font-label-md text-label-md font-bold text-primary flex items-center gap-1 hover:underline cursor-pointer"
+          >
+            <span>Voir le catalogue Mobilité</span>
+            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Card 1 */}
+          <div className="bg-surface-container-lowest rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary-fixed/30 text-primary flex items-center justify-center">
+                <span className="material-symbols-outlined text-[24px]">electric_car</span>
+              </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-black text-[#0D2C7A]">
-                  Demande de Devis B2B / Gros & Personnalisation
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Remplissez ce formulaire pour recevoir une étude de faisabilité et un devis formel rendu Sénégal.
+                <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                  Concessionnaires & Revendeurs Véhicules
+                </h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-2 leading-relaxed">
+                  Citadines électriques, SUV à autonomie étendue (450km WLTP) et pick-ups utilitaires adaptés aux températures sahéliennes.
                 </p>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Entreprise / Raison sociale</label>
-                  <input
-                    type="text"
-                    value={formData.companyName}
-                    onChange={e => setFormData({ ...formData, companyName: e.target.value })}
-                    placeholder="Ex: SenAgri Distribution SARL"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Nom du responsable *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.contactName}
-                    onChange={e => setFormData({ ...formData, contactName: e.target.value })}
-                    placeholder="Ex: Cheikh Tidiane Diop"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Téléphone WhatsApp joignable *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+221 77 000 00 00"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Email professionnel</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="direction@senagri.sn"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Marchandise ou équipement recherché *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.productType}
-                  onChange={e => setFormData({ ...formData, productType: e.target.value })}
-                  placeholder="Ex: 200 Panneaux Solaires Monocristallins 550W Tier-1"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Quantité / Volume</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.quantity}
-                    onChange={e => setFormData({ ...formData, quantity: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Budget cible (FCFA)</label>
-                  <input
-                    type="number"
-                    step="50000"
-                    value={formData.targetBudgetXOF}
-                    onChange={e => setFormData({ ...formData, targetBudgetXOF: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Ville de livraison</label>
-                  <select
-                    value={formData.destinationCity}
-                    onChange={e => setFormData({ ...formData, destinationCity: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  >
-                    <option value="Dakar">Dakar (Hub principal)</option>
-                    <option value="Thiès">Thiès</option>
-                    <option value="Touba">Touba / Mbacké</option>
-                    <option value="Kaolack">Kaolack</option>
-                    <option value="Saint-Louis">Saint-Louis</option>
-                    <option value="Ziguinchor">Ziguinchor</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Lien Alibaba / 1688 optionnel */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span>Lien usine Alibaba / 1688 / Taobao / Made-in-China (optionnel)</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Si vous avez repéré le produit</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.alibabaUrl}
-                  onChange={e => setFormData({ ...formData, alibabaUrl: e.target.value })}
-                  placeholder="https://detail.1688.com/offer/... ou https://french.alibaba.com/..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                />
-              </div>
-
-              {/* Checkbox Personnalisation / OEM */}
-              <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200 space-y-2.5">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.customizationNeeded}
-                    onChange={e => setFormData({ ...formData, customizationNeeded: e.target.checked })}
-                    className="rounded border-blue-300 text-[#2A6DFF] focus:ring-[#2A6DFF]"
-                  />
-                  <span className="text-xs font-bold text-[#0D2C7A]">
-                    Besoin d'une personnalisation OEM (Logo de marque, emballage personnalisé, notice en français)
-                  </span>
-                </label>
-
-                {formData.customizationNeeded && (
-                  <input
-                    type="text"
-                    value={formData.customizationDetails}
-                    onChange={e => setFormData({ ...formData, customizationDetails: e.target.value })}
-                    placeholder="Précisez la personnalisation (ex: Sérigraphie logo entreprise + packaging carton rigide)"
-                    className="w-full bg-white border border-blue-300 rounded-xl px-3 py-2 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  />
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Mode de transport envisagé</label>
-                <select
-                  value={formData.transportPreference}
-                  onChange={e => setFormData({ ...formData, transportPreference: e.target.value as any })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF] cursor-pointer"
-                >
-                  <option value="recommended">Recommandé par SinoSenegal (Analyse selon rapport poids/volume)</option>
-                  <option value="sea">Maritime (Conteneur LCL/FCL - 30 à 45 jours - Tarif au CBM)</option>
-                  <option value="air">Aérien Cargo (12 à 18 jours - Tarif au KG)</option>
-                  <option value="express">Express Échantillon (5 à 8 jours - DHL/FedEx)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Cahier des charges & Détails techniques</label>
-                <textarea
-                  rows={3}
-                  value={formData.specifications}
-                  onChange={e => setFormData({ ...formData, specifications: e.target.value })}
-                  placeholder="Détaillez vos exigences : certification CE/ISO requise, couleur Pantone, tolérances, conditions de test..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-black text-sm py-4 px-6 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95"
-              >
-                <span>Soumettre le dossier de cotation B2B</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
-        </div>
-
-        {/* Right Side: Guarantees & Devis Récents (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Exemples de Devis B2B récents */}
-          <div className="glass-panel bg-white/90 rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black uppercase tracking-wider text-[#0D2C7A] flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#2A6DFF]" />
-                <span>Exemples de Devis B2B Validés</span>
-              </h3>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                100% Transparent
-              </span>
+              <ul className="space-y-2 font-label-sm text-label-sm text-on-surface font-medium pt-2">
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                  <span>MOQ dès 2 unités conteneurisées</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                  <span>Dossier d'homologation Dakar inclus</span>
+                </li>
+              </ul>
             </div>
-
-            <p className="text-xs text-slate-600">
-              Consultez la structure d'un devis officiel SinoSenegal émis pour des entreprises sénégalaises :
-            </p>
-
-            <div className="space-y-3">
-              {quotes.slice(0, 2).map(quote => (
-                <div
-                  key={quote.id}
-                  className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-[#2A6DFF] transition-all space-y-2.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono-numeric font-bold text-xs text-[#0D2C7A]">
-                      {quote.code}
-                    </span>
-                    <span className="text-[10px] font-bold text-[#2A6DFF] uppercase bg-blue-50 px-2 py-0.5 rounded-md">
-                      {quote.clientCompany || quote.clientName}
-                    </span>
-                  </div>
-
-                  <div className="text-xs font-bold text-slate-800 line-clamp-1">
-                    {quote.productName} ({quote.quantity} pcs)
-                  </div>
-
-                  {/* Price split summary */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2 rounded-xl border border-slate-100">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Prix Produit Usine</span>
-                      <strong className="font-mono-numeric text-[#0D2C7A]">
-                        {quote.productTotalXOF.toLocaleString('fr-FR')} F
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Fret + Douane</span>
-                      <strong className="font-mono-numeric text-amber-700">
-                        {quote.logisticsEstimatedTotalXOF.toLocaleString('fr-FR')} F
-                      </strong>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => openDocumentModal('quote', { quote })}
-                    className="w-full bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Visualiser ce devis officiel (Format PDF)</span>
-                  </button>
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={() => {
+                setIndustrySector('auto-ev');
+                scrollToDevis();
+              }}
+              className="mt-6 w-full py-2.5 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm font-bold transition-colors cursor-pointer"
+            >
+              Demander cotation Concession
+            </button>
           </div>
 
-          <div className="glass-panel bg-white/80 rounded-3xl p-6 border border-white shadow-sm space-y-4">
-            <h3 className="text-base font-black text-[#0D2C7A] flex items-center gap-2">
-              <Award className="w-5 h-5 text-[#2A6DFF]" />
-              <span>Pourquoi confier votre sourcing à SinoSenegal ?</span>
+          {/* Card 2 */}
+          <div className="bg-surface-container-lowest rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-secondary-fixed/30 text-secondary-container flex items-center justify-center">
+                <span className="material-symbols-outlined text-[24px]">two_wheeler</span>
+              </div>
+              <div>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                  Opérateurs Flottes & Dernier Kilomètre
+                </h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-2 leading-relaxed">
+                  Motos de livraison 2000W à 4000W avec batteries LiFePO4 interchangeables (swap battery) pour livreurs et coursiers.
+                </p>
+              </div>
+              <ul className="space-y-2 font-label-sm text-label-sm text-on-surface font-medium pt-2">
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                  <span>MOQ 20GP (24 à 28 motos)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                  <span>Stations de swap clé en main</span>
+                </li>
+              </ul>
+            </div>
+            <button
+              onClick={() => {
+                setIndustrySector('flottes-motos');
+                scrollToDevis();
+              }}
+              className="mt-6 w-full py-2.5 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm font-bold transition-colors cursor-pointer"
+            >
+              Demander cotation Flotte
+            </button>
+          </div>
+
+          {/* Card 3 */}
+          <div className="bg-surface-container-lowest rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary-fixed/30 text-primary flex items-center justify-center">
+                <span className="material-symbols-outlined text-[24px]">handyman</span>
+              </div>
+              <div>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                  Garages & Pièces Détachées OEM
+                </h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-2 leading-relaxed">
+                  Moteurs brushless, contrôleurs sinusoïdaux, BMS intelligents, amortisseurs renforcés et pièces d'usure en direct usines.
+                </p>
+              </div>
+              <ul className="space-y-2 font-label-sm text-label-sm text-on-surface font-medium pt-2">
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                  <span>Contrats cadre d'approvisionnement annuel</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                  <span>Stock tampon pièces critiques</span>
+                </li>
+              </ul>
+            </div>
+            <button
+              onClick={() => {
+                setIndustrySector('pieces-oem');
+                scrollToDevis();
+              }}
+              className="mt-6 w-full py-2.5 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm font-bold transition-colors cursor-pointer"
+            >
+              Demander cotation Pièces
+            </button>
+          </div>
+
+          {/* Card 4 */}
+          <div className="bg-surface-container-lowest rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-secondary-fixed/30 text-secondary-container flex items-center justify-center">
+                <span className="material-symbols-outlined text-[24px]">solar_power</span>
+              </div>
+              <div>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                  Stations Solaires & Bornes de Recharge
+                </h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-2 leading-relaxed">
+                  Écosystèmes photovoltaïques autonomes, onduleurs hybrides 10kW à 50kW et armoires de recharge rapide IoT.
+                </p>
+              </div>
+              <ul className="space-y-2 font-label-sm text-label-sm text-on-surface font-medium pt-2">
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                  <span>Garantie fabricants Tier 1</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                  <span>Supervision à distance intégrée</span>
+                </li>
+              </ul>
+            </div>
+            <button
+              onClick={() => {
+                setIndustrySector('stations-solaires');
+                scrollToDevis();
+              }}
+              className="mt-6 w-full py-2.5 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm font-bold transition-colors cursor-pointer"
+            >
+              Demander cotation Énergie
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* 3. 6 FILIÈRES MAÎTRESSES POUR LES GRANDS COMPTES */}
+      {/* =================================================================== */}
+      <section className="space-y-8">
+        <div>
+          <span className="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider block">
+            Étendue Industrielle
+          </span>
+          <h2 className="font-headline-xl text-headline-xl text-on-surface font-extrabold mt-1">
+            6 Filières Maîtresses pour les Grands Comptes
+          </h2>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-1 max-w-2xl">
+            Du conteneur complet FCL 40HQ jusqu'à la chaîne de production industrielle automatisée sur mesure.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <span className="material-symbols-outlined text-primary-container text-[28px]">inventory_2</span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Grossistes & Importateurs (FCL 40HQ)
             </h3>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-slate-800 block font-bold">Sécurisation des transactions</strong>
-                  <span className="text-slate-600">Paiement par acompte sécurisé, inspection physique avant le déblocage du solde usine.</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-slate-800 block font-bold">Négociation directe en RMB</strong>
-                  <span className="text-slate-600">Élimination des intermédiaires avec devis en direct des bassins industriels de Guangzhou et Yiwu.</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-slate-800 block font-bold">Dédouanement Gaindé DDP Dakar</strong>
-                  <span className="text-slate-600">Tarif clé en main rendu à Dakar sans frais surprises à l'arrivée au port.</span>
-                </div>
-              </div>
-            </div>
+            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              Consolidation de conteneurs complets de marchandises générales, bazar, quincaillerie et électroménager au meilleur tarif maritime direct.
+            </p>
           </div>
 
-          <div className="glass-panel bg-blue-50/70 rounded-3xl p-6 border border-blue-200/80 space-y-3 text-xs">
-            <h4 className="text-sm font-bold text-[#0D2C7A] flex items-center gap-2">
-              <Phone className="w-4 h-4 text-[#2A6DFF]" />
-              <span>Cellule Grands Comptes & Grossistes</span>
-            </h4>
-            <p className="text-slate-600">
-              Nos gestionnaires d'approvisionnement B2B sont joignables pour vous recevoir à nos bureaux de Dakar Plateau ou organiser un audit usine en Chine.
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <span className="material-symbols-outlined text-secondary-container text-[28px]">branding_watermark</span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Boutiques & Distribution (OEM / Marque Blanche)
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              Sérigraphie, packaging sur mesure, logos embossés et conditionnement commercial prêt à la vente dans vos réseaux de boutiques.
             </p>
-            <div className="pt-2 space-y-1 font-bold text-[#0D2C7A]">
-              <div>📞 +221 77 420 18 19 (WhatsApp B2B direct)</div>
-              <div>✉️ b2b@sinosenegal.com</div>
-            </div>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <span className="material-symbols-outlined text-primary text-[28px]">apartment</span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Hôtellerie & CHR (Mobilier & Équipements Pro)
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              Mobilier haut de gamme pour hôtels et restaurants, literie hôtelière 5 étoiles, vaisselle pro et cuisines inox industrielles.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <span className="material-symbols-outlined text-secondary-container text-[28px]">foundation</span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Énergie Solaire & BTP (Tier-1 Bloomberg)
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              Carrelage grand format, menuiserie aluminium, panneaux solaires bifaciaux 550W+, onduleurs industriels et outillage lourd de chantier.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <span className="material-symbols-outlined text-primary-container text-[28px]">precision_manufacturing</span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Agro & Packaging (Lignes Automatisées)
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              Lignes de remplissage, ensacheuses automatiques, presses à huile, étiqueteuses et machines de scellage sous vide certifiées CE.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <span className="material-symbols-outlined text-on-surface text-[28px]">tv</span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Événementiel & Digital (High-End LED)
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              Murs d'images LED indoor/outdoor P2.5 à P3.9, régies vidéo pro, totems tactiles et systèmes audio de forte puissance.
+            </p>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* 4. WORKFLOW / PROTOCOLE B2B EN 6 JALONS */}
+      {/* =================================================================== */}
+      <section className="bg-surface-container-low rounded-3xl p-6 sm:p-12 border border-slate-100 space-y-8">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <span className="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider">
+            Rigueur & Processus Audité
+          </span>
+          <h2 className="font-headline-xl text-headline-xl text-on-surface font-extrabold">
+            Le Protocole B2B Dallou Chine en 6 Jalons
+          </h2>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Un cheminement sécurisé de la validation du cahier des charges jusqu'à l'entrée en vos entrepôts à Dakar.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
+            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+              01
+            </span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Cahier des Charges & Volumes
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
+              Étude approfondie de vos spécifications techniques, de vos exigences normatives et du plan de livraison annuel.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
+            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+              02
+            </span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Audit d'Usines en Chine
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
+              Visite in situ de 2 à 3 fabricants qualifiés par nos inspecteurs Dallou basés à Guangzhou, Ningbo et Yiwu.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
+            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+              03
+            </span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Contrat B2B International
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
+              Signature du contrat avec pénalités de retard usine, conditions FOB/CIF transparentes et acompte séquestre.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
+            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+              04
+            </span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Production & Contrôle Vidéo HD
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
+              Suivi de chaîne, tests d'endurance, pesée, cubage certifié et rapport de pré-embarquement avant solde usine.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
+            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+              05
+            </span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Transit Maritime & Dédouanement
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
+              Expédition maritime directe via Maersk, CMA-CGM ou MSC. Formalités en douane GAINDE gérées par notre équipe.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
+            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+              06
+            </span>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Livraison Directe sur Site
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
+              Acheminement par camion plateau vers vos entrepôts, usines ou concessions à Dakar, Thiès ou dans la sous-région.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* 5. GARANTIES INSTITUTIONNELLES POUR GRANDS COMPTES */}
+      {/* =================================================================== */}
+      <section className="space-y-8">
+        <div>
+          <span className="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider block">
+            Cadre de Confiance
+          </span>
+          <h2 className="font-headline-xl text-headline-xl text-on-surface font-extrabold mt-1">
+            Garanties Institutionnelles pour Grands Comptes
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+              <span className="material-symbols-outlined text-[20px]">currency_exchange</span>
+            </div>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Paiement Multi-Devises
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
+              Règlement en FCFA local (Virement BOA / UBA / Wave Business), EUR, USD ou directement en Yuan RMB sans commission cachée.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+              <span className="material-symbols-outlined text-[20px]">receipt</span>
+            </div>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Facturation OHADA Complète
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
+              Facture normalisée avec TVA récupérable, code NINEA sénégalais et déclarations en douane conformes aux normes UEMOA.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+              <span className="material-symbols-outlined text-[20px]">shield</span>
+            </div>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Assurance Maritime CIF 100%
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
+              Toutes les expéditions FCL et LCL bénéficient d'une police d'assurance tous risques couvrant avarie commune, casse et perte totale.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+              <span className="material-symbols-outlined text-[20px]">support_agent</span>
+            </div>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+              Desk B2B Dakar Dédié 6j/7
+            </h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
+              Un chargé d'affaires senior affecté à votre compte, joignable directement aux Almadies, sur WhatsApp et par téléphone direct.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* 6. FORMULAIRE INTERACTIF DE DEVIS B2B GRANDS COMPTES */}
+      {/* =================================================================== */}
+      <section
+        id="devis-b2b"
+        className="bg-surface-container-lowest rounded-3xl p-6 sm:p-12 border border-slate-100 shadow-xl shadow-on-surface/5 space-y-8"
+      >
+        <div className="max-w-3xl space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-fixed/20 text-primary font-label-sm text-label-sm font-bold uppercase">
+            <span>Cotation Grands Comptes</span>
+          </div>
+          <h2 className="font-headline-xl text-headline-xl text-on-surface font-extrabold">
+            Transmettez Votre Appel d'Offres ou Cahier des Charges
+          </h2>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Remplissez ce formulaire pour recevoir un chiffrage FOB/CIF personnalisé sous 24 à 48 heures ouvrées.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Raison Sociale de l'Entreprise *
+              </label>
+              <input
+                type="text"
+                required
+                value={companyName}
+                onChange={e => setCompanyName(e.target.value)}
+                placeholder="ex: Sahel Logistique SARL / NINEA..."
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Nom & Titre du Responsable *
+              </label>
+              <input
+                type="text"
+                required
+                value={contactName}
+                onChange={e => setContactName(e.target.value)}
+                placeholder="ex: Mamadou Ndiaye (Directeur des Achats)"
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Ligne Téléphonique / WhatsApp Corporate *
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="h-12 px-3 bg-surface-container-low rounded-xl flex items-center gap-1.5 shrink-0 border border-slate-100">
+                  <span>🇸🇳</span>
+                  <span className="font-label-md text-label-md font-bold text-on-surface">+221</span>
+                </div>
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="33 800 00 00 / 77..."
+                  className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Email Corporate *
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="achats@votre-entreprise.sn"
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Secteur d'Activité & Filière *
+              </label>
+              <select
+                value={industrySector}
+                onChange={e => setIndustrySector(e.target.value)}
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              >
+                <option value="auto-ev">Mobilité Électrique, Auto, Motos & Flottes</option>
+                <option value="grossiste-fcl">Importation Gros Volume (FCL 40HQ)</option>
+                <option value="energie-solaire">Solaire, Batteries Industrielles & Énergie</option>
+                <option value="btp-materiaux">BTP, Outillage Lourd & Matériaux de Construction</option>
+                <option value="agro-packaging">Agro-industrie, Lignes Automatisées & Packaging</option>
+                <option value="chr-hotellerie">Hôtellerie, Restauration & Collectivités</option>
+                <option value="autre">Autre Projet Industriel Spécial</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Volume Prévisionnel *
+              </label>
+              <select
+                value={expectedVolume}
+                onChange={e => setExpectedVolume(e.target.value)}
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              >
+                <option value="40hq">1 Conteneur 40HQ Complet</option>
+                <option value="multi-40hq">Plusieurs Conteneurs 40HQ (Multi-FCL)</option>
+                <option value="20gp">1 Conteneur 20GP</option>
+                <option value="lcl-gros">Groupage Maritime LCL Gros Volume (&gt; 15 CBM)</option>
+                <option value="aerien-cargo">Cargo Aérien Lourd (&gt; 500 kg)</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Spécifications Techniques ou Description des Besoins
+              </label>
+              <textarea
+                rows={4}
+                value={specifications}
+                onChange={e => setSpecifications(e.target.value)}
+                placeholder="Détaillez les références requises, les normes industrielles, les quantités souhaitées, les personnalisations de marque (OEM) ou les délais contractuels..."
+                className="w-full p-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="sample-needed"
+              checked={sampleNeeded}
+              onChange={e => setSampleNeeded(e.target.checked)}
+              className="accent-primary-container rounded w-4 h-4 cursor-pointer"
+            />
+            <label htmlFor="sample-needed" className="font-body-sm text-body-sm text-on-surface cursor-pointer">
+              Nous souhaitons recevoir un échantillon pré-série ou organiser une validation vidéo en usine avant signature définitive.
+            </label>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <button
+              type="submit"
+              className="w-full sm:w-auto h-14 px-8 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/30 hover:bg-secondary-container transition-all cursor-pointer"
+            >
+              <span>Transmettre ma Demande B2B</span>
+              <span className="material-symbols-outlined text-[20px]">send</span>
+            </button>
+
+            <div className="text-on-surface-variant font-body-sm text-body-sm flex items-center gap-2">
+              <span className="material-symbols-outlined text-emerald-600 text-[18px]">lock</span>
+              <span>Ligne directe Desk Entreprise : +221 33 800 00 00 • b2b@dallouchine.sn</span>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      {/* =================================================================== */}
+      {/* 7. BOTTOM REASSURANCE BANNER */}
+      {/* =================================================================== */}
+      <section className="bg-gradient-to-r from-primary-fixed/30 to-secondary-fixed/30 rounded-3xl p-8 sm:p-10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 text-center sm:text-left">
+          <h3 className="font-headline-lg text-headline-lg text-on-surface font-extrabold">
+            Un doute sur une usine en Chine ou un devis existant ?
+          </h3>
+          <p className="font-body-md text-body-md text-on-surface-variant max-w-xl">
+            Nos inspecteurs basés à Guangzhou vérifient gratuitement la solvabilité légale, la licence export et l'adresse physique de votre fournisseur.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => navigate('/demande-devis')}
+            className="h-12 px-6 rounded-full bg-primary-container text-on-primary font-label-md text-label-md font-bold hover:bg-secondary-container transition-all cursor-pointer"
+          >
+            Contre-expertise gratuite
+          </button>
+          <a
+            href="https://wa.me/221338000000"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-12 px-5 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md font-bold border border-slate-200 hover:bg-surface-container transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[18px] text-emerald-600">chat</span>
+            <span>WhatsApp dédié</span>
+          </a>
+        </div>
+      </section>
     </div>
   );
 };
+
+export default B2BPage;

@@ -16,7 +16,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     : 0;
 
   return (
-    <div className="group bg-white rounded-2xl border border-slate-200/80 hover:border-[#2A6DFF]/40 shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden">
+    <div className="group bg-white rounded-2xl border border-slate-200/80 hover:border-[#FF4500]/40 shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden">
       {/* Image container */}
       <div className="relative aspect-4/3 bg-slate-100 overflow-hidden cursor-pointer" onClick={() => navigate(`/products/${product.slug}`)}>
         <img
@@ -29,7 +29,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Top Floating Badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
           {product.isGroupage ? (
-            <span className="bg-[#0D2C7A] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">
+            <span className="bg-[#0B192C] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-amber-300" />
               Groupage Actif
             </span>
@@ -50,7 +50,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="absolute bottom-2.5 right-2.5 bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-slate-700 flex items-center gap-1 shadow-xs">
           {product.defaultTransportMode === 'air' ? (
             <>
-              <Plane className="w-3 h-3 text-[#2A6DFF]" />
+              <Plane className="w-3 h-3 text-[#FF4500]" />
               <span>Fret Aérien ({product.estimatedDeliveryDays})</span>
             </>
           ) : (
@@ -65,12 +65,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Body */}
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div>
-          <div className="text-[11px] font-semibold text-[#2A6DFF] uppercase tracking-wider mb-1">
+          <div className="text-[11px] font-semibold text-[#FF4500] uppercase tracking-wider mb-1">
             {product.category}
           </div>
           <h3
             onClick={() => navigate(`/products/${product.slug}`)}
-            className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 hover:text-[#0D2C7A] cursor-pointer transition-colors leading-snug"
+            className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 hover:text-[#FF4500] cursor-pointer transition-colors leading-snug"
           >
             {product.name}
           </h3>
@@ -82,7 +82,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Pricing & CTA */}
         <div className="mt-4 pt-3 border-t border-slate-100 flex items-end justify-between gap-2">
           <div>
-            <div className="text-base sm:text-lg font-black text-[#0D2C7A] tracking-tight">
+            <div className="text-base sm:text-lg font-black text-[#0B192C] tracking-tight">
               {product.priceXOF.toLocaleString('fr-FR')}{' '}
               <span className="text-xs font-bold text-slate-500">FCFA</span>
             </div>
@@ -96,14 +96,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => navigate(`/products/${product.slug}`)}
-              className="p-2 text-slate-500 hover:text-[#0D2C7A] hover:bg-slate-100 rounded-xl transition-colors"
+              className="p-2 text-slate-500 hover:text-[#FF4500] hover:bg-slate-100 rounded-xl transition-colors"
               title="Voir la fiche détaillée"
             >
               <Eye className="w-4 h-4" />
             </button>
             <button
               onClick={() => addToCart(product, 1)}
-              className="bg-gradient-to-r from-[#0D2C7A] to-[#2A6DFF] hover:opacity-90 active:scale-95 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition-all"
+              className="bg-[#FF4500] hover:bg-[#E03D00] active:scale-95 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition-all"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>Commander</span>

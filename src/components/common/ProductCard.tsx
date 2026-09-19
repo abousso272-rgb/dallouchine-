@@ -59,9 +59,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             )}
 
-            <span className="glass-panel text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/95 text-[#0D2C7A] shadow-xs flex items-center gap-1 backdrop-blur-md shrink-0 w-fit">
+            <span className="glass-panel text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/95 text-[#0B192C] shadow-xs flex items-center gap-1 backdrop-blur-md shrink-0 w-fit">
               {isAir ? (
-                <Plane className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#2A6DFF] shrink-0" />
+                <Plane className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#FF4500] shrink-0" />
               ) : (
                 <Ship className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-600 shrink-0" />
               )}
@@ -87,7 +87,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:block z-10">
           <button
             onClick={handleQuickAdd}
-            className="w-full bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow-lg flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+            className="w-full bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow-lg flex items-center justify-center gap-1.5 transition-colors active:scale-95"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>Ajouter au panier</span>
@@ -99,7 +99,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="p-3 sm:p-4 flex flex-col justify-between flex-1 space-y-2 sm:space-y-3">
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500 gap-1">
-            <span className="text-[10px] sm:text-[11px] font-semibold text-[#2A6DFF] uppercase tracking-wider truncate">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-[#FF4500] uppercase tracking-wider truncate">
               {product.category}
             </span>
             <div className="flex items-center gap-0.5 font-mono-numeric font-bold text-amber-600 shrink-0 text-[10px] sm:text-xs">
@@ -108,7 +108,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           </div>
 
-          <h3 className="text-xs sm:text-sm font-bold text-[#0D2C7A] group-hover:text-[#2A6DFF] transition-colors line-clamp-2 leading-snug min-h-[2rem] sm:min-h-[2.5rem]">
+          <h3 className="text-xs sm:text-sm font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors line-clamp-2 leading-snug min-h-[2rem] sm:min-h-[2.5rem]">
             {product.name}
           </h3>
         </div>
@@ -124,7 +124,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="rounded-lg bg-slate-50 p-1.5 border border-slate-200/60 space-y-0.5 text-[10px]">
             <div className="flex items-center justify-between text-slate-600">
               <span className="truncate">Produit Usine :</span>
-              <span className="font-mono-numeric font-bold text-[#0D2C7A]">
+              <span className="font-mono-numeric font-bold text-[#0B192C]">
                 {(product.productPriceXOF || Math.round(product.priceXOF * 0.65)).toLocaleString('fr-FR')} F
               </span>
             </div>
@@ -151,7 +151,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="pt-1 sm:hidden border-t border-slate-100">
           <button
             onClick={handleQuickAdd}
-            className="w-full bg-[#0D2C7A] active:bg-[#2A6DFF] text-white font-bold text-xs py-1.5 rounded-xl flex items-center justify-center gap-1.5 shadow-xs"
+            className="w-full bg-[#FF4500] active:bg-[#E03D00] text-white font-bold text-xs py-1.5 rounded-xl flex items-center justify-center gap-1.5 shadow-xs"
           >
             <ShoppingBag className="w-3 h-3" />
             <span>Commander</span>

@@ -69,7 +69,7 @@ export const LogisticsPriceSplit: React.FC<LogisticsPriceSplitProps> = ({
             <span>Prix Produit :</span>
             <StatusBadge status={productStatus} />
           </div>
-          <span className="font-mono-numeric font-bold text-[#0D2C7A]">
+          <span className="font-mono-numeric font-bold text-[#0B192C]">
             {productPriceXOF.toLocaleString('fr-FR')} FCFA
           </span>
         </div>
@@ -84,9 +84,9 @@ export const LogisticsPriceSplit: React.FC<LogisticsPriceSplitProps> = ({
           </span>
         </div>
 
-        <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-xs font-black text-[#0D2C7A]">
+        <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-xs font-black text-[#0B192C]">
           <span>Total Estimé :</span>
-          <span className="font-mono-numeric text-sm text-[#0D2C7A]">
+          <span className="font-mono-numeric text-sm text-[#0B192C]">
             {totalPriceXOF.toLocaleString('fr-FR')} FCFA
           </span>
         </div>
@@ -99,11 +99,11 @@ export const LogisticsPriceSplit: React.FC<LogisticsPriceSplitProps> = ({
       <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
         <div className="flex items-center gap-2">
           {isAir ? (
-            <Plane className="w-4 h-4 text-[#2A6DFF]" />
+            <Plane className="w-4 h-4 text-[#FF4500]" />
           ) : (
             <Ship className="w-4 h-4 text-cyan-600" />
           )}
-          <span className="text-xs font-bold text-[#0D2C7A] uppercase tracking-wide">
+          <span className="text-xs font-bold text-[#0B192C] uppercase tracking-wide">
             Décomposition Prix & Acheminement Chine ➔ Sénégal
           </span>
         </div>
@@ -117,7 +117,7 @@ export const LogisticsPriceSplit: React.FC<LogisticsPriceSplitProps> = ({
             <span className="text-xs font-semibold text-slate-500">1. Prix Marchandise</span>
             <StatusBadge status={productStatus} label="CONFIRMÉ" />
           </div>
-          <div className="text-lg font-black text-[#0D2C7A] font-mono-numeric">
+          <div className="text-lg font-black text-[#0B192C] font-mono-numeric">
             {productPriceXOF.toLocaleString('fr-FR')}{' '}
             <span className="text-xs font-bold text-slate-500">FCFA</span>
           </div>
@@ -147,7 +147,7 @@ export const LogisticsPriceSplit: React.FC<LogisticsPriceSplitProps> = ({
       {/* Ligne Total */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-slate-200/70">
         <div>
-          <span className="text-xs font-black text-[#0D2C7A] block">
+          <span className="text-xs font-black text-[#0B192C] block">
             Total Estimatif Rendu Dakar :
           </span>
           <span className="text-[10px] text-slate-500">
@@ -155,9 +155,9 @@ export const LogisticsPriceSplit: React.FC<LogisticsPriceSplitProps> = ({
           </span>
         </div>
         <div className="text-right">
-          <span className="text-xl font-black text-[#0D2C7A] font-mono-numeric">
+          <span className="text-xl font-black text-[#0B192C] font-mono-numeric">
             {totalPriceXOF.toLocaleString('fr-FR')}{' '}
-            <span className="text-xs font-bold text-[#2A6DFF]">FCFA</span>
+            <span className="text-xs font-bold text-[#FF4500]">FCFA</span>
           </span>
         </div>
       </div>

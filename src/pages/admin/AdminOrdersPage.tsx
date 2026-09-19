@@ -140,7 +140,7 @@ export const AdminOrdersPage: React.FC = () => {
             placeholder="Rechercher code AWP, client, téléphone..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#2A6DFF]"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#FF4500]"
           />
         </div>
 
@@ -160,7 +160,7 @@ export const AdminOrdersPage: React.FC = () => {
               onClick={() => setStatusFilter(tab.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 statusFilter === tab.id
-                  ? 'bg-[#2A6DFF] text-white shadow-md'
+                  ? 'bg-[#FF4500] text-white shadow-md'
                   : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
               }`}
             >
@@ -282,7 +282,7 @@ export const AdminOrdersPage: React.FC = () => {
                         <div
                           className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
                             isCurrent
-                              ? 'bg-[#2A6DFF] text-white ring-2 ring-blue-400 shadow-md'
+                              ? 'bg-[#FF4500] text-white ring-2 ring-orange-400 shadow-md'
                               : isCompleted
                               ? 'bg-emerald-500 text-white'
                               : 'bg-slate-800 text-slate-500'
@@ -313,7 +313,7 @@ export const AdminOrdersPage: React.FC = () => {
                     onClick={() => setOrderDetailTab(t.id as any)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                       orderDetailTab === t.id
-                        ? 'bg-[#2A6DFF] text-white shadow-md'
+                        ? 'bg-[#FF4500] text-white shadow-md'
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
@@ -497,7 +497,7 @@ export const AdminOrdersPage: React.FC = () => {
 
                   <button
                     onClick={handleUpdateStatus}
-                    className="w-full py-2.5 rounded-xl bg-[#2A6DFF] hover:bg-blue-500 text-white font-bold shadow-md transition-all flex items-center justify-center gap-1.5 mt-2"
+                    className="w-full py-2.5 rounded-xl bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold shadow-md transition-all flex items-center justify-center gap-1.5 mt-2"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Enregistrer la mise à jour</span>

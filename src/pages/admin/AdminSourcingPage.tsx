@@ -125,7 +125,7 @@ export const AdminSourcingPage: React.FC = () => {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2A6DFF] hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-xs shadow-lg shadow-orange-500/25 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Nouvelle recherche</span>
@@ -141,7 +141,7 @@ export const AdminSourcingPage: React.FC = () => {
             placeholder="Rechercher code, produit, client..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#2A6DFF]"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#FF4500]"
           />
         </div>
 
@@ -159,7 +159,7 @@ export const AdminSourcingPage: React.FC = () => {
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? 'bg-[#2A6DFF] text-white shadow-md'
+                  ? 'bg-[#FF4500] text-white shadow-md'
                   : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
               }`}
             >
@@ -477,7 +477,7 @@ export const AdminSourcingPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#2A6DFF] hover:bg-blue-500 text-white font-bold shadow-md"
+                  className="px-5 py-2 rounded-xl bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold shadow-md"
                 >
                   Créer la mission
                 </button>

@@ -16,11 +16,16 @@ import { GroupagesPage } from './pages/client/GroupagesPage';
 import { GroupageDetailPage } from './pages/client/GroupageDetailPage';
 import { B2BPage } from './pages/client/B2BPage';
 import { SourcingRequestPage } from './pages/client/SourcingRequestPage';
+import { QuoteRequestPage } from './pages/client/QuoteRequestPage';
 import { HowItWorksPage } from './pages/client/HowItWorksPage';
 import { TrackingPage } from './pages/client/TrackingPage';
+import { TransitPage } from './pages/client/TransitPage';
+import { AboutPage } from './pages/client/AboutPage';
 import { CartPage } from './pages/client/CartPage';
 import { CheckoutPage } from './pages/client/CheckoutPage';
 import { AccountPage } from './pages/client/AccountPage';
+import { ClientDashboardPage } from './pages/client/ClientDashboardPage';
+import { AuthPage } from './pages/client/AuthPage';
 import { PaymentStatusPage } from './pages/client/PaymentStatusPage';
 import { PaymentHostedSimulatorPage } from './pages/client/PaymentHostedSimulatorPage';
 
@@ -115,27 +120,70 @@ const AppRouter: React.FC = () => {
   // PUBLIC CLIENT ROUTING
   let clientContent: React.ReactNode = <HomePage />;
 
-  if (currentPath === '/products' || currentPath.startsWith('/products?')) {
+  if (
+    currentPath === '/products' ||
+    currentPath.startsWith('/products?') ||
+    currentPath === '/produits' ||
+    currentPath === '/auto-mobilite' ||
+    currentPath.startsWith('/auto-mobilite?')
+  ) {
     clientContent = <CatalogPage />;
-  } else if (currentPath.startsWith('/products/')) {
-    const slug = currentPath.replace('/products/', '');
+  } else if (currentPath.startsWith('/products/') || currentPath.startsWith('/product/')) {
+    const slug = currentPath.replace('/products/', '').replace('/product/', '');
     clientContent = <ProductDetailPage slug={slug} />;
-  } else if (currentPath === '/groupages' || currentPath === '/group-buys') {
+  } else if (currentPath === '/groupages' || currentPath === '/group-buys' || currentPath === '/groupage') {
     clientContent = <GroupagesPage />;
-  } else if (currentPath.startsWith('/groupages/')) {
-    const id = currentPath.replace('/groupages/', '');
+  } else if (currentPath.startsWith('/groupages/') || currentPath.startsWith('/groupage/')) {
+    const id = currentPath.replace('/groupages/', '').replace('/groupage/', '');
     clientContent = <GroupageDetailPage id={id} />;
-  } else if (currentPath === '/b2b') {
+  } else if (currentPath === '/b2b' || currentPath === '/espace-b2b') {
     clientContent = <B2BPage />;
-  } else if (currentPath === '/request') {
+  } else if (
+    currentPath === '/request' ||
+    currentPath === '/sourcing' ||
+    currentPath === '/sourcing-personnalise' ||
+    currentPath.startsWith('/sourcing?')
+  ) {
     clientContent = <SourcingRequestPage />;
+  } else if (
+    currentPath === '/demande-devis' ||
+    currentPath === '/demander-un-devis' ||
+    currentPath === '/devis' ||
+    currentPath === '/quote' ||
+    currentPath.startsWith('/demande-devis?') ||
+    currentPath.startsWith('/devis?')
+  ) {
+    clientContent = <QuoteRequestPage />;
   } else if (currentPath === '/how-it-works') {
     clientContent = <HowItWorksPage />;
-  } else if (currentPath === '/tracking' || currentPath.startsWith('/tracking?')) {
+  } else if (
+    currentPath === '/transit' ||
+    currentPath === '/fret' ||
+    currentPath === '/tarifs' ||
+    currentPath === '/entrepots' ||
+    currentPath === '/logistics'
+  ) {
+    clientContent = <TransitPage />;
+  } else if (currentPath === '/about' || currentPath === '/a-propos') {
+    clientContent = <AboutPage />;
+  } else if (
+    currentPath === '/tracking' ||
+    currentPath.startsWith('/tracking?') ||
+    currentPath === '/suivi' ||
+    currentPath.startsWith('/suivi?')
+  ) {
     clientContent = <TrackingPage />;
-  } else if (currentPath === '/cart') {
+  } else if (
+    currentPath === '/dashboard' ||
+    currentPath.startsWith('/dashboard?') ||
+    currentPath === '/mon-espace' ||
+    currentPath.startsWith('/mon-espace?') ||
+    currentPath === '/tableau-de-bord'
+  ) {
+    clientContent = <ClientDashboardPage />;
+  } else if (currentPath === '/cart' || currentPath === '/panier') {
     clientContent = <CartPage />;
-  } else if (currentPath === '/checkout') {
+  } else if (currentPath === '/checkout' || currentPath === '/validation-commande') {
     clientContent = <CheckoutPage />;
   } else if (
     currentPath.startsWith('/payment/success') ||
@@ -147,19 +195,22 @@ const AppRouter: React.FC = () => {
   ) {
     clientContent = <PaymentStatusPage />;
   } else if (
-    currentPath === '/account' ||
-    currentPath.startsWith('/account?') ||
     currentPath === '/login' ||
     currentPath.startsWith('/login?') ||
     currentPath === '/connexion' ||
+    currentPath.startsWith('/connexion?') ||
     currentPath === '/auth' ||
-    currentPath === '/signin'
+    currentPath.startsWith('/auth?') ||
+    currentPath === '/signin' ||
+    currentPath === '/register'
   ) {
+    clientContent = <AuthPage />;
+  } else if (currentPath === '/account' || currentPath.startsWith('/account?')) {
     clientContent = <AccountPage />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F6F2] text-slate-900 selection:bg-[#2A6DFF] selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#F8F6F2] text-slate-900 selection:bg-[#FF4500] selection:text-white">
       <Navbar />
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6">
         {clientContent}

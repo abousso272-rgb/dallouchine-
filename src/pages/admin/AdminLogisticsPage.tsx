@@ -45,7 +45,7 @@ export const AdminLogisticsPage: React.FC = () => {
 
         <button
           onClick={() => navigate('/admin/hub')}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2A6DFF] hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-xs shadow-lg shadow-orange-500/25 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
         >
           <Warehouse className="w-4 h-4" />
           <span>Scanner & Réception Hub</span>

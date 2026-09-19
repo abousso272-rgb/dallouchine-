@@ -40,7 +40,7 @@ export const GroupBuyCard: React.FC<GroupBuyCardProps> = ({ groupage, className 
       className={`glass-panel glass-card-hover group relative rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer border border-white/95 bg-white/85 shadow-sm flex flex-col justify-between transition-all duration-300 ${className}`}
     >
       {/* Top Header Banner */}
-      <div className="bg-gradient-to-r from-[#0D2C7A] to-[#2A6DFF] text-white px-3 sm:px-4 py-2 flex items-center justify-between text-xs font-bold gap-2">
+      <div className="bg-gradient-to-r from-[#0B192C] to-[#1E3E62] text-white px-3 sm:px-4 py-2 flex items-center justify-between text-xs font-bold gap-2">
         <div className="flex items-center gap-1 font-mono-numeric shrink-0">
           <Flame className="w-3.5 h-3.5 text-amber-300 animate-pulse fill-amber-300 shrink-0" />
           <span className="text-[11px] sm:text-xs">LOT {groupage.code}</span>
@@ -61,7 +61,7 @@ export const GroupBuyCard: React.FC<GroupBuyCardProps> = ({ groupage, className 
             className="w-full h-full object-cover rounded-xl transform group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
           />
-          <div className="absolute top-3 left-3 bg-[#0D2C7A]/85 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
+          <div className="absolute top-3 left-3 bg-[#0B192C]/85 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
             -{groupage.savingsPercent}% Éco
           </div>
         </div>
@@ -69,10 +69,10 @@ export const GroupBuyCard: React.FC<GroupBuyCardProps> = ({ groupage, className 
         {/* Info Column */}
         <div className="flex-1 w-full space-y-2.5 sm:space-y-3">
           <div>
-            <span className="text-[10px] sm:text-[11px] font-semibold text-[#2A6DFF] uppercase tracking-wider block">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-[#FF4500] uppercase tracking-wider block">
               Achat Groupé Négocié
             </span>
-            <h3 className="text-sm sm:text-base font-black text-[#0D2C7A] group-hover:text-[#2A6DFF] transition-colors leading-snug line-clamp-2">
+            <h3 className="text-sm sm:text-base font-black text-[#0B192C] group-hover:text-[#FF4500] transition-colors leading-snug line-clamp-2">
               {groupage.title}
             </h3>
           </div>
@@ -89,7 +89,7 @@ export const GroupBuyCard: React.FC<GroupBuyCardProps> = ({ groupage, className 
             <div className="rounded-xl bg-slate-50 p-2 border border-slate-200/60 grid grid-cols-2 gap-2 text-[11px]">
               <div>
                 <span className="text-[10px] text-slate-500 block">Produit Usine</span>
-                <span className="font-mono-numeric font-bold text-[#0D2C7A]">
+                <span className="font-mono-numeric font-bold text-[#0B192C]">
                   {(groupage.productPriceXOF || Math.round(groupage.unitPriceXOF * 0.65)).toLocaleString('fr-FR')} F
                 </span>
                 <span className="text-[9px] font-bold text-emerald-700 block">✓ Confirmé</span>
@@ -110,18 +110,18 @@ export const GroupBuyCard: React.FC<GroupBuyCardProps> = ({ groupage, className 
               current={groupage.currentUnits}
               target={groupage.targetUnits}
               size="sm"
-              variant={groupage.currentUnits >= groupage.targetUnits * 0.8 ? 'amber' : 'blue'}
+              variant={groupage.currentUnits >= groupage.targetUnits * 0.8 ? 'amber' : 'orange'}
             />
           </div>
 
           {/* Transport & Logistics info */}
           <div className="bg-slate-50/90 rounded-xl p-2 border border-slate-200/70 text-xs flex flex-wrap items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5 text-slate-700 font-medium text-[11px]">
-              {isAir ? <Plane className="w-3 h-3 text-[#2A6DFF] shrink-0" /> : <Ship className="w-3 h-3 text-cyan-600 shrink-0" />}
+              {isAir ? <Plane className="w-3 h-3 text-[#FF4500] shrink-0" /> : <Ship className="w-3 h-3 text-cyan-600 shrink-0" />}
               <span>{isAir ? 'Aérien Express (12-18j)' : 'Maritime Groupé (30-45j)'}</span>
             </div>
-            <div className="flex items-center gap-1 text-[#0D2C7A] font-bold text-[10px] sm:text-[11px] font-mono-numeric">
-              <Users2 className="w-3 h-3 text-[#2A6DFF] shrink-0" />
+            <div className="flex items-center gap-1 text-[#0B192C] font-bold text-[10px] sm:text-[11px] font-mono-numeric">
+              <Users2 className="w-3 h-3 text-[#FF4500] shrink-0" />
               <span>{groupage.participantsCount} participants</span>
             </div>
           </div>
@@ -136,7 +136,7 @@ export const GroupBuyCard: React.FC<GroupBuyCardProps> = ({ groupage, className 
 
         <button
           onClick={handleParticipate}
-          className="w-full sm:w-auto bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95 sm:ml-auto"
+          className="w-full sm:w-auto bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95 sm:ml-auto"
         >
           <span>Participer au groupage</span>
           <ArrowRight className="w-3.5 h-3.5" />

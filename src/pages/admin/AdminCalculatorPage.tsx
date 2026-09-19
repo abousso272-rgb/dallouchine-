@@ -170,7 +170,7 @@ export const AdminCalculatorPage: React.FC = () => {
                   type="text"
                   value={productName}
                   onChange={e => setProductName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#2A6DFF]"
+                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#FF4500]"
                 />
               </div>
 
@@ -180,7 +180,7 @@ export const AdminCalculatorPage: React.FC = () => {
                   type="number"
                   value={productPriceCNY}
                   onChange={e => setProductPriceCNY(Number(e.target.value))}
-                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#2A6DFF]"
+                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#FF4500]"
                 />
               </div>
             </div>
@@ -281,7 +281,7 @@ export const AdminCalculatorPage: React.FC = () => {
                 max="70"
                 value={targetMarginPercent}
                 onChange={e => setTargetMarginPercent(Number(e.target.value))}
-                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#2A6DFF]"
+                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#FF4500]"
               />
             </div>
           </div>

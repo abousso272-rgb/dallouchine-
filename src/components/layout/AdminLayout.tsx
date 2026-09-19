@@ -65,8 +65,8 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   if (!currentUser?.isLoggedIn || currentUser?.role !== 'admin') {
     return (
       <div className="min-h-screen bg-[#071330] text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#2A6DFF]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#FF4500]/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="w-full max-w-xl relative z-10 space-y-6">
           <div className="flex items-center justify-between">
@@ -202,15 +202,15 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             onClick={() => navigate('/admin')}
             className="flex items-center gap-2.5 cursor-pointer group min-w-0"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#2A6DFF] to-blue-400 flex items-center justify-center text-white shadow-md shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FF4500] to-[#FF8A00] flex items-center justify-center text-white shadow-md shrink-0">
               <ShieldCheck className="w-4 h-4" />
             </div>
             {!collapsed && (
               <div className="truncate">
                 <span className="font-extrabold text-sm tracking-tight text-white flex items-center gap-1">
-                  SinoSenegal <span className="text-[10px] bg-[#2A6DFF] px-1.5 py-0.2 rounded font-bold">ADMIN</span>
+                  Dallou Chine <span className="text-[10px] bg-[#FF4500] px-1.5 py-0.2 rounded font-bold">ADMIN</span>
                 </span>
-                <p className="text-[9px] text-blue-300/80 font-medium">Centre de Contrôle</p>
+                <p className="text-[9px] text-orange-300/80 font-medium">Centre de Contrôle</p>
               </div>
             )}
           </div>
@@ -250,7 +250,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                   title={collapsed ? section.label : undefined}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-[#2A6DFF] text-white shadow-md'
+                      ? 'bg-[#FF4500] text-white shadow-md'
                       : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -314,9 +314,9 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                           }}
                           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                             isSubActive
-                              ? 'bg-[#2A6DFF] text-white font-bold shadow-xs'
+                              ? 'bg-[#FF4500] text-white font-bold shadow-xs'
                               : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'
-                          } ${sub.highlight && !isSubActive ? 'text-blue-300 font-semibold' : ''}`}
+                          } ${sub.highlight && !isSubActive ? 'text-orange-300 font-semibold' : ''}`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span className={isSubActive ? 'text-white' : 'text-slate-400'}>{sub.icon}</span>

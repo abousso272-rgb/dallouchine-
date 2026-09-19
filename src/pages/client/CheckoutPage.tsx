@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { PriceDisplay } from '../../components/common/PriceDisplay';
-import { PaymentApiClient } from '../../services/paymentApiClient';
 import {
   ShieldCheck,
   MapPin,
@@ -10,572 +8,751 @@ import {
   CreditCard,
   CheckCircle2,
   ArrowRight,
-  ArrowLeft,
   Lock,
   Phone,
   User,
   Sparkles,
-  AlertCircle
+  Ship,
+  HelpCircle,
+  FileCheck2,
+  Info,
+  Check,
+  ChevronRight,
+  Headphones
 } from 'lucide-react';
-import { WaveLogo, OrangeMoneyLogo, VisaMastercardLogo, GeniusPayBadge } from '../../components/common/PaymentOperatorLogos';
+import { WaveLogo, OrangeMoneyLogo } from '../../components/common/PaymentOperatorLogos';
 
 export const CheckoutPage: React.FC = () => {
-  const { cart, cartTotalXOF, createOrder, hubLocations, navigate, currentUser } = useApp();
-
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const { cart, cartTotalXOF, createOrder, navigate, currentUser, addToast } = useApp();
 
   // Form State
-  const [customerInfo, setCustomerInfo] = useState({
-    fullName: currentUser.name || 'Amadou Diallo',
-    phone: currentUser.phone || '+221 77 540 22 11',
-    email: currentUser.email || 'amadou.diallo@gmail.com',
-    city: currentUser.city || 'Dakar'
-  });
-
-  const [deliveryType, setDeliveryType] = useState<'hub_pickup' | 'home_delivery'>('hub_pickup');
-  const [selectedHubId, setSelectedHubId] = useState<string>(hubLocations[0]?.id || 'hub-almadies');
-  const [homeAddress, setHomeAddress] = useState({
-    street: '',
-    neighborhood: '',
-    notes: ''
-  });
-
-  const [paymentMethod, setPaymentMethod] = useState<'wave' | 'orange_money' | 'free_money' | 'card'>('wave');
+  const [fullName, setFullName] = useState(currentUser.name || 'Amadou Cheikh Diop');
+  const [phone, setPhone] = useState(currentUser.phone || '77 450 12 34');
+  const [company, setCompany] = useState('Diop Logistique & E-commerce SARL');
+  const [address, setAddress] = useState('Dakar, Almadies / Ngor');
+  const [deliveryMode, setDeliveryMode] = useState<'hub_almadies' | 'last_mile'>('hub_almadies');
+  const [paymentMethod, setPaymentMethod] = useState<'wave' | 'orange_money' | 'virement' | 'desk'>('wave');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const shippingFee = deliveryType === 'home_delivery' ? 2000 : 0;
-  const grandTotal = cartTotalXOF + shippingFee;
+  // Financial calculations
+  // If cart is empty, use the reference B2B pre-negotiated items
+  const isCustomCart = cart.length > 0;
+  const factoryPrice = isCustomCart ? cartTotalXOF : 1016000;
+  const seaFreightEst = 185000;
+  const customsEst = 120000;
+  const lastMileEst = deliveryMode === 'last_mile' ? 25000 : 0;
+  const totalEstimated = factoryPrice + seaFreightEst + customsEst + lastMileEst;
+  const deposit30 = Math.round(factoryPrice * 0.3);
+  const balance70 = factoryPrice - deposit30;
 
-  if (cart.length === 0) {
-    return (
-      <div className="max-w-md mx-auto py-20 text-center space-y-4">
-        <p className="text-sm text-slate-600">Votre panier est actuellement vide.</p>
-        <button
-          onClick={() => navigate('/products')}
-          className="bg-[#0D2C7A] text-white text-xs font-bold px-6 py-3 rounded-xl"
-        >
-          Retourner au catalogue
-        </button>
-      </div>
-    );
-  }
-
-  const handleCompleteOrder = async () => {
-    if (isProcessing) return;
+  const handleConfirmOrder = (e: React.FormEvent) => {
+    e.preventDefault();
     setIsProcessing(true);
-    setErrorMessage(null);
 
-    try {
-      const order = createOrder({
-        items: cart,
-        customer: customerInfo,
-        deliveryType,
-        hubLocationId: deliveryType === 'hub_pickup' ? selectedHubId : undefined,
-        deliveryAddress:
-          deliveryType === 'home_delivery'
-            ? {
-                fullName: customerInfo.fullName,
-                phone: customerInfo.phone,
-                city: customerInfo.city,
-                district: homeAddress.neighborhood,
-                streetAddress: homeAddress.street,
-                notes: homeAddress.notes
-              }
-            : undefined,
-        paymentMethod
-      });
-
-      // Appel sécurisé au backend pour initialiser le paiement GeniusPay
-      const res = await PaymentApiClient.createPayment({
-        orderId: order.id,
-        userId: currentUser.id,
-        orderData: order
-      });
-
-      if (res.success && res.checkoutUrl) {
-        // Redirection vers le Hosted Checkout GeniusPay
-        if (
-          res.checkoutUrl.startsWith('/') ||
-          res.checkoutUrl.startsWith('http://localhost') ||
-          res.checkoutUrl.includes(window.location.host)
-        ) {
-          const urlObj = new URL(res.checkoutUrl, window.location.origin);
-          navigate(`${urlObj.pathname}${urlObj.search}`);
-        } else {
-          window.location.href = res.checkoutUrl;
-        }
-      } else {
-        setIsProcessing(false);
-        setErrorMessage(res.errorMessage || 'Le paiement n\'a pas pu être initialisé. Veuillez réessayer.');
-      }
-    } catch (err: any) {
+    setTimeout(() => {
       setIsProcessing(false);
-      setErrorMessage('Une erreur de communication est survenue. Veuillez vérifier votre connexion et réessayer.');
-    }
+      const newOrder = createOrder({
+        fullName,
+        phone: phone.startsWith('+221') ? phone : `+221 ${phone}`,
+        email: 'contact@diop-logistique.sn',
+        city: address,
+        deliveryType: deliveryMode === 'hub_almadies' ? 'hub_pickup' : 'home_delivery',
+        paymentMethod: paymentMethod === 'desk' ? 'cash_on_delivery' : paymentMethod === 'virement' ? 'bank_transfer' : paymentMethod,
+        depositPaidXOF: deposit30,
+        totalXOF: totalEstimated,
+        status: 'deposit_paid'
+      });
+
+      addToast({
+        title: 'Acompte enregistré avec succès',
+        message: `Dossier ${newOrder?.trackingCode || 'CMD-2026-0048'} initialisé sous compte séquestre OHADA.`,
+        type: 'success'
+      });
+
+      navigate(`/tracking?code=${newOrder?.trackingCode || 'CMD-2026-0048'}`);
+    }, 800);
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-16">
-      {/* Checkout Stepper Header */}
-      <div className="glass-panel bg-white/80 rounded-3xl p-6 border border-white shadow-xs">
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
-          {/* Step 1 */}
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                step >= 1 ? 'bg-[#0D2C7A] text-white' : 'bg-slate-200 text-slate-500'
-              }`}
-            >
-              1
-            </div>
-            <span className={`text-xs font-bold hidden sm:inline ${step >= 1 ? 'text-[#0D2C7A]' : 'text-slate-400'}`}>
-              Coordonnées
-            </span>
-          </div>
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8 flex flex-col gap-8 pb-24">
+      {/* Breadcrumb & Top Indicator */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+          <button onClick={() => navigate('/')} className="hover:text-[#FF4500] transition-colors cursor-pointer">
+            Accueil
+          </button>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <button onClick={() => navigate('/cart')} className="hover:text-[#FF4500] transition-colors cursor-pointer">
+            Panier
+          </button>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-[#0B192C] font-bold">Finalisation de commande</span>
+        </nav>
 
-          <div className={`h-0.5 flex-1 mx-3 ${step >= 2 ? 'bg-[#0D2C7A]' : 'bg-slate-200'}`} />
-
-          {/* Step 2 */}
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                step >= 2 ? 'bg-[#0D2C7A] text-white' : 'bg-slate-200 text-slate-500'
-              }`}
-            >
-              2
-            </div>
-            <span className={`text-xs font-bold hidden sm:inline ${step >= 2 ? 'text-[#0D2C7A]' : 'text-slate-400'}`}>
-              Livraison / Hub
-            </span>
-          </div>
-
-          <div className={`h-0.5 flex-1 mx-3 ${step >= 3 ? 'bg-[#0D2C7A]' : 'bg-slate-200'}`} />
-
-          {/* Step 3 */}
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                step === 3 ? 'bg-[#2A6DFF] text-white animate-pulse' : 'bg-slate-200 text-slate-500'
-              }`}
-            >
-              3
-            </div>
-            <span className={`text-xs font-bold hidden sm:inline ${step === 3 ? 'text-[#2A6DFF]' : 'text-slate-400'}`}>
-              Paiement Local
-            </span>
-          </div>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200/80 shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-[#FF4500] animate-pulse" />
+          <span className="text-[11px] font-bold text-slate-600">
+            Liaison Chiffrée TLS 1.3 • Hubs Ningbo &amp; Dakar
+          </span>
         </div>
       </div>
 
-      {/* Main Grid: Form Steps (7 cols) + Summary (5 cols) */}
+      {/* Main Checkout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Step Contents */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* STEP 1: Coordonnées */}
-          {step === 1 && (
-            <div className="glass-panel bg-white/90 rounded-3xl p-6 sm:p-8 border border-white shadow-md space-y-5 animate-in fade-in">
-              <div className="space-y-1">
-                <h2 className="text-xl font-black text-[#0D2C7A]">1. Vos Coordonnées de Contact</h2>
-                <p className="text-xs text-slate-500">
-                  Ces informations permettront de vous notifier par SMS/WhatsApp lors des différentes étapes d'acheminement.
-                </p>
+        {/* LEFT COLUMN: 8 cols (65%) */}
+        <div className="lg:col-span-8 flex flex-col gap-8">
+          {/* Section 1: Order Items & Cargo Status */}
+          <section className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full bg-[#FF4500] text-white text-xs font-black flex items-center justify-center">
+                  1
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-[#0B192C]">
+                  Récapitulatif des réservations &amp; sourcing usine
+                </h2>
               </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Nom complet *</label>
-                  <input
-                    type="text"
-                    required
-                    value={customerInfo.fullName}
-                    onChange={e => setCustomerInfo({ ...customerInfo, fullName: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Numéro WhatsApp (Suivi SMS/WhatsApp) *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={customerInfo.phone}
-                      onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Email pour le reçu</label>
-                    <input
-                      type="email"
-                      value={customerInfo.email}
-                      onChange={e => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF]"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Ville de résidence *</label>
-                  <select
-                    value={customerInfo.city}
-                    onChange={e => setCustomerInfo({ ...customerInfo, city: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-hidden focus:border-[#2A6DFF] cursor-pointer"
-                  >
-                    <option value="Dakar">Dakar</option>
-                    <option value="Thiès">Thiès</option>
-                    <option value="Rufisque">Rufisque / Diamniadio</option>
-                    <option value="Mbour">Mbour / Saly</option>
-                    <option value="Saint-Louis">Saint-Louis</option>
-                    <option value="Autre région">Autre région du Sénégal</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-4 flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => navigate('/cart')}
-                  className="text-xs font-bold text-slate-500 hover:text-[#0D2C7A]"
-                >
-                  ← Retour au panier
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!customerInfo.fullName || !customerInfo.phone) {
-                      alert('Veuillez remplir votre nom et numéro de téléphone.');
-                      return;
-                    }
-                    setStep(2);
-                  }}
-                  className="bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md flex items-center gap-1.5"
-                >
-                  <span>Continuer vers la livraison</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-slate-100 text-[#0B192C]">
+                {isCustomCart ? `${cart.length} articles` : '2 articles B2B'}
+              </span>
             </div>
-          )}
 
-          {/* STEP 2: Mode de Réception */}
-          {step === 2 && (
-            <div className="glass-panel bg-white/90 rounded-3xl p-6 sm:p-8 border border-white shadow-md space-y-6 animate-in fade-in">
-              <div className="space-y-1">
-                <h2 className="text-xl font-black text-[#0D2C7A]">2. Choix du Mode de Réception</h2>
-                <p className="text-xs text-slate-500">
-                  Choisissez un retrait sans frais dans l'un de nos Hubs de stockage ou une livraison directe à domicile.
-                </p>
-              </div>
-
-              {/* Delivery Type Option Selector */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <label
-                  onClick={() => setDeliveryType('hub_pickup')}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                    deliveryType === 'hub_pickup'
-                      ? 'border-[#0D2C7A] bg-blue-50/50 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Building className="w-5 h-5 text-[#2A6DFF]" />
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                        0 FCFA (Gratuit)
+            {/* Custom cart items if present */}
+            {isCustomCart ? (
+              <div className="space-y-4 mb-4">
+                {cart.map(item => (
+                  <div key={item.product.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    <div className="flex items-center gap-3.5">
+                      <img
+                        src={item.product.images[0]}
+                        alt={item.product.name}
+                        className="w-16 h-16 rounded-xl object-cover bg-white border border-slate-200"
+                      />
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-bold text-[#0B192C]">{item.product.name}</h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Quantité : {item.quantity} unités</p>
+                      </div>
+                    </div>
+                    <div className="text-right self-end sm:self-auto">
+                      <span className="text-sm font-black text-[#FF4500] block">
+                        {(item.product.priceXOF * item.quantity).toLocaleString('fr-FR')} FCFA
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {item.product.priceXOF.toLocaleString('fr-FR')} FCFA / unité
                       </span>
                     </div>
-                    <strong className="text-sm font-bold text-[#0D2C7A] block">Retrait en Hub Relais</strong>
-                    <p className="text-xs text-slate-500">
-                      Vos colis vous attendent en lieu sécurisé dès leur dédouanement.
-                    </p>
                   </div>
-                </label>
+                ))}
+              </div>
+            ) : null}
 
-                <label
-                  onClick={() => setDeliveryType('home_delivery')}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                    deliveryType === 'home_delivery'
-                      ? 'border-[#0D2C7A] bg-blue-50/50 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Truck className="w-5 h-5 text-[#2A6DFF]" />
-                      <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
-                        +2 000 FCFA
+            {/* Product Item 1: Moto électrique (default or featured B2B) */}
+            {!isCustomCart && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-100 mb-4">
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-full sm:w-36 h-28 rounded-xl overflow-hidden bg-slate-200 shrink-0 relative shadow-2xs">
+                    <img
+                      className="w-full h-full object-cover"
+                      alt="Moto électrique"
+                      src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=500&q=80"
+                    />
+                    <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-[#0B192C] text-white text-[10px] font-bold">
+                      MOQ: 2
+                    </span>
+                  </div>
+
+                  <div className="flex-1 flex flex-col justify-between w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1">
+                      <div>
+                        <h3 className="text-sm font-black text-[#0B192C]">
+                          Moto électrique 2000W — Batterie LiFePO4 72V 35Ah
+                        </h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Catégorie: Auto &amp; Mobilité • Groupage maritime conteneurisé
+                        </p>
+                      </div>
+
+                      <div className="text-left sm:text-right mt-1 sm:mt-0">
+                        <span className="text-sm sm:text-base font-black text-[#FF4500] block">
+                          960 000 FCFA
+                        </span>
+                        <span className="text-[11px] text-slate-400">480 000 FCFA × 2 unités</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-[#0B192C]">
+                        Finition: Blanc Nacré
+                      </span>
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-[#0B192C]">
+                        Option marquage revendeur Dakar inclus
                       </span>
                     </div>
-                    <strong className="text-sm font-bold text-[#0D2C7A] block">Livraison à domicile (Dakar)</strong>
-                    <p className="text-xs text-slate-500">
-                      Un coursier vous livre directement à votre porte ou bureau.
-                    </p>
-                  </div>
-                </label>
-              </div>
 
-              {/* Hub Selection List */}
-              {deliveryType === 'hub_pickup' && (
-                <div className="space-y-3 pt-2">
-                  <label className="text-xs font-bold text-slate-700 block">
-                    Sélectionnez votre Hub de retrait préféré :
-                  </label>
-                  <div className="space-y-2">
-                    {hubLocations.map(hub => (
-                      <div
-                        key={hub.id}
-                        onClick={() => setSelectedHubId(hub.id)}
-                        className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                          selectedHubId === hub.id
-                            ? 'border-[#2A6DFF] bg-blue-50/80 shadow-xs'
-                            : 'border-slate-200 bg-white hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <MapPin className="w-4 h-4 text-[#2A6DFF] shrink-0" />
-                          <div>
-                            <strong className="text-xs font-bold text-[#0D2C7A] block">{hub.name}</strong>
-                            <span className="text-[11px] text-slate-500">{hub.address}</span>
-                          </div>
+                    {/* Groupage Progress Gauge */}
+                    <div className="mt-3 p-3 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <Ship className="w-3.5 h-3.5 text-[#FF4500]" />
+                          <span className="font-bold text-[#0B192C] text-[11px]">
+                            Conteneur Groupé Ningbo → Dakar (LCL-DKR-884)
+                          </span>
                         </div>
-
-                        <span className="text-[11px] text-slate-500 font-mono-numeric shrink-0">
-                          {hub.openingHours}
+                        <span className="text-[11px] text-[#FF4500] font-bold">
+                          84% rempli (Départ sécurisé sous 72h)
                         </span>
                       </div>
-                    ))}
+                      <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#0B192C] via-[#FF4500] to-amber-400 rounded-full"
+                          style={{ width: '84%' }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {/* Home delivery address */}
-              {deliveryType === 'home_delivery' && (
-                <div className="space-y-3 pt-2">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Quartier à Dakar *</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Sacré-Cœur 3, Mermoz, Yoff, Ouakam..."
-                      value={homeAddress.neighborhood}
-                      onChange={e => setHomeAddress({ ...homeAddress, neighborhood: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-hidden"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Adresse précise / Repère</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Villa n°12 près de la Pharmacie..."
-                      value={homeAddress.street}
-                      onChange={e => setHomeAddress({ ...homeAddress, street: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-hidden"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4 flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="text-xs font-bold text-slate-500 hover:text-[#0D2C7A]"
-                >
-                  ← Étape précédente
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  className="bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md flex items-center gap-1.5"
-                >
-                  <span>Continuer vers le paiement</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
               </div>
+            )}
+
+            {/* Product Item 2: Casque */}
+            {!isCustomCart && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-full sm:w-28 h-24 rounded-xl overflow-hidden bg-slate-200 shrink-0 relative shadow-2xs">
+                    <img
+                      className="w-full h-full object-cover"
+                      alt="Casque connecté"
+                      src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=400&q=80"
+                    />
+                  </div>
+
+                  <div className="flex-1 flex flex-col justify-between w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1">
+                      <div>
+                        <h3 className="text-sm font-black text-[#0B192C]">
+                          Casque connecté Bluetooth intelligent pour livreur
+                        </h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Accessoire flotte • Norme DOT &amp; CE • Équipé micro antibruit
+                        </p>
+                      </div>
+
+                      <div className="text-left sm:text-right mt-1 sm:mt-0">
+                        <span className="text-sm sm:text-base font-black text-[#0B192C] block">
+                          56 000 FCFA
+                        </span>
+                        <span className="text-[11px] text-slate-400">28 000 FCFA × 2 unités</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2.5">
+                      <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">
+                        Groupage combiné avec conteneur moto (0 frais fret additionnel)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Section 2: Delivery & Hub Selection */}
+          <section className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full bg-[#FF4500] text-white text-xs font-black flex items-center justify-center">
+                  2
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-[#0B192C]">
+                  Point de réception &amp; coordonnées au Sénégal
+                </h2>
+              </div>
+              <span className="text-xs font-bold text-[#FF4500] flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Dakar &amp; Régions
+              </span>
             </div>
-          )}
 
-          {/* STEP 3: Paiement Local Sécurisé */}
-          {step === 3 && (
-            <div className="glass-panel bg-white/90 rounded-3xl p-6 sm:p-8 border border-white shadow-md space-y-6 animate-in fade-in">
-              <div className="space-y-1">
-                <h2 className="text-xl font-black text-[#0D2C7A]">3. Paiement Sécurisé Sénégal</h2>
-                <p className="text-xs text-slate-500">
-                  Validez votre achat pour lancer la préparation en usine et l'attribution de votre numéro AWP.
-                </p>
-              </div>
-
-              {/* Payment Methods Grid */}
-              <div className="space-y-2.5">
-                {/* Wave */}
-                <label
-                  onClick={() => setPaymentMethod('wave')}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                    paymentMethod === 'wave'
-                      ? 'border-[#2A6DFF] bg-blue-50/70 shadow-sm ring-2 ring-[#2A6DFF]/20'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <WaveLogo className="w-10 h-10 shadow-sm" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <strong className="text-sm font-bold text-[#0D2C7A] block">Wave Sénégal</strong>
-                        <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Sans frais 1%</span>
-                      </div>
-                      <span className="text-xs text-slate-500">Paiement instantané via App Wave Sénégal</span>
+            {/* Radio Card Options */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Option A: Hub Almadies */}
+              <label
+                onClick={() => setDeliveryMode('hub_almadies')}
+                className={`cursor-pointer relative p-5 rounded-2xl border transition-all ${
+                  deliveryMode === 'hub_almadies'
+                    ? 'bg-orange-50/40 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        deliveryMode === 'hub_almadies'
+                          ? 'bg-[#FF4500] text-white'
+                          : 'border border-slate-300'
+                      }`}
+                    >
+                      {deliveryMode === 'hub_almadies' && <Check className="w-3 h-3 stroke-[3]" />}
                     </div>
-                  </div>
-                  <span className="text-xs font-bold text-[#2A6DFF]">Recommandé</span>
-                </label>
-
-                {/* Orange Money */}
-                <label
-                  onClick={() => setPaymentMethod('orange_money')}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                    paymentMethod === 'orange_money'
-                      ? 'border-[#FF6600] bg-orange-50/70 shadow-sm ring-2 ring-[#FF6600]/20'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <OrangeMoneyLogo className="w-10 h-10 shadow-sm" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <strong className="text-sm font-bold text-[#0D2C7A] block">Orange Money Sénégal</strong>
-                        <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">#144# / App</span>
-                      </div>
-                      <span className="text-xs text-slate-500">Validation sécurisée par code de confirmation OTP</span>
-                    </div>
-                  </div>
-                </label>
-
-                {/* Carte Bancaire */}
-                <label
-                  onClick={() => setPaymentMethod('card')}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                    paymentMethod === 'card'
-                      ? 'border-[#0D2C7A] bg-slate-50 shadow-sm ring-2 ring-[#0D2C7A]/20'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm">
-                      <CreditCard className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <strong className="text-sm font-bold text-[#0D2C7A] block">Carte Bancaire Internationale</strong>
-                        <VisaMastercardLogo />
-                      </div>
-                      <span className="text-xs text-slate-500">Cartes Visa & Mastercard via protocole 3D Secure</span>
-                    </div>
-                  </div>
-                </label>
-              </div>
-
-              {/* GeniusPay Security Banner */}
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Transactions chiffrées & certifiées SSL 256-bit</span>
-                </div>
-                <GeniusPayBadge />
-              </div>
-
-              {/* Error Notification */}
-              {errorMessage && (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2.5 text-xs text-rose-700 animate-in fade-in">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              {/* Confirm CTA */}
-              <div className="pt-4 space-y-3">
-                <button
-                  type="button"
-                  disabled={isProcessing}
-                  onClick={handleCompleteOrder}
-                  className="w-full bg-gradient-to-r from-[#0D2C7A] to-[#2A6DFF] hover:from-[#2A6DFF] hover:to-blue-500 text-white font-black text-base py-4 px-6 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {isProcessing ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                      <span>Génération de votre bordereau AWP...</span>
+                    <span className="text-xs sm:text-sm font-black text-[#0B192C]">
+                      Enlèvement Hub Almadies
                     </span>
-                  ) : (
-                    <span>Confirmer et Payer ({(grandTotal || 0).toLocaleString('fr-FR')} FCFA)</span>
-                  )}
-                </button>
+                  </div>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF4500]/15 text-[#FF4500]">
+                    RECOMMANDÉ
+                  </span>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="w-full text-center text-xs font-bold text-slate-500 hover:text-[#0D2C7A]"
-                >
-                  ← Modifier les options de livraison
-                </button>
+                <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                  Hub Dallou Chine — Immeuble Horizon Almadies ou terminal Port Autonome de Dakar. Dédouanement assisté direct et inspection sur place.
+                </p>
+
+                <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500">Frais logistique locale:</span>
+                  <span className="font-bold text-[#0B192C]">Inclus &amp; optimisé</span>
+                </div>
+              </label>
+
+              {/* Option B: Last-Mile Delivery */}
+              <label
+                onClick={() => setDeliveryMode('last_mile')}
+                className={`cursor-pointer relative p-5 rounded-2xl border transition-all ${
+                  deliveryMode === 'last_mile'
+                    ? 'bg-orange-50/40 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        deliveryMode === 'last_mile'
+                          ? 'bg-[#FF4500] text-white'
+                          : 'border border-slate-300'
+                      }`}
+                    >
+                      {deliveryMode === 'last_mile' && <Check className="w-3 h-3 stroke-[3]" />}
+                    </div>
+                    <span className="text-xs sm:text-sm font-black text-[#0B192C]">
+                      Livraison Dernier Km
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                    Sur devis
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                  Acheminement sécurisé par camion plateau jusqu’à votre entrepôt ou domicile (Dakar urbain, Thiès, Mbour, Touba ou Saint-Louis).
+                </p>
+
+                <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500">Délai post-douane:</span>
+                  <span className="font-bold text-[#0B192C]">+24h à 48h</span>
+                </div>
+              </label>
+            </div>
+
+            {/* Contact Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nom complet ou Représentant légal
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-[#0B192C] focus:bg-white focus:border-[#FF4500] outline-hidden transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Numéro WhatsApp certifié (+221)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                    +221
+                  </span>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="w-full h-11 pl-14 pr-4 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-[#0B192C] focus:bg-white focus:border-[#FF4500] outline-hidden transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Entreprise / Raison sociale (Optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={company}
+                  onChange={e => setCompany(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-[#0B192C] focus:bg-white focus:border-[#FF4500] outline-hidden transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Ville &amp; Commune de déchargement
+                </label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-[#0B192C] focus:bg-white focus:border-[#FF4500] outline-hidden transition-all"
+                />
               </div>
             </div>
-          )}
+          </section>
+
+          {/* Section 3: West African Payment Selector */}
+          <section className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full bg-[#FF4500] text-white text-xs font-black flex items-center justify-center">
+                  3
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-[#0B192C]">
+                  Modalité de versement de l'acompte usine (30%)
+                </h2>
+              </div>
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                Séquestre Sécurisé
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              {/* Wave */}
+              <label
+                onClick={() => setPaymentMethod('wave')}
+                className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
+                  paymentMethod === 'wave'
+                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <WaveLogo className="w-5 h-5" />
+                    <span className="text-sm font-black text-[#00A3FF]">Wave</span>
+                  </div>
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      paymentMethod === 'wave' ? 'bg-[#FF4500] text-white' : 'border border-slate-300'
+                    }`}
+                  >
+                    {paymentMethod === 'wave' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2">
+                  Paiement QR ou push direct instantané. 0% frais applicables.
+                </p>
+                <span className="mt-2 text-[10px] text-[#FF4500] font-bold">Validation immédiate</span>
+              </label>
+
+              {/* Orange Money */}
+              <label
+                onClick={() => setPaymentMethod('orange_money')}
+                className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
+                  paymentMethod === 'orange_money'
+                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <OrangeMoneyLogo className="w-5 h-5" />
+                    <span className="text-sm font-black text-[#FF6600]">Orange Money</span>
+                  </div>
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      paymentMethod === 'orange_money' ? 'bg-[#FF4500] text-white' : 'border border-slate-300'
+                    }`}
+                  >
+                    {paymentMethod === 'orange_money' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2">
+                  Code marchand &amp; OTP sécurisé au Sénégal.
+                </p>
+                <span className="mt-2 text-[10px] text-slate-500 font-medium">Validation immédiate</span>
+              </label>
+
+              {/* Bank Transfer */}
+              <label
+                onClick={() => setPaymentMethod('virement')}
+                className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
+                  paymentMethod === 'virement'
+                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-black text-[#0B192C]">Virement Pro</span>
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      paymentMethod === 'virement' ? 'bg-[#FF4500] text-white' : 'border border-slate-300'
+                    }`}
+                  >
+                    {paymentMethod === 'virement' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2">
+                  CBAO, BOA, UBA Sénégal ou Swift B2B.
+                </p>
+                <span className="mt-2 text-[10px] text-slate-500 font-medium">Reçu sous 24h</span>
+              </label>
+
+              {/* Cash Desk Almadies */}
+              <label
+                onClick={() => setPaymentMethod('desk')}
+                className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
+                  paymentMethod === 'desk'
+                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-black text-[#0B192C]">Desk Almadies</span>
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      paymentMethod === 'desk' ? 'bg-[#FF4500] text-white' : 'border border-slate-300'
+                    }`}
+                  >
+                    {paymentMethod === 'desk' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2">
+                  Versement physique avec reçu sécurisé signé.
+                </p>
+                <span className="mt-2 text-[10px] text-slate-500 font-medium">Guichet dédié</span>
+              </label>
+            </div>
+
+            <div className="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+              <ShieldCheck className="w-5 h-5 text-[#FF4500] shrink-0" />
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Transactions certifiées conformes aux règlements BCEAO. Vos fonds transitent exclusivement par les comptes séquestres agréés de Dallou Chine SARL.
+              </p>
+            </div>
+          </section>
         </div>
 
-        {/* Right Side: Fixed Order Summary (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="glass-panel bg-white/95 rounded-3xl p-6 border border-white shadow-md space-y-5">
-            <h3 className="text-base font-black text-[#0D2C7A] border-b border-slate-100 pb-3">
-              Votre Commande ({cart.length} articles)
-            </h3>
+        {/* RIGHT COLUMN: 4 cols (35%) STICKY TRANSPARENT PRICING BREAKDOWN */}
+        <aside className="lg:col-span-4 sticky top-24 flex flex-col gap-4">
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl p-6 sm:p-7 relative overflow-hidden">
+            <div className="absolute -top-16 -right-16 w-44 h-44 rounded-full bg-[#FF4500]/10 blur-3xl pointer-events-none" />
 
-            <div className="space-y-3 max-h-60 overflow-y-auto no-scrollbar">
-              {cart.filter(item => item && item.product).map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 text-xs">
-                  <img
-                    src={item.product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200'}
-                    alt={item.product?.name || 'Produit'}
-                    className="w-12 h-12 rounded-xl object-cover border border-slate-200"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-[#0D2C7A] truncate">{item.product?.name}</h4>
-                    <span className="text-slate-500 font-mono-numeric">
-                      x{item.quantity} • {(((item.product?.priceXOF || 0) * item.quantity) || 0).toLocaleString('fr-FR')} FCFA
+            {/* Card Header */}
+            <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
+              <div>
+                <span className="text-[10px] font-bold text-[#FF4500] uppercase tracking-wider block">
+                  Décomposition Transparente
+                </span>
+                <h3 className="text-lg font-black text-[#0B192C]">Résumé financier</h3>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-[#0B192C] flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-[#FF4500]" /> OHADA
+                </span>
+                <span className="text-[9px] text-slate-400 mt-0.5">Compte Séquestre</span>
+              </div>
+            </div>
+
+            {/* Financial Line Items */}
+            <div className="flex flex-col gap-3.5 mb-6">
+              {/* Item A */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-[#0B192C]">Prix usine fournisseur négocié</span>
+                  <span className="text-[11px] text-slate-400">
+                    {isCustomCart ? 'Articles sélectionnés panier' : '2 motos + 2 casques connectés'}
+                  </span>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-[#0B192C] block">
+                    {factoryPrice.toLocaleString('fr-FR')} FCFA
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[9px] font-bold">
+                    <Check className="w-2.5 h-2.5" /> CONFIRMÉ
+                  </span>
+                </div>
+              </div>
+
+              {/* Item B */}
+              <div className="flex items-start justify-between gap-2 pt-2 border-t border-slate-100">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-[#0B192C]">Fret maritime groupé LCL</span>
+                  <span className="text-[11px] text-slate-400">Ningbo → Dakar (2.4 CBM calibré)</span>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-[#0B192C] block">
+                    ~{seaFreightEst.toLocaleString('fr-FR')} FCFA
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 text-[9px] font-bold">
+                    <Info className="w-2.5 h-2.5" /> ESTIMATIF
+                  </span>
+                </div>
+              </div>
+
+              {/* Item C */}
+              <div className="flex items-start justify-between gap-2 pt-2 border-t border-slate-100">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-[#0B192C]">Inspection qualité en usine</span>
+                  <span className="text-[11px] text-slate-400">Audit SGS Chine avant empotage</span>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-[#FF4500] block">OFFERT</span>
+                  <span className="text-[9px] text-slate-400">Inclus dans mandat</span>
+                </div>
+              </div>
+
+              {/* Item D */}
+              <div className="flex items-start justify-between gap-2 pt-2 border-t border-slate-100">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-[#0B192C]">Formalités douanières PAD</span>
+                  <span className="text-[11px] text-slate-400">Dédouanement Dakar &amp; manutention</span>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-[#0B192C] block">
+                    ~{customsEst.toLocaleString('fr-FR')} FCFA
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[9px] font-medium">
+                    À L'ARRIVÉE
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Estimé Highlight */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 mb-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">Total estimé clé en main</span>
+                <span className="text-lg sm:text-xl font-black text-[#0B192C] tracking-tight">
+                  {totalEstimated.toLocaleString('fr-FR')} FCFA
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1">
+                Rendu Dakar dédouané &amp; certifié, sans frais cachés.
+              </p>
+            </div>
+
+            {/* Staged Payment Schedule Box */}
+            <div className="rounded-2xl bg-slate-50 p-4 mb-6 flex flex-col gap-2.5 border border-slate-200/80">
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-[11px] uppercase tracking-wide text-[#0B192C] font-bold">
+                  Échelonnement des paiements
+                </span>
+                <span className="text-[10px] text-[#FF4500] font-bold">3 étapes sécurisées</span>
+              </div>
+
+              {/* Step 1 */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-orange-200 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#FF4500] text-white text-[10px] flex items-center justify-center font-bold">
+                    1
+                  </span>
+                  <div>
+                    <span className="text-xs text-[#0B192C] block font-bold">
+                      Acompte usine (30%)
+                    </span>
+                    <span className="text-[10px] text-[#FF4500] font-medium">
+                      Exigé aujourd’hui pour lancer l'ordre
                     </span>
                   </div>
                 </div>
-              ))}
+                <span className="text-xs sm:text-sm font-black text-[#FF4500]">
+                  {deposit30.toLocaleString('fr-FR')} FCFA
+                </span>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex items-center justify-between px-2 py-1 text-slate-500 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] flex items-center justify-center font-bold">
+                    2
+                  </span>
+                  <div>
+                    <span className="text-xs text-[#0B192C]">Solde usine (70%)</span>
+                    <span className="text-[10px] text-slate-400 block">Avant scellage &amp; embarquement</span>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-[#0B192C]">
+                  {balance70.toLocaleString('fr-FR')} FCFA
+                </span>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex items-center justify-between px-2 py-1 text-slate-500 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] flex items-center justify-center font-bold">
+                    3
+                  </span>
+                  <div>
+                    <span className="text-xs text-[#0B192C]">Fret maritime &amp; Douane</span>
+                    <span className="text-[10px] text-slate-400 block">Payables lors du déchargement à Dakar</span>
+                  </div>
+                </div>
+                <span className="text-xs font-medium text-slate-600">À l’arrivée</span>
+              </div>
             </div>
 
-            <div className="space-y-2 pt-3 border-t border-slate-100 text-xs text-slate-600">
-              <div className="flex justify-between">
-                <span>Sous-total articles :</span>
-                <span className="font-mono-numeric font-bold">{(cartTotalXOF || 0).toLocaleString('fr-FR')} FCFA</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Mode de transport :</span>
-                <span className="text-emerald-700 font-bold">Fret & Douane Inclus</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Frais de réception :</span>
-                <span className="font-mono-numeric font-bold">
-                  {deliveryType === 'home_delivery' ? '2 000 FCFA' : '0 FCFA (Gratuit)'}
-                </span>
-              </div>
+            {/* Primary CTA Button */}
+            <button
+              onClick={handleConfirmOrder}
+              disabled={isProcessing}
+              className="w-full h-14 rounded-xl bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+            >
+              <span>{isProcessing ? 'Validation en cours...' : `Confirmer et verser l'acompte (${deposit30.toLocaleString('fr-FR')} FCFA)`}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
 
-              <div className="pt-3 border-t border-slate-200 flex items-baseline justify-between">
-                <strong className="text-sm font-black text-[#0D2C7A]">Total Général :</strong>
-                <span className="text-xl font-black text-[#0D2C7A] font-mono-numeric">
-                  {(grandTotal || 0).toLocaleString('fr-FR')} FCFA
-                </span>
+            {/* Reassurance Notice */}
+            <div className="mt-4 p-3 rounded-2xl bg-orange-50/60 border border-orange-200/60 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-[#FF4500] shrink-0 mt-0.5" />
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                <strong className="text-[#0B192C] font-semibold">Garantie Dallou Chine :</strong> Votre acompte est conservé sous compte tiers séquestre jusqu'à la validation du rapport d'inspection physique en usine avec photos &amp; numéros de châssis.
+              </p>
+            </div>
+
+            {/* Bottom Micro Logos */}
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-4 text-slate-400 text-[11px]">
+              <div className="flex items-center gap-1">
+                <Lock className="w-3.5 h-3.5" /> Chiffrement 256-bit
+              </div>
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <div className="flex items-center gap-1">
+                <FileCheck2 className="w-3.5 h-3.5" /> Contrat légalisé
               </div>
             </div>
           </div>
-        </div>
+
+          {/* Quick Help Card */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF4500] flex items-center justify-center">
+                <Headphones className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-[#0B192C] block">Besoin d'un desk manager ?</span>
+                <span className="text-[11px] text-slate-500">Ligne directe Dakar / Guangzhou</span>
+              </div>
+            </div>
+            <a
+              href="https://wa.me/221338000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#0B192C] transition-all"
+            >
+              Appeler
+            </a>
+          </div>
+        </aside>
       </div>
     </div>
   );

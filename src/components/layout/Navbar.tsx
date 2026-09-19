@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   LogOut,
   ChevronDown,
-  Command
+  Command,
+  ArrowRight
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -68,12 +69,14 @@ export const Navbar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navLinks = [
+  const navLinks: { label: string; path: string; badge?: string }[] = [
     { label: 'Accueil', path: '/' },
-    { label: 'Produits', path: '/products' },
-    { label: 'Groupages', path: '/groupages', badge: '-40%' },
-    { label: 'B2B & Usines', path: '/b2b' },
-    { label: 'Suivi AWP', path: '/tracking' }
+    { label: 'Marketplace', path: '/products' },
+    { label: 'Groupages', path: '/groupages' },
+    { label: 'Sourcing', path: '/sourcing' },
+    { label: 'B2B', path: '/b2b' },
+    { label: 'Comment ça marche', path: '/#comment-ca-marche' },
+    { label: 'À propos', path: '/about' }
   ];
 
   return (
@@ -97,120 +100,131 @@ export const Navbar: React.FC = () => {
               onClick={() => navigate('/')}
               className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none shrink-0 group min-w-0"
             >
-              <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#0D2C7A] to-[#2A6DFF] text-white flex items-center justify-center shadow-md transform group-hover:scale-105 transition-all shrink-0">
-                <Plane className="w-4 h-4 sm:w-5 sm:h-5 -rotate-45" />
+              {/* Interlocking DC Stylized Icon */}
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#E63900] via-[#FF4500] to-[#FF8A00] text-white flex items-center justify-center shadow-md shadow-orange-500/20 transform group-hover:scale-105 transition-all shrink-0">
+                <span className="font-black text-sm sm:text-base tracking-tighter font-mono">DC</span>
               </div>
 
               <div className="min-w-0">
-                <div className="flex items-center gap-1 sm:gap-1.5">
-                  <span className="text-sm sm:text-base lg:text-lg font-black text-[#0D2C7A] tracking-tight group-hover:text-[#2A6DFF] transition-colors truncate">
-                    Sino<span className="text-[#2A6DFF]">Senegal</span>
-                  </span>
-                  <span className="hidden sm:inline-flex px-1.5 py-0.2 text-[9px] font-extrabold bg-[#2A6DFF]/10 text-[#0D2C7A] rounded shrink-0">
-                    🇨🇳➔🇸🇳
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base sm:text-lg font-black text-[#0B192C] tracking-tight group-hover:text-[#FF4500] transition-colors truncate">
+                    DALLOU <span className="text-[#FF4500]">CHINE</span>
                   </span>
                 </div>
-                <span className="hidden 2xl:block text-[10px] text-slate-500 font-semibold tracking-tight -mt-0.5">
-                  Direct Usines & Groupage
+                <span className="hidden sm:block text-[8px] sm:text-[9px] text-slate-500 font-bold uppercase tracking-wider -mt-0.5">
+                  Commandez de la Chine vers l'Afrique en un clic
                 </span>
               </div>
             </div>
 
             {/* 2. DESKTOP CENTER NAVIGATION LINKS (Visible on lg and above) */}
-            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 2xl:gap-2 shrink-0">
+            <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 shrink-0">
               {navLinks.map(link => {
-                const isActive = currentPath === link.path;
+                const isActive =
+                  link.path === '/'
+                    ? currentPath === '/'
+                    : currentPath.startsWith(link.path.replace('/#comment-ca-marche', ''));
                 return (
                   <button
                     key={link.path}
-                    onClick={() => navigate(link.path)}
-                    className={`relative px-2.5 xl:px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1 shrink-0 ${
+                    onClick={() => {
+                      if (link.path === '/#comment-ca-marche') {
+                        if (currentPath !== '/') {
+                          navigate('/');
+                          setTimeout(() => {
+                            const el = document.getElementById('comment-ca-marche');
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }, 150);
+                        } else {
+                          const el = document.getElementById('comment-ca-marche');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      } else {
+                        navigate(link.path);
+                      }
+                    }}
+                    className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer ${
                       isActive
-                        ? 'bg-[#0D2C7A] text-white shadow-xs'
-                        : 'text-slate-700 hover:text-[#0D2C7A] hover:bg-slate-100/70'
+                        ? 'bg-[#FF4500] text-white shadow-xs'
+                        : 'text-slate-700 hover:text-[#FF4500] hover:bg-orange-50/50'
                     }`}
                   >
                     <span>{link.label}</span>
-                    {link.badge && !isActive && (
-                      <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-900 border border-amber-500/30">
-                        {link.badge}
-                      </span>
-                    )}
                   </button>
                 );
               })}
             </nav>
 
-            {/* 3. SEARCH BAR (Embedded on 2xl screens, or sleek compact search button on intermediate screens) */}
-            <div className="hidden 2xl:block flex-1 max-w-xs mx-2 min-w-0">
-              <SearchBar size="sm" variant="header" placeholder="Rechercher..." />
+            {/* 3. SEARCH BAR */}
+            <div className="hidden 2xl:block w-48 min-w-0">
+              <div
+                onClick={() => setIsSearchModalOpen(true)}
+                className="flex items-center justify-between px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 text-xs text-slate-400 cursor-pointer transition-all"
+              >
+                <div className="flex items-center gap-1.5 truncate">
+                  <Search className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[11px]">Rechercher...</span>
+                </div>
+                <kbd className="px-1.5 py-0.2 text-[9px] font-mono font-bold text-slate-400 bg-white rounded border border-slate-200">
+                  ⌘K
+                </kbd>
+              </div>
             </div>
 
             {/* 4. RIGHT ACTIONS CLUSTER */}
-            <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
-              {/* Quick Search Button (Tablet & Laptop screens < 2xl) */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* Quick Search Button (< 2xl screens) */}
               <button
                 onClick={() => setIsSearchModalOpen(true)}
-                className="hidden sm:flex 2xl:hidden items-center gap-1.5 px-2.5 py-1.5 rounded-xl glass-panel bg-white/80 hover:bg-white text-slate-600 hover:text-[#0D2C7A] border border-slate-200/80 text-xs font-medium transition-all shadow-xs"
-                title="Rechercher un produit (⌘K)"
+                className="2xl:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-xs text-slate-500 font-medium transition-all"
+                title="Rechercher (⌘K)"
               >
-                <Search className="w-3.5 h-3.5 text-[#2A6DFF]" />
-                <span className="text-slate-400 hidden md:inline text-[11px]">Rechercher...</span>
-                <kbd className="hidden lg:inline-flex px-1.5 py-0.2 text-[9px] font-mono font-bold text-slate-400 bg-slate-100 rounded border border-slate-200">
+                <Search className="w-3.5 h-3.5 text-slate-500" />
+                <span className="hidden md:inline text-[11px] text-slate-400">Rechercher...</span>
+                <kbd className="hidden lg:inline-flex px-1.5 py-0.2 text-[9px] font-mono text-slate-400 bg-white rounded border border-slate-200">
                   ⌘K
                 </kbd>
               </button>
 
-              {/* Mobile Search Toggle (Mobile < sm) */}
+              {/* Connexion Button (as in reference mockup) */}
               <button
-                onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-                aria-label="Recherche"
-                className="sm:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100/80 transition-colors"
+                onClick={() => {
+                  if (currentUser.isLoggedIn) {
+                    navigate('/account');
+                  } else {
+                    navigate('/login');
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 transition-all shadow-2xs"
               >
-                <Search className="w-4 h-4 text-[#0D2C7A]" />
+                <User className="w-3.5 h-3.5 text-[#FF4500]" />
+                <span className="hidden sm:inline">
+                  {currentUser.isLoggedIn ? (currentUser.name?.split(' ')[0] || 'Compte') : 'Connexion'}
+                </span>
               </button>
 
-              {/* Admin Portal Shortcut Button */}
+              {/* Demander un devis -> Button (Orange Pill as in reference mockup) */}
               <button
-                onClick={() => navigate('/admin')}
-                className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#0D2C7A]/10 hover:bg-[#0D2C7A] text-[#0D2C7A] hover:text-white border border-[#0D2C7A]/20 text-xs font-bold transition-all shadow-xs"
-                title="Espace Administrateur HQ"
+                onClick={() => navigate('/demande-devis')}
+                className="flex items-center gap-1.5 px-4 py-1.5 sm:py-2 rounded-full bg-[#FF4500] hover:bg-[#E03D00] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-[#2A6DFF]" />
-                <span>Admin HQ</span>
-              </button>
-
-              {/* Favorites Button */}
-              <button
-                onClick={() => navigate('/account?tab=favorites')}
-                aria-label="Favoris"
-                className="relative p-2 sm:p-2 rounded-xl glass-panel text-slate-700 hover:text-rose-600 hover:bg-white transition-all shadow-xs"
-                title="Favoris"
-              >
-                <Heart className="w-4 h-4" />
-                {favorites.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center font-mono-numeric shadow-xs">
-                    {favorites.length}
-                  </span>
-                )}
+                <span>Demander un devis</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
 
               {/* Cart Button */}
               <button
                 onClick={() => navigate('/cart')}
                 aria-label="Panier"
-                className="relative p-2 sm:px-2.5 sm:py-2 rounded-xl glass-panel text-slate-700 hover:text-[#2A6DFF] hover:bg-white transition-all shadow-xs flex items-center gap-1"
+                className="relative p-2 rounded-full hover:bg-slate-100 text-slate-700 transition-all shrink-0"
                 title="Mon Panier"
               >
-                <ShoppingBag className="w-4 h-4 text-[#0D2C7A]" />
+                <ShoppingBag className="w-4 h-4 text-slate-700" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#2A6DFF] text-white text-[9px] font-black flex items-center justify-center font-mono-numeric shadow-xs animate-in zoom-in-50">
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#FF4500] text-white text-[9px] font-black flex items-center justify-center font-mono-numeric shadow-xs">
                     {cartCount}
                   </span>
                 )}
-                <span className="hidden 2xl:inline text-xs font-bold text-[#0D2C7A]">
-                  Panier
-                </span>
               </button>
 
               {/* Account / User Menu with Dropdown */}
@@ -224,12 +238,12 @@ export const Navbar: React.FC = () => {
                     }
                   }}
                   aria-label="Compte"
-                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl glass-panel bg-white/80 hover:bg-white text-slate-700 hover:text-[#0D2C7A] transition-all shadow-xs flex items-center gap-1.5"
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl glass-panel bg-white/80 hover:bg-white text-slate-700 hover:text-[#0B192C] transition-all shadow-xs flex items-center gap-1.5"
                 >
-                  <div className="w-5 h-5 rounded-full bg-[#0D2C7A] text-white flex items-center justify-center text-[10px] font-black shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-[#0B192C] text-white flex items-center justify-center text-[10px] font-black shrink-0">
                     {currentUser?.isLoggedIn && currentUser?.name ? currentUser.name.charAt(0) : <User className="w-3 h-3 text-white" />}
                   </div>
-                  <span className="hidden xl:inline text-xs font-bold text-[#0D2C7A] max-w-[90px] truncate">
+                  <span className="hidden xl:inline text-xs font-bold text-[#0B192C] max-w-[90px] truncate">
                     {currentUser?.isLoggedIn ? (currentUser?.name?.split(' ')[0] || 'Compte') : 'Connexion'}
                   </span>
                   {currentUser?.isLoggedIn && <ChevronDown className="hidden sm:inline w-3 h-3 text-slate-400 shrink-0" />}
@@ -239,7 +253,7 @@ export const Navbar: React.FC = () => {
                 {isUserDropdownOpen && currentUser?.isLoggedIn && (
                   <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
                     <div className="px-3 py-2 border-b border-slate-100">
-                      <p className="text-xs font-black text-[#0D2C7A] truncate">{currentUser?.name || 'Mon Compte'}</p>
+                      <p className="text-xs font-black text-[#0B192C] truncate">{currentUser?.name || 'Mon Compte'}</p>
                       <p className="text-[10px] text-slate-500 truncate">{currentUser?.email || currentUser?.phone || ''}</p>
                     </div>
 
@@ -251,7 +265,7 @@ export const Navbar: React.FC = () => {
                         }}
                         className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                       >
-                        <User className="w-4 h-4 text-[#0D2C7A]" />
+                        <User className="w-4 h-4 text-[#0B192C]" />
                         <span>Mon Espace Client</span>
                       </button>
 
@@ -260,9 +274,9 @@ export const Navbar: React.FC = () => {
                           setIsUserDropdownOpen(false);
                           navigate('/admin');
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-blue-700 bg-blue-50/50 hover:bg-blue-50 flex items-center gap-2"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#FF4500] bg-orange-50/50 hover:bg-orange-50 flex items-center gap-2"
                       >
-                        <ShieldCheck className="w-4 h-4 text-[#2A6DFF]" />
+                        <ShieldCheck className="w-4 h-4 text-[#FF4500]" />
                         <span>Espace Admin HQ</span>
                       </button>
 
@@ -313,9 +327,9 @@ export const Navbar: React.FC = () => {
             >
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-[#2A6DFF]" />
-                  <span className="text-xs font-black text-[#0D2C7A] uppercase tracking-wider">
-                    Recherche Rapide Catalogue SinoSenegal
+                  <Search className="w-4 h-4 text-[#FF4500]" />
+                  <span className="text-xs font-black text-[#0B192C] uppercase tracking-wider">
+                    Recherche Rapide Catalogue Dallou Chine
                   </span>
                 </div>
                 <button
@@ -351,17 +365,31 @@ export const Navbar: React.FC = () => {
                     key={link.path}
                     onClick={() => {
                       setIsMobileMenuOpen(false);
-                      navigate(link.path);
+                      if (link.path.startsWith('/#')) {
+                        const hash = link.path.replace('/', '');
+                        if (currentPath !== '/') {
+                           navigate('/');
+                          setTimeout(() => {
+                            const el = document.querySelector(hash);
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }, 150);
+                        } else {
+                          const el = document.querySelector(hash);
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      } else {
+                        navigate(link.path);
+                      }
                     }}
                     className={`w-full text-left p-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between ${
                       currentPath === link.path
-                        ? 'bg-[#0D2C7A] text-white'
+                        ? 'bg-[#0B192C] text-white'
                         : 'text-slate-800 hover:bg-slate-100'
                     }`}
                   >
                     <span>{link.label}</span>
                     {link.badge && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500 text-white">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF4500] text-white">
                         {link.badge}
                       </span>
                     )}
@@ -374,13 +402,13 @@ export const Navbar: React.FC = () => {
                     setIsMobileMenuOpen(false);
                     navigate('/admin');
                   }}
-                  className="w-full text-left p-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-between bg-blue-50 text-[#0D2C7A] border border-blue-200 mt-2"
+                  className="w-full text-left p-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-between bg-orange-50/80 text-[#0B192C] border border-orange-200 mt-2"
                 >
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-[#2A6DFF]" />
+                    <ShieldCheck className="w-4 h-4 text-[#FF4500]" />
                     <span>Espace Administrateur HQ</span>
                   </div>
-                  <span className="text-[10px] bg-[#0D2C7A] text-white px-2 py-0.5 rounded font-bold">
+                  <span className="text-[10px] bg-[#0B192C] text-white px-2 py-0.5 rounded font-bold">
                     Admin
                   </span>
                 </button>
@@ -391,10 +419,10 @@ export const Navbar: React.FC = () => {
                 {currentUser?.isLoggedIn ? (
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#0D2C7A] text-white flex items-center justify-center font-bold text-[10px]">
+                      <div className="w-6 h-6 rounded-full bg-[#0B192C] text-white flex items-center justify-center font-bold text-[10px]">
                         {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                       </div>
-                      <span className="font-bold text-[#0D2C7A] truncate max-w-[150px]">{currentUser.name || 'Mon Compte'}</span>
+                      <span className="font-bold text-[#0B192C] truncate max-w-[150px]">{currentUser.name || 'Mon Compte'}</span>
                     </div>
                     <button
                       onClick={() => {
@@ -413,7 +441,7 @@ export const Navbar: React.FC = () => {
                       setIsMobileMenuOpen(false);
                       navigate('/account');
                     }}
-                    className="w-full py-2.5 rounded-xl bg-[#0D2C7A] text-white font-bold text-center"
+                    className="w-full py-2.5 rounded-xl bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-center"
                   >
                     Se connecter / Créer un compte
                   </button>

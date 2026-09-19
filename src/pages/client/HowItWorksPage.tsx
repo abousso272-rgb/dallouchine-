@@ -44,27 +44,27 @@ export const HowItWorksPage: React.FC = () => {
   return (
     <div className="space-y-12 pb-16">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#0D2C7A] to-[#12368c] text-white rounded-3xl p-6 sm:p-12 shadow-xl text-center space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-blue-200 bg-white/10 px-3 py-1 rounded-full">
+      <div className="bg-gradient-to-r from-[#0B192C] to-[#1E2E45] text-white rounded-3xl p-6 sm:p-12 shadow-xl text-center space-y-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-orange-200 bg-white/10 px-3 py-1 rounded-full">
           Transparence Totale
         </span>
         <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
           Comment fonctionne la plateforme SinoSenegal ?
         </h1>
-        <p className="text-xs sm:text-sm text-blue-100 max-w-xl mx-auto leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-200 max-w-xl mx-auto leading-relaxed">
           Comprenez notre chaîne d'approvisionnement complète de la négociation en usine jusqu'à la remise de votre colis à Dakar.
         </p>
       </div>
 
       {/* Visual Supply Chain Steps */}
       <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xs space-y-8">
-        <h2 className="text-lg font-bold text-[#0D2C7A] text-center">
+        <h2 className="text-lg font-bold text-[#0B192C] text-center">
           Le trajet de votre commande étape par étape
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="p-5 rounded-2xl bg-[#F8F6F2] border border-slate-200/60 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0D2C7A] text-white flex items-center justify-center font-bold text-sm">
+            <div className="w-10 h-10 rounded-xl bg-[#0B192C] text-white flex items-center justify-center font-bold text-sm">
               1
             </div>
             <h3 className="text-sm font-bold text-slate-900">Sourcing & Négociation Usine</h3>
@@ -74,7 +74,7 @@ export const HowItWorksPage: React.FC = () => {
           </div>
 
           <div className="p-5 rounded-2xl bg-[#F8F6F2] border border-slate-200/60 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#2A6DFF] text-white flex items-center justify-center font-bold text-sm">
+            <div className="w-10 h-10 rounded-xl bg-[#FF4500] text-white flex items-center justify-center font-bold text-sm">
               2
             </div>
             <h3 className="text-sm font-bold text-slate-900">Inspection & Contrôle Qualité</h3>
@@ -107,8 +107,8 @@ export const HowItWorksPage: React.FC = () => {
 
       {/* FAQ Section */}
       <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xs space-y-6">
-        <div className="flex items-center gap-2 text-[#0D2C7A]">
-          <HelpCircle className="w-5 h-5 text-[#2A6DFF]" />
+        <div className="flex items-center gap-2 text-[#0B192C]">
+          <HelpCircle className="w-5 h-5 text-[#FF4500]" />
           <h2 className="text-lg font-bold">Foire Aux Questions Fréquentes</h2>
         </div>
 

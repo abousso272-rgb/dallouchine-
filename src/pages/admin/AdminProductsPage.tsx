@@ -354,7 +354,7 @@ export const AdminProductsPage: React.FC = () => {
         {/* PRIMARY ACTION */}
         <button
           onClick={handleOpenCreateModal}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2A6DFF] hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-xs shadow-lg shadow-orange-500/25 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Ajouter un produit</span>
@@ -362,7 +362,7 @@ export const AdminProductsPage: React.FC = () => {
       </div>
 
       {/* 2. SEARCH & FILTERS BAR */}
-      <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-[#0a1945] p-3 rounded-2xl border border-blue-900/40">
+      <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-[#0B192C] p-3 rounded-2xl border border-orange-500/20">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -370,7 +370,7 @@ export const AdminProductsPage: React.FC = () => {
             placeholder="Rechercher par nom..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#2A6DFF]"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#FF4500]"
           />
         </div>
 
@@ -379,23 +379,23 @@ export const AdminProductsPage: React.FC = () => {
           <select
             value={selectedCategory}
             onChange={e => setSelectedCategory(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-[#2A6DFF]"
+            className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-[#FF4500]"
           >
-            <option value="all" className="bg-[#0a1945]">Toutes catégories</option>
+            <option value="all" className="bg-[#0B192C]">Toutes catégories</option>
             {categories.map(cat => (
-              <option key={cat} value={cat} className="bg-[#0a1945]">{cat}</option>
+              <option key={cat} value={cat} className="bg-[#0B192C]">{cat}</option>
             ))}
           </select>
 
           <select
             value={selectedStatus}
             onChange={e => setSelectedStatus(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-[#2A6DFF]"
+            className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-[#FF4500]"
           >
-            <option value="all" className="bg-[#0a1945]">Tous statuts</option>
-            <option value="in_stock" className="bg-[#0a1945]">En stock</option>
-            <option value="preorder" className="bg-[#0a1945]">Sur commande</option>
-            <option value="out_of_stock" className="bg-[#0a1945]">Rupture</option>
+            <option value="all" className="bg-[#0B192C]">Tous statuts</option>
+            <option value="in_stock" className="bg-[#0B192C]">En stock</option>
+            <option value="preorder" className="bg-[#0B192C]">Sur commande</option>
+            <option value="out_of_stock" className="bg-[#0B192C]">Rupture</option>
           </select>
         </div>
       </div>
@@ -583,7 +583,7 @@ export const AdminProductsPage: React.FC = () => {
                   handleOpenEditModal(inspectProduct);
                   setInspectProduct(null);
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[#2A6DFF] hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-xl bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
               >
                 <Edit2 className="w-4 h-4" />
                 <span>Modifier la fiche</span>
@@ -606,9 +606,9 @@ export const AdminProductsPage: React.FC = () => {
       {/* 5. 6-STEP WIZARD MODAL FOR CREATION / EDITING */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-[#0a1945] rounded-3xl border border-blue-900/50 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-150 my-auto">
+          <div className="w-full max-w-2xl bg-[#0B192C] rounded-3xl border border-orange-500/20 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-150 my-auto">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-blue-900/40">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div>
                 <h3 className="text-base font-black text-white">
                   {editingProductId ? 'Modifier le produit' : 'Création Produit en 6 étapes'}
@@ -630,7 +630,7 @@ export const AdminProductsPage: React.FC = () => {
                   <div
                     className={`h-1.5 rounded-full transition-all ${
                       ws.step === currentStep
-                        ? 'bg-[#2A6DFF]'
+                        ? 'bg-[#FF4500]'
                         : ws.step < currentStep
                         ? 'bg-emerald-500'
                         : 'bg-slate-800'
@@ -657,7 +657,7 @@ export const AdminProductsPage: React.FC = () => {
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Ex: Montre Connectée AMOLED V8"
-                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#2A6DFF]"
+                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#FF4500]"
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -666,7 +666,7 @@ export const AdminProductsPage: React.FC = () => {
                       <select
                         value={formData.category}
                         onChange={e => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full p-2.5 rounded-xl bg-[#050e26] border border-white/10 text-xs text-white focus:outline-none focus:border-[#2A6DFF]"
+                        className="w-full p-2.5 rounded-xl bg-[#0B192C] border border-white/10 text-xs text-white focus:outline-none focus:border-[#FF4500]"
                       >
                         <option value="Électronique & High-Tech">Électronique & High-Tech</option>
                         <option value="Maison, Cuisine & Électroménager">Maison, Cuisine & Électroménager</option>
@@ -682,7 +682,7 @@ export const AdminProductsPage: React.FC = () => {
                         value={formData.images[0]}
                         onChange={e => setFormData({ ...formData, images: [e.target.value] })}
                         placeholder="https://..."
-                        className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#2A6DFF]"
+                        className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#FF4500]"
                       />
                     </div>
                   </div>
@@ -693,7 +693,7 @@ export const AdminProductsPage: React.FC = () => {
                       value={formData.shortDescription}
                       onChange={e => setFormData({ ...formData, shortDescription: e.target.value })}
                       placeholder="Description accrocheuse pour le catalogue..."
-                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#2A6DFF]"
+                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#FF4500]"
                     />
                   </div>
                 </div>
@@ -708,7 +708,7 @@ export const AdminProductsPage: React.FC = () => {
                       <select
                         value={formData.supplierId}
                         onChange={e => setFormData({ ...formData, supplierId: e.target.value })}
-                        className="w-full p-2.5 rounded-xl bg-[#050e26] border border-white/10 text-xs text-white focus:outline-none focus:border-[#2A6DFF]"
+                        className="w-full p-2.5 rounded-xl bg-[#0B192C] border border-white/10 text-xs text-white focus:outline-none focus:border-[#FF4500]"
                       >
                         {suppliers.map(s => (
                           <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
@@ -725,7 +725,7 @@ export const AdminProductsPage: React.FC = () => {
                           setFormData({ ...formData, basePriceCNY: val });
                           runCalculation({ basePriceCNY: val });
                         }}
-                        className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-[#2A6DFF]"
+                        className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-[#FF4500]"
                       />
                     </div>
                   </div>
@@ -736,7 +736,7 @@ export const AdminProductsPage: React.FC = () => {
                       value={formData.supplierUrl}
                       onChange={e => setFormData({ ...formData, supplierUrl: e.target.value })}
                       placeholder="https://detail.1688.com/..."
-                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#2A6DFF]"
+                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-[#FF4500]"
                     />
                   </div>
                 </div>
@@ -757,7 +757,7 @@ export const AdminProductsPage: React.FC = () => {
                           setFormData({ ...formData, unitWeightKg: val });
                           runCalculation({ unitWeightKg: val });
                         }}
-                        className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-[#2A6DFF]"
+                        className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-[#FF4500]"
                       />
                     </div>
                     <div>
@@ -766,7 +766,7 @@ export const AdminProductsPage: React.FC = () => {
                         type="number"
                         value={formData.moq}
                         onChange={e => setFormData({ ...formData, moq: Number(e.target.value) })}
-                        className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-[#2A6DFF]"
+                        className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-[#FF4500]"
                       />
                     </div>
                   </div>
@@ -958,7 +958,7 @@ export const AdminProductsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(prev => Math.min(6, prev + 1))}
-                  className="px-5 py-2 rounded-xl bg-[#2A6DFF] hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md"
+                  className="px-5 py-2 rounded-xl bg-[#FF4500] hover:bg-[#E03D00] text-white text-xs font-bold flex items-center gap-1.5 shadow-md"
                 >
                   <span>Suivant</span>
                   <ChevronRight className="w-4 h-4" />

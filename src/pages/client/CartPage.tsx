@@ -24,14 +24,14 @@ export const CartPage: React.FC = () => {
           <ShoppingBag className="w-10 h-10 text-slate-300" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-[#0D2C7A]">Votre panier est vide</h2>
+          <h2 className="text-2xl font-black text-[#0B192C]">Votre panier est vide</h2>
           <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
             Découvrez nos produits sélectionnés et nos achats groupés pour commencer vos commandes de Chine.
           </p>
         </div>
         <button
           onClick={() => navigate('/products')}
-          className="bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-bold text-sm px-8 py-3.5 rounded-2xl shadow-md inline-flex items-center gap-2 transition-all active:scale-95"
+          className="bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-sm px-8 py-3.5 rounded-2xl shadow-md inline-flex items-center gap-2 transition-all active:scale-95"
         >
           <span>Découvrir le catalogue</span>
           <ArrowRight className="w-4 h-4" />
@@ -44,15 +44,15 @@ export const CartPage: React.FC = () => {
     <div className="space-y-8 pb-16 max-w-6xl mx-auto">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-        <button onClick={() => navigate('/')} className="hover:text-[#0D2C7A]">
+        <button onClick={() => navigate('/')} className="hover:text-[#0B192C]">
           Accueil
         </button>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-[#0D2C7A] font-bold">Mon Panier ({cartCount})</span>
+        <span className="text-[#0B192C] font-bold">Mon Panier ({cartCount})</span>
       </nav>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl sm:text-3xl font-black text-[#0D2C7A]">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#0B192C]">
           Panier d'achats ({cartCount} articles)
         </h1>
         <button
@@ -88,7 +88,7 @@ export const CartPage: React.FC = () => {
                     )}
                     <h3
                       onClick={() => navigate(`/products/${item.product?.slug || item.product?.id}`)}
-                      className="text-sm sm:text-base font-bold text-[#0D2C7A] hover:text-[#2A6DFF] cursor-pointer line-clamp-2 leading-snug"
+                      className="text-sm sm:text-base font-bold text-[#0B192C] hover:text-[#FF4500] cursor-pointer line-clamp-2 leading-snug"
                     >
                       {item.product?.name}
                     </h3>
@@ -113,7 +113,7 @@ export const CartPage: React.FC = () => {
                     >
                       -
                     </button>
-                    <span className="w-8 text-center text-xs font-bold text-[#0D2C7A] font-mono-numeric">
+                    <span className="w-8 text-center text-xs font-bold text-[#0B192C] font-mono-numeric">
                       {item.quantity}
                     </span>
                     <button
@@ -132,14 +132,14 @@ export const CartPage: React.FC = () => {
         {/* Right Side: Order Summary & Checkout Trigger (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="glass-panel bg-white/95 rounded-3xl p-6 sm:p-7 border border-white shadow-md space-y-6">
-            <h3 className="text-lg font-black text-[#0D2C7A] border-b border-slate-100 pb-3">
+            <h3 className="text-lg font-black text-[#0B192C] border-b border-slate-100 pb-3">
               Récapitulatif de la commande
             </h3>
 
             <div className="space-y-3 text-xs sm:text-sm">
               <div className="flex justify-between text-slate-600">
                 <span>Sous-total articles ({cartCount})</span>
-                <span className="font-mono-numeric font-bold text-[#0D2C7A]">
+                <span className="font-mono-numeric font-bold text-[#0B192C]">
                   {(cartTotalXOF || 0).toLocaleString('fr-FR')} FCFA
                 </span>
               </div>
@@ -158,14 +158,14 @@ export const CartPage: React.FC = () => {
 
               <div className="pt-3 border-t border-slate-200 flex items-baseline justify-between">
                 <div>
-                  <strong className="text-base sm:text-lg font-black text-[#0D2C7A] block">
+                  <strong className="text-base sm:text-lg font-black text-[#0B192C] block">
                     Total TTC à régler
                   </strong>
                   <span className="text-[11px] text-slate-500">Sans frais cachés à l'arrivée</span>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-xl sm:text-2xl font-black text-[#0D2C7A] font-mono-numeric block">
+                  <span className="text-xl sm:text-2xl font-black text-[#0B192C] font-mono-numeric block">
                     {(cartTotalXOF || 0).toLocaleString('fr-FR')} FCFA
                   </span>
                 </div>
@@ -174,7 +174,7 @@ export const CartPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/checkout')}
-              className="w-full bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-black text-sm sm:text-base py-4 px-6 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="w-full bg-[#FF4500] hover:bg-[#E03D00] text-white font-black text-sm sm:text-base py-4 px-6 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95"
             >
               <span>Passer la commande sécurisée</span>
               <ArrowRight className="w-4 h-4" />
@@ -187,7 +187,7 @@ export const CartPage: React.FC = () => {
                 <span>Paiement 100% sécurisé via Wave, OM ou Carte</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#2A6DFF] shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-[#FF4500] shrink-0" />
                 <span>Numéro de suivi AWP émis dès validation</span>
               </div>
             </div>

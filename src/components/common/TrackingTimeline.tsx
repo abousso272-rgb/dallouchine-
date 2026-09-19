@@ -62,9 +62,9 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
               <div
                 className={`absolute -left-[31px] sm:-left-[39px] top-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                   isCurrent
-                    ? 'bg-[#2A6DFF] text-white ring-4 ring-blue-100 shadow-md scale-110'
+                    ? 'bg-[#FF4500] text-white ring-4 ring-orange-100 shadow-md scale-110'
                     : isCompleted
-                    ? 'bg-[#0D2C7A] text-white'
+                    ? 'bg-[#0B192C] text-white'
                     : 'bg-slate-200 text-slate-400'
                 }`}
               >
@@ -75,7 +75,7 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
               <div
                 className={`glass-panel rounded-2xl p-4 sm:p-5 border transition-all duration-200 ${
                   isCurrent
-                    ? 'bg-blue-50/70 border-[#2A6DFF]/30 shadow-md ring-1 ring-[#2A6DFF]/20'
+                    ? 'bg-orange-50/70 border-[#FF4500]/30 shadow-md ring-1 ring-[#FF4500]/20'
                     : 'bg-white/70 border-slate-200/70'
                 }`}
               >
@@ -83,14 +83,14 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
                   <div className="flex items-center gap-2">
                     <h4
                       className={`text-sm sm:text-base font-black ${
-                        isCurrent ? 'text-[#2A6DFF]' : 'text-[#0D2C7A]'
+                        isCurrent ? 'text-[#FF4500]' : 'text-[#0B192C]'
                       }`}
                     >
                       {event.title}
                     </h4>
 
                     {isCurrent && (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#2A6DFF] text-white">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FF4500] text-white">
                         En cours
                       </span>
                     )}
@@ -107,7 +107,7 @@ export const TrackingTimeline: React.FC<TrackingTimelineProps> = ({
 
                 {event.location && (
                   <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-2 pt-2 border-t border-slate-100">
-                    <MapPin className="w-3.5 h-3.5 text-[#2A6DFF]" />
+                    <MapPin className="w-3.5 h-3.5 text-[#FF4500]" />
                     <span>{event.location}</span>
                   </div>
                 )}

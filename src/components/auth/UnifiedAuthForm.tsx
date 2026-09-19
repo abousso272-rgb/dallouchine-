@@ -176,12 +176,12 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
         
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2A6DFF]/10 text-[#0D2C7A] text-xs font-black uppercase tracking-wider mb-1">
-            <Plane className="w-3.5 h-3.5 -rotate-45" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF4500]/10 text-[#0B192C] text-xs font-black uppercase tracking-wider mb-1">
+            <Plane className="w-3.5 h-3.5 -rotate-45 text-[#FF4500]" />
             <span>Portail Unique SinoSenegal</span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-black text-[#0D2C7A] tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#0B192C] tracking-tight">
             {title || (activeTab === 'client' ? 'Espace Client & Suivi AWP' : 'Espace Administrateur & Logistique')}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
@@ -201,8 +201,8 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
             }}
             className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
               activeTab === 'client'
-                ? 'bg-[#0D2C7A] text-white shadow-md'
-                : 'text-slate-600 hover:text-[#0D2C7A] hover:bg-white/60'
+                ? 'bg-[#0B192C] text-white shadow-md'
+                : 'text-slate-600 hover:text-[#0B192C] hover:bg-white/60'
             }`}
           >
             <User className="w-4 h-4 shrink-0" />
@@ -217,11 +217,11 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
             }}
             className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
               activeTab === 'admin'
-                ? 'bg-[#0D2C7A] text-white shadow-md'
-                : 'text-slate-600 hover:text-[#0D2C7A] hover:bg-white/60'
+                ? 'bg-[#0B192C] text-white shadow-md'
+                : 'text-slate-600 hover:text-[#0B192C] hover:bg-white/60'
             }`}
           >
-            <ShieldCheck className="w-4 h-4 shrink-0 text-[#2A6DFF]" />
+            <ShieldCheck className="w-4 h-4 shrink-0 text-[#FF4500]" />
             <span>Espace Administrateur</span>
           </button>
         </div>
@@ -245,7 +245,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
               <button
                 type="button"
                 onClick={() => setIsRegisterMode(!isRegisterMode)}
-                className="text-[#2A6DFF] hover:text-[#0D2C7A] font-extrabold hover:underline"
+                className="text-[#FF4500] hover:text-[#0B192C] font-extrabold hover:underline"
               >
                 {isRegisterMode ? 'Déjà inscrit ? Se connecter' : 'Nouveau ? Créer un compte'}
               </button>
@@ -263,7 +263,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                     value={clientName}
                     onChange={e => setClientName(e.target.value)}
                     placeholder="Ex: Fatou Sow"
-                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 focus:outline-hidden focus:border-[#2A6DFF] shadow-xs"
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 focus:outline-hidden focus:border-[#FF4500] shadow-xs"
                     required
                   />
                 </div>
@@ -284,7 +284,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                   value={clientIdentifier}
                   onChange={e => setClientIdentifier(e.target.value)}
                   placeholder="+221 77 000 00 00 ou email@exemple.sn"
-                  className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#2A6DFF] shadow-xs"
+                  className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#FF4500] shadow-xs"
                   required
                 />
               </div>
@@ -302,7 +302,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                 <select
                   value={clientCity}
                   onChange={e => setClientCity(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#2A6DFF] shadow-xs"
+                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#FF4500] shadow-xs"
                 >
                   <option value="Dakar">Dakar (Hub Ouest Foire / Sandaga / Almadies)</option>
                   <option value="Pikine / Guédiawaye">Pikine & Banlieue</option>
@@ -325,7 +325,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                   <button
                     type="button"
                     onClick={() => alert('Un code de réinitialisation temporaire a été envoyé par SMS à votre numéro.')}
-                    className="text-[11px] text-slate-400 hover:text-[#2A6DFF]"
+                    className="text-[11px] text-slate-400 hover:text-[#FF4500]"
                   >
                     Mot de passe oublié ?
                   </button>
@@ -340,7 +340,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                   value={clientPassword}
                   onChange={e => setClientPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-10 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#2A6DFF] shadow-xs"
+                  className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-10 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#FF4500] shadow-xs"
                   required
                 />
                 <button
@@ -360,7 +360,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                 id="rememberClient"
                 checked={rememberMe}
                 onChange={e => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded text-[#0D2C7A] focus:ring-[#2A6DFF]"
+                className="w-4 h-4 rounded text-[#FF4500] focus:ring-[#FF4500]"
               />
               <label htmlFor="rememberClient" className="text-xs text-slate-600 font-medium cursor-pointer">
                 Rester connecté sur cet appareil
@@ -371,7 +371,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 px-6 rounded-2xl bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-extrabold text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 px-6 rounded-2xl bg-[#0B192C] hover:bg-[#1B2A47] text-white font-extrabold text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (
                 <span>Connexion en cours...</span>
@@ -401,14 +401,14 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
         {activeTab === 'admin' && (
           <form onSubmit={handleAdminSubmit} className="space-y-4">
             {/* Security Badge Banner */}
-            <div className="p-3 rounded-2xl bg-[#0a183d] text-white flex items-center justify-between border border-blue-900/60 shadow-xs">
+            <div className="p-3 rounded-2xl bg-[#0B192C] text-white flex items-center justify-between border border-slate-700/60 shadow-xs">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#2A6DFF] to-blue-400 flex items-center justify-center text-white shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FF4500] to-orange-400 flex items-center justify-center text-white shrink-0">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="text-xs font-black text-white">SinoSenegal Operations Gateway</div>
-                  <div className="text-[10px] text-blue-300">Connexion Chiffrée SSL 256-bit • HQ Dakar</div>
+                  <div className="text-[10px] text-slate-300">Connexion Chiffrée SSL 256-bit • HQ Dakar</div>
                 </div>
               </div>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
@@ -430,7 +430,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                   value={adminEmail}
                   onChange={e => setAdminEmail(e.target.value)}
                   placeholder="admin@sinosenegal.sn ou operations@sinosenegal.sn"
-                  className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#2A6DFF] shadow-xs"
+                  className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#FF4500] shadow-xs"
                   required
                 />
               </div>
@@ -450,7 +450,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                   value={adminPassword}
                   onChange={e => setAdminPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-10 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#2A6DFF] shadow-xs"
+                  className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-10 py-3 text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-[#FF4500] shadow-xs"
                   required
                 />
                 <button
@@ -471,7 +471,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
               <select
                 value={selectedRole}
                 onChange={e => setSelectedRole(e.target.value as AdminRole)}
-                className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 font-bold focus:outline-hidden focus:border-[#2A6DFF] shadow-xs"
+                className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 font-bold focus:outline-hidden focus:border-[#FF4500] shadow-xs"
               >
                 <option value="SUPER_ADMIN">👑 Super Admin HQ (Accès Total & Pilotage Général)</option>
                 <option value="OPERATIONS">📦 Opérations & Groupages (Lots, Quotas & Commandes)</option>
@@ -486,7 +486,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#0D2C7A] to-[#2A6DFF] hover:from-[#0a183d] hover:to-blue-600 text-white font-extrabold text-xs sm:text-sm shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#0B192C] to-[#FF4500] hover:from-[#1B2A47] hover:to-[#E03D00] text-white font-extrabold text-xs sm:text-sm shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (
                 <span>Authentification en cours...</span>
@@ -504,9 +504,9 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickDemoAdmin('SUPER_ADMIN')}
-                className="w-full py-2.5 px-4 rounded-xl bg-blue-600/15 hover:bg-blue-600/25 text-[#0D2C7A] border border-blue-500/40 text-xs font-black transition-all flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-[#0B192C] border border-orange-400/40 text-xs font-black transition-all flex items-center justify-center gap-2"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#2A6DFF]" />
+                <Sparkles className="w-3.5 h-3.5 text-[#FF4500]" />
                 <span>⚡ Accès Rapide 1-Clic Super Admin (HQ Dakar)</span>
               </button>
             </div>
@@ -521,7 +521,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
             <span className="text-[9px] text-slate-400 block">Dédouanement</span>
           </div>
           <div className="p-2 rounded-xl bg-slate-50 space-y-0.5">
-            <Truck className="w-3.5 h-3.5 text-[#2A6DFF] mx-auto" />
+            <Truck className="w-3.5 h-3.5 text-[#FF4500] mx-auto" />
             <span className="text-[10px] font-bold text-slate-700 block">Suivi AWP</span>
             <span className="text-[9px] text-slate-400 block">Temps Réel</span>
           </div>

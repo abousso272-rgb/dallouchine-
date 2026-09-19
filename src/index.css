@@ -1,10 +1,151 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-orange: #FF4500;
+  --color-brand-orange-light: #FF6A33;
+  --color-brand-orange-dark: #E03D00;
+  --color-brand-navy: #0B192C;
+  --color-brand-navy-light: #1E3E62;
+  --color-brand-navy-deep: #071324;
+
+  --color-primary: #914c00;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #ff8a00;
+  --color-on-primary-container: #613100;
+  --color-primary-fixed: #ffdcc4;
+  --color-primary-fixed-dim: #ffb77f;
+  --color-on-primary-fixed: #2f1500;
+  --color-on-primary-fixed-variant: #6f3900;
+  --color-secondary: #a33e00;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #fe6500;
+  --color-on-secondary-container: #551c00;
+  --color-secondary-fixed: #ffdbcd;
+  --color-secondary-fixed-dim: #ffb596;
+  --color-on-secondary-fixed: #360f00;
+  --color-on-secondary-fixed-variant: #7d2d00;
+  --color-tertiary: #c00000;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #ff8674;
+  --color-on-tertiary-container: #820000;
+  --color-tertiary-fixed: #ffdad4;
+  --color-tertiary-fixed-dim: #ffb4a8;
+  --color-on-tertiary-fixed: #410000;
+  --color-on-tertiary-fixed-variant: #930000;
+  --color-surface: #f7f9ff;
+  --color-on-surface: #141c24;
+  --color-on-surface-variant: #564334;
+  --color-surface-container: #e7eefa;
+  --color-surface-container-low: #edf4ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-high: #e1e9f4;
+  --color-surface-container-highest: #dbe3ef;
+  --color-surface-dim: #d3dbe6;
+  --color-surface-bright: #f7f9ff;
+  --color-surface-variant: #dbe3ef;
+  --color-inverse-surface: #29313a;
+  --color-inverse-on-surface: #e9f1fd;
+  --color-outline: #8a7362;
+  --color-outline-variant: #ddc1ae;
+}
+
+@layer utilities {
+  .font-display-lg {
+    font-size: 38px;
+    line-height: 46px;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+  }
+  @media (min-width: 640px) {
+    .font-display-lg {
+      font-size: 48px;
+      line-height: 56px;
+    }
+  }
+  .font-headline-xl {
+    font-size: 28px;
+    line-height: 34px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  @media (min-width: 640px) {
+    .font-headline-xl {
+      font-size: 36px;
+      line-height: 44px;
+    }
+  }
+  .font-headline-lg {
+    font-size: 22px;
+    line-height: 28px;
+    letter-spacing: -0.015em;
+    font-weight: 700;
+  }
+  @media (min-width: 640px) {
+    .font-headline-lg {
+      font-size: 28px;
+      line-height: 36px;
+    }
+  }
+  .font-headline-md {
+    font-size: 20px;
+    line-height: 28px;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+  .font-headline-sm {
+    font-size: 17px;
+    line-height: 24px;
+    letter-spacing: -0.005em;
+    font-weight: 600;
+  }
+  .font-price-xl {
+    font-size: 28px;
+    line-height: 32px;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+  }
+  .font-price-md {
+    font-size: 18px;
+    line-height: 24px;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+  }
+  .font-label-lg {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+  }
+  .font-label-md {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+  }
+  .font-label-sm {
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 700;
+  }
+  .font-body-lg {
+    font-size: 16px;
+    line-height: 26px;
+  }
+  .font-body-md {
+    font-size: 14px;
+    line-height: 22px;
+  }
+  .font-body-sm {
+    font-size: 13px;
+    line-height: 18px;
+  }
+}
+
 @layer base {
   :root {
-    --navy-deep: #0D2C7A;
-    --navy-dark: #071945;
-    --blue-electric: #2A6DFF;
+    --navy-deep: #0B192C;
+    --navy-dark: #07111E;
+    --blue-electric: #FF4500;
+    --brand-orange: #FF4500;
+    --brand-navy: #0B192C;
     --cream: #F8F6F2;
     --beige: #EEE8DD;
     --gray-soft: #F5F7FA;
@@ -116,11 +257,19 @@
 }
 
 .glass-badge-blue {
-  background: rgba(42, 109, 255, 0.12);
+  background: rgba(255, 69, 0, 0.12);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(42, 109, 255, 0.25);
-  color: #0D2C7A;
+  border: 1px solid rgba(255, 69, 0, 0.25);
+  color: #0B192C;
+}
+
+.glass-badge-orange {
+  background: rgba(255, 69, 0, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 69, 0, 0.25);
+  color: #0B192C;
 }
 
 .glass-card-hover {
@@ -129,7 +278,7 @@
 
 .glass-card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px -15px rgba(13, 44, 122, 0.12), 0 0 0 1px rgba(42, 109, 255, 0.2);
+  box-shadow: 0 20px 40px -15px rgba(11, 25, 44, 0.12), 0 0 0 1px rgba(255, 69, 0, 0.2);
 }
 
 .glass-reflection {

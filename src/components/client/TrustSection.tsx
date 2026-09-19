@@ -6,7 +6,7 @@ export const TrustSection: React.FC = () => {
     {
       title: 'Produits Sélectionnés & Audités',
       desc: 'Zéro contrefaçon, nous auditons directement les usines et filtrons les vendeurs.',
-      icon: <SearchCheck className="w-5 h-5 text-[#2A6DFF]" />
+      icon: <SearchCheck className="w-5 h-5 text-[#FF4500]" />
     },
     {
       title: 'Prix Négociés Usine',
@@ -38,11 +38,11 @@ export const TrustSection: React.FC = () => {
   return (
     <div className="py-12 bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xs">
       <div className="text-center max-w-2xl mx-auto mb-10">
-        <span className="text-xs font-bold uppercase tracking-wider text-[#0D2C7A] bg-[#0D2C7A]/5 px-3 py-1 rounded-full">
+        <span className="text-xs font-bold uppercase tracking-wider text-[#0B192C] bg-[#0B192C]/5 px-3 py-1 rounded-full">
           Garantie de Sérénité
         </span>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0D2C7A] mt-2.5 tracking-tight">
-          Pourquoi faire confiance à SinoSenegal ?
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0B192C] mt-2.5 tracking-tight">
+          Pourquoi faire confiance à Dallou Chine ?
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-2">
           Nous allions l'expertise terrain en Chine à la proximité client au Sénégal.
@@ -53,7 +53,7 @@ export const TrustSection: React.FC = () => {
         {trustPoints.map((point, idx) => (
           <div
             key={idx}
-            className="flex items-start gap-4 p-4 rounded-2xl bg-[#F8F6F2] hover:bg-white border border-slate-200/60 hover:border-[#2A6DFF]/30 hover:shadow-md transition-all duration-300"
+            className="flex items-start gap-4 p-4 rounded-2xl bg-[#F8F6F2] hover:bg-white border border-slate-200/60 hover:border-[#FF4500]/30 hover:shadow-md transition-all duration-300"
           >
             <div className="w-11 h-11 rounded-xl bg-white shadow-2xs border border-slate-100 flex items-center justify-center shrink-0">
               {point.icon}

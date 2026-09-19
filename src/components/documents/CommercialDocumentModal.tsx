@@ -104,9 +104,9 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
         {/* Modal Action Header */}
-        <div className="bg-[#0D2C7A] text-white px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="bg-[#0B192C] text-white px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#2A6DFF]" />
+            <FileText className="w-5 h-5 text-[#FF4500]" />
             <span className="font-bold text-sm tracking-wide">{title}</span>
           </div>
 
@@ -137,12 +137,12 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
           <div className="flex flex-col sm:flex-row justify-between items-start gap-6 border-b border-slate-200 pb-6">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-[#0D2C7A] text-white flex items-center justify-center font-black text-base shadow-sm">
+                <div className="w-9 h-9 rounded-xl bg-[#0B192C] text-white flex items-center justify-center font-black text-base shadow-sm">
                   🇨🇳
                 </div>
                 <div>
-                  <h1 className="text-xl font-black text-[#0D2C7A] tracking-tight">
-                    Sino<span className="text-[#2A6DFF]">Senegal</span> Logistics & Sourcing
+                  <h1 className="text-xl font-black text-[#0B192C] tracking-tight">
+                    Sino<span className="text-[#FF4500]">Senegal</span> Logistics & Sourcing
                   </h1>
                   <span className="text-[10px] text-slate-500 font-semibold">
                     Plateforme Digitale d'Approvisionnement Chine ➔ Sénégal
@@ -157,10 +157,10 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
             </div>
 
             <div className="text-left sm:text-right space-y-1">
-              <span className="inline-block px-3 py-1 rounded-full bg-[#0D2C7A]/10 text-[#0D2C7A] font-extrabold text-xs uppercase tracking-wider">
+              <span className="inline-block px-3 py-1 rounded-full bg-[#0B192C]/10 text-[#0B192C] font-extrabold text-xs uppercase tracking-wider">
                 {isQuote ? 'Devis Officiel' : isReceipt ? 'Reçu Certifié' : isAwp ? 'LTA / Bordereau AWP' : 'Facture Commerciale'}
               </span>
-              <div className="font-mono-numeric font-black text-base text-[#0D2C7A]">
+              <div className="font-mono-numeric font-black text-base text-[#0B192C]">
                 N° {reference}
               </div>
               <div className="text-[11px] text-slate-500">
@@ -180,7 +180,7 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Client / Entreprise Donneur d'Ordre
               </span>
-              <strong className="text-sm text-[#0D2C7A] block">{clientName}</strong>
+              <strong className="text-sm text-[#0B192C] block">{clientName}</strong>
               {companyName && <p className="text-slate-600 font-semibold">{companyName}</p>}
               <p className="text-slate-500 text-xs">Tél : {phone}</p>
               <p className="text-slate-500 text-xs">Email : {email}</p>
@@ -195,7 +195,7 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
                 {quote?.transportMode === 'sea' ? (
                   <Ship className="w-4 h-4 text-cyan-600" />
                 ) : (
-                  <Plane className="w-4 h-4 text-[#2A6DFF]" />
+                  <Plane className="w-4 h-4 text-[#FF4500]" />
                 )}
                 <span>
                   {quote?.transportMode === 'sea'
@@ -217,13 +217,13 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
 
           {/* Line Items Table */}
           <div className="space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2C7A]">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#0B192C]">
               Détail Chiffré & Décomposition des Frais
             </h3>
 
             <div className="overflow-x-auto border border-slate-200 rounded-2xl">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#0D2C7A] text-white uppercase text-[10px] tracking-wider font-bold">
+                <thead className="bg-[#0B192C] text-white uppercase text-[10px] tracking-wider font-bold">
                   <tr>
                     <th className="p-3">Désignation</th>
                     <th className="p-3 text-center">Quantité</th>
@@ -256,7 +256,7 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
                     <td className="p-3 text-center">
                       <StatusBadge status="confirmed" label="CONFIRMÉ" />
                     </td>
-                    <td className="p-3 text-right font-mono-numeric font-bold text-[#0D2C7A]">
+                    <td className="p-3 text-right font-mono-numeric font-bold text-[#0B192C]">
                       {(
                         quote?.totalProductPriceXOF ||
                         (order?.subtotalXOF ? order.subtotalXOF * 0.7 : 0)
@@ -324,13 +324,13 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
           {/* Financial Breakdown & Acompte / Solde */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start pt-2">
             <div className="space-y-3 p-4 rounded-2xl bg-[#F8F6F2] border border-slate-200">
-              <h4 className="font-black text-[#0D2C7A] text-xs uppercase tracking-wider">
+              <h4 className="font-black text-[#0B192C] text-xs uppercase tracking-wider">
                 Échéancier de Règlement
               </h4>
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600">Acompte à la commande (60%) :</span>
-                  <strong className="font-mono-numeric text-[#0D2C7A] font-bold">
+                  <strong className="font-mono-numeric text-[#0B192C] font-bold">
                     {depositAmount.toLocaleString('fr-FR')} FCFA
                   </strong>
                 </div>
@@ -371,8 +371,8 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
               </div>
 
               <div className="pt-3 border-t border-slate-300 flex justify-between items-baseline">
-                <span className="text-sm font-black text-[#0D2C7A]">Total Estimé Rendu Dakar :</span>
-                <span className="text-xl font-black text-[#0D2C7A] font-mono-numeric">
+                <span className="text-sm font-black text-[#0B192C]">Total Estimé Rendu Dakar :</span>
+                <span className="text-xl font-black text-[#0B192C] font-mono-numeric">
                   {totalAmount.toLocaleString('fr-FR')} FCFA
                 </span>
               </div>
@@ -391,11 +391,11 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
             </div>
 
             <div className="sm:col-span-4 text-center sm:text-right">
-              <div className="inline-block border-2 border-[#0D2C7A] rounded-2xl p-2.5 text-center bg-blue-50/40">
-                <div className="text-[9px] font-bold uppercase text-[#0D2C7A] tracking-wider">
+              <div className="inline-block border-2 border-[#0B192C] rounded-2xl p-2.5 text-center bg-blue-50/40">
+                <div className="text-[9px] font-bold uppercase text-[#0B192C] tracking-wider">
                   Direction Financière & Sourcing
                 </div>
-                <div className="text-xs font-black text-[#0D2C7A] my-0.5">
+                <div className="text-xs font-black text-[#0B192C] my-0.5">
                   SINOSENEGAL HQ
                 </div>
                 <div className="text-[9px] text-emerald-700 font-bold">
@@ -415,7 +415,7 @@ export const CommercialDocumentModal: React.FC<CommercialDocumentModalProps> = (
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2 shadow-xs"
+              className="bg-[#0B192C] hover:bg-[#FF4500] text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2 shadow-xs"
             >
               <Download className="w-4 h-4" />
               <span>Télécharger le document</span>

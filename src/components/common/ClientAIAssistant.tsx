@@ -149,12 +149,12 @@ export const ClientAIAssistant: React.FC = () => {
       {/* Floating Action Button */}
       <button
         onClick={() => setClientChatOpen(true)}
-        className="fixed bottom-6 left-6 z-40 bg-gradient-to-r from-[#0D2C7A] to-[#2A6DFF] text-white p-3.5 sm:px-4 sm:py-3 rounded-full shadow-2xl hover:shadow-[#2A6DFF]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 group border border-white/20"
-        aria-label="Assistant Client SinoSenegal"
+        className="fixed bottom-6 left-6 z-40 bg-gradient-to-r from-[#0B192C] to-[#1E3E62] text-white p-3.5 sm:px-4 sm:py-3 rounded-full shadow-2xl hover:shadow-[#FF4500]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 group border border-white/20"
+        aria-label="Assistant Client Dallou Chine"
       >
         <div className="relative">
           <Sparkles className="w-5 h-5 animate-pulse text-amber-300" />
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0D2C7A]" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0B192C]" />
         </div>
         <span className="hidden sm:inline text-xs font-bold tracking-wide">
           Besoin d'aide ? Assistant IA
@@ -170,14 +170,14 @@ export const ClientAIAssistant: React.FC = () => {
           />
           <div className="pointer-events-auto w-full sm:max-w-md h-[90vh] sm:h-[620px] bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col border border-slate-200 overflow-hidden z-10 animate-in slide-in-from-bottom duration-300">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#0D2C7A] to-[#2A6DFF] p-4 text-white flex items-center justify-between shadow-md">
+            <div className="bg-gradient-to-r from-[#0B192C] to-[#1E3E62] p-4 text-white flex items-center justify-between shadow-md">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
                   <Bot className="w-5 h-5 text-amber-300" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold flex items-center gap-1.5">
-                    Assistant SinoSenegal
+                    Assistant Dallou Chine
                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
                   </h3>
                   <p className="text-[11px] text-white/80">Support Sourcing, Groupages & Suivi</p>
@@ -198,7 +198,7 @@ export const ClientAIAssistant: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(q.prompt)}
-                  className="shrink-0 text-[11px] bg-white border border-slate-200 hover:border-[#2A6DFF] hover:text-[#0D2C7A] text-slate-700 font-medium px-2.5 py-1 rounded-full shadow-2xs transition-all whitespace-nowrap"
+                  className="shrink-0 text-[11px] bg-white border border-slate-200 hover:border-[#FF4500] hover:text-[#0B192C] text-slate-700 font-medium px-2.5 py-1 rounded-full shadow-2xs transition-all whitespace-nowrap"
                 >
                   {q.label}
                 </button>
@@ -217,8 +217,8 @@ export const ClientAIAssistant: React.FC = () => {
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                       m.sender === 'user'
-                        ? 'bg-[#2A6DFF] text-white'
-                        : 'bg-[#0D2C7A] text-amber-300'
+                        ? 'bg-[#FF4500] text-white'
+                        : 'bg-[#0B192C] text-amber-300'
                     }`}
                   >
                     {m.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -227,7 +227,7 @@ export const ClientAIAssistant: React.FC = () => {
                   <div
                     className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-xs leading-relaxed shadow-xs ${
                       m.sender === 'user'
-                        ? 'bg-[#2A6DFF] text-white rounded-tr-xs'
+                        ? 'bg-[#FF4500] text-white rounded-tr-xs'
                         : 'bg-white text-slate-800 border border-slate-100 rounded-tl-xs'
                     }`}
                   >
@@ -238,7 +238,7 @@ export const ClientAIAssistant: React.FC = () => {
                           setClientChatOpen(false);
                           navigate(m.actionButton!.path);
                         }}
-                        className="mt-2.5 inline-flex items-center gap-1.5 bg-[#0D2C7A] text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#2A6DFF] transition-colors"
+                        className="mt-2.5 inline-flex items-center gap-1.5 bg-[#0B192C] text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#FF4500] transition-colors"
                       >
                         {m.actionButton.label}
                         <ArrowRight className="w-3 h-3" />
@@ -246,7 +246,7 @@ export const ClientAIAssistant: React.FC = () => {
                     )}
                     <div
                       className={`text-[9px] mt-1 text-right ${
-                        m.sender === 'user' ? 'text-blue-100' : 'text-slate-400'
+                        m.sender === 'user' ? 'text-orange-100' : 'text-slate-400'
                       }`}
                     >
                       {m.timestamp}
@@ -258,9 +258,9 @@ export const ClientAIAssistant: React.FC = () => {
               {isTyping && (
                 <div className="flex items-center gap-2 text-slate-400 text-xs pl-9">
                   <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-[#2A6DFF] rounded-full animate-bounce"></span>
-                    <span className="w-1.5 h-1.5 bg-[#2A6DFF] rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                    <span className="w-1.5 h-1.5 bg-[#2A6DFF] rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                    <span className="w-1.5 h-1.5 bg-[#FF4500] rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-[#FF4500] rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                    <span className="w-1.5 h-1.5 bg-[#FF4500] rounded-full animate-bounce [animation-delay:0.4s]"></span>
                   </div>
                   <span className="text-[11px]">Assistant rédige une réponse...</span>
                 </div>
@@ -282,12 +282,12 @@ export const ClientAIAssistant: React.FC = () => {
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   placeholder="Posez une question ou entrez AWP-XXXXX..."
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-[#2A6DFF] focus:bg-white transition-all"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-[#FF4500] focus:bg-white transition-all"
                 />
                 <button
                   type="submit"
                   disabled={!inputValue.trim() || isTyping}
-                  className="p-2.5 bg-[#0D2C7A] hover:bg-[#2A6DFF] disabled:opacity-50 text-white rounded-xl transition-colors shrink-0"
+                  className="p-2.5 bg-[#0B192C] hover:bg-[#FF4500] disabled:opacity-50 text-white rounded-xl transition-colors shrink-0"
                   aria-label="Envoyer"
                 >
                   <Send className="w-4 h-4" />

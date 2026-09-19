@@ -82,8 +82,8 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
         {/* Loading State */}
         {loading ? (
           <div className="py-12 space-y-4">
-            <div className="w-16 h-16 rounded-full border-4 border-blue-100 border-t-[#2A6DFF] animate-spin mx-auto" />
-            <h2 className="text-xl font-black text-[#0D2C7A]">Vérification du paiement en cours...</h2>
+            <div className="w-16 h-16 rounded-full border-4 border-orange-100 border-t-[#FF4500] animate-spin mx-auto" />
+            <h2 className="text-xl font-black text-[#0B192C]">Vérification du paiement en cours...</h2>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
               Nous vérifions la confirmation de transaction auprès de la passerelle GeniusPay et des opérateurs Mobile Money.
             </p>
@@ -99,7 +99,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
                 Paiement Sécurisé Confirmé
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#0D2C7A]">Merci pour votre commande !</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-[#0B192C]">Merci pour votre commande !</h1>
               <p className="text-sm text-slate-600 max-w-lg mx-auto">
                 Votre transaction a été validée par notre système. La commande a été transmise à notre équipe logistique en Chine.
               </p>
@@ -109,7 +109,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left space-y-3 text-xs">
               <div className="flex justify-between items-center pb-2 border-b border-slate-200">
                 <span className="text-slate-500">Numéro de suivi AWP :</span>
-                <strong className="text-base font-black text-[#2A6DFF] font-mono-numeric">{orderCode}</strong>
+                <strong className="text-base font-black text-[#FF4500] font-mono-numeric">{orderCode}</strong>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">Montant total réglé :</span>
@@ -135,7 +135,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
             <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => navigate(`/tracking?code=${orderCode}`)}
-                className="bg-gradient-to-r from-[#0D2C7A] to-[#2A6DFF] hover:from-[#2A6DFF] hover:to-blue-600 text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2"
+                className="bg-gradient-to-r from-[#0B192C] to-[#FF4500] hover:from-[#FF4500] hover:to-[#E03D00] text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2"
               >
                 <Package className="w-4 h-4" />
                 <span>Suivre mon colis AWP</span>
@@ -161,7 +161,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
                 {paymentStatus === 'cancelled' ? 'Paiement Annulé' : 'Paiement non finalisé'}
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#0D2C7A]">Le paiement n'a pas pu aboutir</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-[#0B192C]">Le paiement n'a pas pu aboutir</h1>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
                 La transaction n'a pas été débitée. Vous pouvez relancer le paiement en toute sécurité ou choisir un autre moyen.
               </p>
@@ -170,7 +170,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
             <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => navigate('/checkout')}
-                className="bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2"
+                className="bg-[#FF4500] hover:bg-[#E03D00] text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2"
               >
                 <RotateCw className="w-4 h-4" />
                 <span>Réessayer le paiement</span>
@@ -195,7 +195,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
                 En attente de confirmation
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#0D2C7A]">Paiement en cours de validation</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-[#0B192C]">Paiement en cours de validation</h1>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
                 Si vous avez validé votre code sur votre téléphone (Wave ou Orange Money), votre commande sera automatiquement mise à jour dès réception de l'accusé de réception.
               </p>
@@ -207,7 +207,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
                   setLoading(true);
                   checkStatus();
                 }}
-                className="bg-[#0D2C7A] hover:bg-[#2A6DFF] text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2"
+                className="bg-[#0B192C] hover:bg-[#1B2A47] text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2"
               >
                 <RotateCw className="w-4 h-4" />
                 <span>Actualiser le statut</span>
@@ -231,7 +231,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
           </div>
           <span>•</span>
           <div className="flex items-center gap-1.5">
-            <Building className="w-4 h-4 text-[#2A6DFF]" />
+            <Building className="w-4 h-4 text-[#FF4500]" />
             <span>Passerelle GeniusPay Sénégal</span>
           </div>
         </div>

@@ -200,7 +200,7 @@ export const AdminPaymentsPage: React.FC = () => {
               onClick={() => setStatusFilter(tab.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 statusFilter === tab.id
-                  ? 'bg-[#2A6DFF] text-white shadow-md'
+                  ? 'bg-[#FF4500] text-white shadow-md'
                   : 'bg-blue-950/60 text-slate-300 hover:bg-blue-900/50'
               }`}
             >
@@ -217,7 +217,7 @@ export const AdminPaymentsPage: React.FC = () => {
             placeholder="Rechercher commande, client..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#071330] border border-blue-900/60 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 outline-hidden"
+            className="w-full bg-[#071330] border border-blue-900/60 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 outline-hidden focus:border-[#FF4500]"
           />
         </div>
       </div>
@@ -248,7 +248,7 @@ export const AdminPaymentsPage: React.FC = () => {
               ) : (
                 filtered.map((p) => (
                   <tr key={p.id} className="hover:bg-blue-950/40 transition-colors">
-                    <td className="py-3.5 px-4 whitespace-nowrap font-mono font-bold text-[#2A6DFF]">
+                    <td className="py-3.5 px-4 whitespace-nowrap font-mono font-bold text-[#FF4500]">
                       {p.orderCode}
                     </td>
                     <td className="py-3.5 px-3 text-slate-200">

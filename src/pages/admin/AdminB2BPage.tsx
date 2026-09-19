@@ -112,7 +112,7 @@ export const AdminB2BPage: React.FC = () => {
             placeholder="Rechercher code, entreprise, contact..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#2A6DFF]"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#FF4500]"
           />
         </div>
 
@@ -127,7 +127,7 @@ export const AdminB2BPage: React.FC = () => {
               onClick={() => setStatusFilter(tab.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 statusFilter === tab.id
-                  ? 'bg-[#2A6DFF] text-white shadow-md'
+                  ? 'bg-[#FF4500] text-white shadow-md'
                   : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
               }`}
             >
