@@ -38,6 +38,7 @@ export interface PaymentItem {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  merchantReference?: string;
   metadata?: Record<string, any>;
   expiresAt?: string;
   paidAt?: string;
@@ -47,15 +48,22 @@ export interface PaymentItem {
 
 export interface PaymentAttempt {
   id: string;
-  paymentId: string;
+  paymentId?: string;
   orderId: string;
+  userId?: string;
+  provider?: string;
+  merchantReference?: string;
   attemptNumber: number;
+  amountXOF?: number;
+  currency?: string;
   status: PaymentStatus;
   providerTransactionId?: string;
   errorDetails?: string;
   ipAddress?: string;
   userAgent?: string;
   createdAt: string;
+  updatedAt?: string;
+  paidAt?: string;
 }
 
 export interface WebhookLogRecord {
@@ -76,6 +84,7 @@ export interface CreatePaymentSessionParams {
   orderId: string;
   orderCode: string;
   userId?: string;
+  merchantReference?: string;
   amount: number;
   currency: string;
   customer: {

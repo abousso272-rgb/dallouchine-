@@ -46,10 +46,12 @@ export class GeniusPayProvider implements PaymentProvider {
       customer_phone: params.customer.phone,
       redirect_url: params.returnUrl,
       cancel_url: params.cancelUrl,
-      webhook_url: params.webhookUrl || `${config.appUrl}/api/webhooks/geniuspay`,
+      webhook_url: params.webhookUrl || `${config.appUrl}/api/payments/webhooks/geniuspay`,
+      merchant_reference: params.merchantReference,
       metadata: {
         order_id: params.orderId,
         order_code: params.orderCode,
+        merchant_reference: params.merchantReference,
         user_id: params.userId || null,
         created_by: 'sinosenegal_platform',
         ...(params.metadata || {})
@@ -59,12 +61,12 @@ export class GeniusPayProvider implements PaymentProvider {
     console.log('[GeniusPayProvider] Initiating payment session for order:', {
       orderId: params.orderId,
       orderCode: params.orderCode,
+      merchantReference: params.merchantReference,
       amount: params.amount,
       currency: params.currency
     });
 
     try {
-      // Si nous sommes en environnement sandbox ou si l'API key est de test, on tente l'appel réel et si inaccessible, on fournit une checkout URL sécurisée
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -80,39 +82,59 @@ export class GeniusPayProvider implements PaymentProvider {
         const data = await response.json();
         const checkoutUrl = data.checkout_url || data.payment_url || data.url || data.data?.checkout_url;
         const providerTransactionId = data.id || data.transaction_id || data.data?.id || `gp_tx_${Date.now()}`;
-        const providerReference = data.reference || data.data?.reference || `GP-REF-${Date.now()}`;
+        const providerReference = data.reference || data.data?.reference || params.merchantReference || `GP-REF-${Date.now()}`;
 
         return {
           success: true,
           paymentId: params.orderId,
-          checkoutUrl: checkoutUrl || `/payment/hosted-checkout?tx=${providerTransactionId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}`,
+          checkoutUrl: checkoutUrl || `/payment/hosted-checkout?tx=${providerTransactionId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}&ref=${encodeURIComponent(params.merchantReference || '')}`,
           providerTransactionId,
           providerReference,
           expiresAt: data.expires_at || new Date(Date.now() + 30 * 60 * 1000).toISOString()
         };
       } else {
-        console.warn('[GeniusPayProvider] Provider returned status', response.status, '- activating interactive sandbox checkout session.');
+        if (this.environment === 'production') {
+          console.error('[GeniusPayProvider] Production API error:', response.status);
+          return {
+            success: false,
+            paymentId: params.orderId,
+            checkoutUrl: '',
+            errorMessage: `La passerelle de paiement a retourné une erreur (HTTP ${response.status}).`
+          };
+        }
+
+        console.warn('[GeniusPayProvider] Provider returned status', response.status, '- activating sandbox checkout session.');
         const mockTxId = `gp_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const mockRef = `GP-REF-${Math.floor(100000 + Math.random() * 900000)}`;
+        const mockRef = params.merchantReference || `GP-REF-${Math.floor(100000 + Math.random() * 900000)}`;
 
         return {
           success: true,
           paymentId: params.orderId,
-          checkoutUrl: `/payment/hosted-checkout?tx=${mockTxId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}`,
+          checkoutUrl: `/payment/hosted-checkout?tx=${mockTxId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}&ref=${encodeURIComponent(mockRef)}`,
           providerTransactionId: mockTxId,
           providerReference: mockRef,
           expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
         };
       }
     } catch (err: any) {
-      console.warn('[GeniusPayProvider] Live gateway unreachable, activating interactive sandbox checkout:', err.message || err);
+      if (this.environment === 'production') {
+        console.error('[GeniusPayProvider] Production live gateway unreachable:', err.message || err);
+        return {
+          success: false,
+          paymentId: params.orderId,
+          checkoutUrl: '',
+          errorMessage: 'La passerelle de paiement GeniusPay est temporairement inaccessible.'
+        };
+      }
+
+      console.warn('[GeniusPayProvider] Live gateway unreachable in sandbox, activating simulator:', err.message || err);
       const mockTxId = `gp_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const mockRef = `GP-REF-${Math.floor(100000 + Math.random() * 900000)}`;
+      const mockRef = params.merchantReference || `GP-REF-${Math.floor(100000 + Math.random() * 900000)}`;
 
       return {
         success: true,
         paymentId: params.orderId,
-        checkoutUrl: `/payment/hosted-checkout?tx=${mockTxId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}`,
+        checkoutUrl: `/payment/hosted-checkout?tx=${mockTxId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}&ref=${encodeURIComponent(mockRef)}`,
         providerTransactionId: mockTxId,
         providerReference: mockRef,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
@@ -143,7 +165,8 @@ export class GeniusPayProvider implements PaymentProvider {
       headers['timestamp']
     ) as string | undefined;
 
-    if (!signatureHeader && this.environment === 'production') {
+    // RÈGLE CRITIQUE : Un webhook sans signature doit TOUJOURS être rejeté
+    if (!signatureHeader) {
       return {
         isValid: false,
         reason: 'En-tête de signature manquant dans la requête webhook.'
@@ -165,21 +188,19 @@ export class GeniusPayProvider implements PaymentProvider {
     }
 
     // 2. Vérification cryptographique HMAC-SHA256
-    if (this.webhookSecret && signatureHeader) {
-      const payloadToSign = timestampHeader ? `${timestampHeader}.${rawString}` : rawString;
-      const expectedSignature = crypto
-        .createHmac('sha256', this.webhookSecret)
-        .update(payloadToSign)
-        .digest('hex');
+    const payloadToSign = timestampHeader ? `${timestampHeader}.${rawString}` : rawString;
+    const expectedSignature = crypto
+      .createHmac('sha256', this.webhookSecret)
+      .update(payloadToSign)
+      .digest('hex');
 
-      const isValidSignature = this.timingSafeEqual(expectedSignature, signatureHeader);
+    const isValidSignature = this.timingSafeEqual(expectedSignature, signatureHeader);
 
-      if (!isValidSignature && this.environment === 'production') {
-        return {
-          isValid: false,
-          reason: 'Signature cryptographique invalide.'
-        };
-      }
+    if (!isValidSignature) {
+      return {
+        isValid: false,
+        reason: 'Signature cryptographique invalide.'
+      };
     }
 
     // 3. Décodage du Payload JSON
@@ -194,17 +215,17 @@ export class GeniusPayProvider implements PaymentProvider {
     }
 
     const eventType = parsedPayload.event || parsedPayload.type || parsedPayload.event_type || 'payment_intent.confirmed';
-    const eventId = parsedPayload.id || parsedPayload.event_id || `evt_${Date.now()}`;
+    const eventId = parsedPayload.id || parsedPayload.event_id || parsedPayload.data?.id || `evt_${Date.now()}`;
     const dataObj = parsedPayload.data || parsedPayload;
 
     const providerTransactionId = dataObj.transaction_id || dataObj.id || dataObj.payment_id;
-    const providerReference = dataObj.reference || dataObj.provider_reference;
+    const providerReference = dataObj.merchant_reference || dataObj.metadata?.merchant_reference || dataObj.reference || dataObj.provider_reference;
     const rawStatus = (dataObj.status || dataObj.payment_status || '').toLowerCase();
 
     const mappedStatus = this.mapProviderStatus(rawStatus, eventType);
-    const amount = Number(dataObj.amount || dataObj.total_amount || 0);
+    const amount = Number(dataObj.amount !== undefined ? dataObj.amount : (dataObj.total_amount !== undefined ? dataObj.total_amount : 0));
     const currency = dataObj.currency || 'XOF';
-    const orderId = dataObj.metadata?.order_id || parsedPayload.order_id;
+    const orderId = dataObj.metadata?.order_id || parsedPayload.order_id || dataObj.order_id;
     const paymentId = dataObj.metadata?.payment_id;
 
     return {

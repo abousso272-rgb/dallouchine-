@@ -12,9 +12,11 @@ import {
   ShieldCheck,
   AlertCircle,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from 'lucide-react';
 import { PriceDisplay } from '../../components/common/PriceDisplay';
+import { PaymentApiClient } from '../../services/paymentApiClient';
 
 interface OrderSuccessPageProps {
   orderId?: string;
@@ -25,6 +27,24 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({ orderId: pro
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
+
+  const handlePayNow = async () => {
+    if (!order?.id) return;
+    setIsPaying(true);
+    try {
+      const res = await PaymentApiClient.createPayment({ orderId: order.id });
+      if (res.success && res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+      } else {
+        alert(res.errorMessage || 'Impossible de lancer le paiement.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Erreur réseau lors de la connexion à la passerelle.');
+    } finally {
+      setIsPaying(false);
+    }
+  };
 
   // Extract orderId from URL if not provided directly
   const orderId = propOrderId || (() => {
@@ -249,6 +269,26 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({ orderId: pro
 
           {/* Action buttons */}
           <div className="space-y-3">
+            {order.paymentStatus === 'paid' ? (
+              <div className="w-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Paiement intégralement confirmé &amp; validé</span>
+              </div>
+            ) : (
+              <button
+                onClick={handlePayNow}
+                disabled={isPaying}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm py-4 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span>
+                  {isPaying
+                    ? 'Connexion sécurisée GeniusPay...'
+                    : `Régler ma commande (${order.totalXOF.toLocaleString('fr-FR')} FCFA)`}
+                </span>
+              </button>
+            )}
+
             <button
               onClick={() => navigate(`/tracking?code=${order.trackingCode}`)}
               className="w-full bg-[#FF4500] hover:bg-[#E03D00] text-white font-bold text-sm py-3.5 px-6 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"

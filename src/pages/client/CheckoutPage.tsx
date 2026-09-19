@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { WaveLogo, OrangeMoneyLogo } from '../../components/common/PaymentOperatorLogos';
 import { logisticsService, PublicLogisticsResult } from '../../services/logisticsService';
+import { PaymentApiClient } from '../../services/paymentApiClient';
 import type { TransportMode } from '../../types';
 
 export const CheckoutPage: React.FC = () => {
@@ -104,6 +105,19 @@ export const CheckoutPage: React.FC = () => {
           await logisticsService.calculateOrderLogistics(orderId, transportMode, 'estimated');
         } catch (logErr) {
           console.warn('[CheckoutPage] Notice logistique calculée:', logErr);
+        }
+
+        // Si règlement en ligne sélectionné, redirection vers la session de paiement GeniusPay
+        if (paymentMethod !== 'desk' && paymentMethod !== 'virement') {
+          try {
+            const payRes = await PaymentApiClient.createPayment({ orderId });
+            if (payRes.success && payRes.checkoutUrl) {
+              window.location.href = payRes.checkoutUrl;
+              return;
+            }
+          } catch (payErr) {
+            console.warn('[CheckoutPage] Redirection automatique vers GeniusPay non disponible:', payErr);
+          }
         }
 
         addToast(`Dossier ${order.trackingCode || ''} enregistré avec succès sur les serveurs Dallou Chine.`, 'success', 'Commande créée !');

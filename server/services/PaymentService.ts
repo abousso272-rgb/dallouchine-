@@ -1,11 +1,9 @@
-import { storage, OrderRecord } from '../db/storage';
+import { getSupabaseServerClient } from '../middleware/auth';
 import { PaymentProvider } from '../providers/PaymentProvider';
 import { GeniusPayProvider } from '../providers/GeniusPayProvider';
 import {
   PaymentItem,
-  PaymentAttempt,
-  PaymentStatus,
-  InternalOrderStatus
+  PaymentStatus
 } from '../types/payment';
 import { config } from '../config';
 
@@ -17,8 +15,9 @@ export class PaymentService {
   }
 
   /**
-   * 1. Initialise ou relance un paiement de commande sécurisé
-   * Recalcule strictement le montant côté serveur pour empêcher toute manipulation client.
+   * 1. Initialise une tentative de paiement certifiée et sécurisée
+   * Exécute les 10 vérifications strictes via la fonction PostgreSQL atomique create_payment_attempt.
+   * Le montant serveur fait foi ; aucun montant client n'est accepté.
    */
   async createPaymentForOrder(params: {
     orderId: string;
@@ -31,123 +30,62 @@ export class PaymentService {
     success: boolean;
     checkoutUrl?: string;
     paymentId?: string;
+    attemptId?: string;
+    merchantReference?: string;
     providerTransactionId?: string;
     amount?: number;
     currency?: string;
+    errorCode?: string;
     errorMessage?: string;
   }> {
-    // 1. Récupération de la commande
-    const order = await storage.getOrder(params.orderId);
-    if (!order) {
-      console.warn(`[PaymentService] Order ${params.orderId} not found.`);
+    const supabase = getSupabaseServerClient();
+
+    // 1. Appel de la procédure stockée PostgreSQL transactionnelle create_payment_attempt
+    const { data: attemptResult, error: attemptError } = await supabase.rpc('create_payment_attempt', {
+      p_order_id: params.orderId,
+      p_user_id: params.userId || null,
+      p_ip: params.clientIp || null,
+      p_user_agent: params.userAgent || null
+    });
+
+    if (attemptError || !attemptResult?.success) {
+      console.warn('[PaymentService] Payment attempt creation rejected:', attemptError || attemptResult);
       return {
         success: false,
-        errorMessage: 'Commande introuvable.'
+        errorCode: attemptResult?.error_code || 'ATTEMPT_CREATION_FAILED',
+        errorMessage: attemptResult?.error_message || attemptError?.message || 'Impossible d\'initialiser la tentative de paiement.'
       };
     }
 
-    // 2. Vérification de sécurité utilisateur (Autorisation)
-    if (params.userId && order.userId && order.userId !== params.userId) {
-      console.warn(`[PaymentService] Security refusal: User ${params.userId} tried to pay for order ${order.id} owned by ${order.userId}`);
-      return {
-        success: false,
-        errorMessage: 'Vous n\'êtes pas autorisé à régler cette commande.'
-      };
-    }
+    console.log('[PaymentService] Payment attempt initiated in Supabase:', {
+      orderId: attemptResult.order_id,
+      trackingCode: attemptResult.tracking_code,
+      merchantReference: attemptResult.merchant_reference,
+      amount: attemptResult.amount_xof
+    });
 
-    // 3. Vérification du statut de la commande
-    if (order.paymentStatus === 'paid') {
-      console.log(`[PaymentService] Order ${order.trackingCode} is already paid.`);
-      return {
-        success: false,
-        errorMessage: 'Cette commande a déjà été réglée avec succès.'
-      };
-    }
+    // 2. Appel de la passerelle GeniusPay avec le montant certifié serveur
+    const returnUrl = params.returnUrl || `${config.appUrl}/payment/success?orderId=${attemptResult.order_id}&paymentId=${attemptResult.payment_id}`;
+    const cancelUrl = params.cancelUrl || `${config.appUrl}/payment/cancelled?orderId=${attemptResult.order_id}`;
 
-    // 4. Recalcul et validation serveur du montant (Règle d'or de sécurité)
-    const verifiedSubtotal = order.items.reduce((sum, item) => {
-      const unit = Number(item.unitPriceXOF) || 0;
-      const qty = Number(item.quantity) || 1;
-      return sum + (unit * qty);
-    }, 0);
-
-    const verifiedShipping = Number(order.shippingFeeXOF) || 0;
-    const verifiedDiscount = Number(order.discountAmountXOF) || 0;
-    const verifiedFinalAmount = Math.max(0, verifiedSubtotal + verifiedShipping - verifiedDiscount);
-
-    if (verifiedFinalAmount <= 0) {
-      return {
-        success: false,
-        errorMessage: 'Le montant de la commande est invalide.'
-      };
-    }
-
-    // 5. Prévention des doubles transactions / Concurrence
-    const existingPayment = await storage.getPaymentByOrderId(order.id);
-    if (
-      existingPayment &&
-      existingPayment.status === 'pending' &&
-      existingPayment.checkoutUrl &&
-      existingPayment.expiresAt &&
-      new Date(existingPayment.expiresAt).getTime() > Date.now() + 60000
-    ) {
-      console.log(`[PaymentService] Reusing active pending checkout session for order ${order.trackingCode}`);
-      return {
-        success: true,
-        checkoutUrl: existingPayment.checkoutUrl,
-        paymentId: existingPayment.id,
-        providerTransactionId: existingPayment.providerTransactionId,
-        amount: existingPayment.amount,
-        currency: existingPayment.currency
-      };
-    }
-
-    // 6. Création de l'enregistrement de paiement interne
-    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const returnUrl = params.returnUrl || `${config.appUrl}/payment/success?orderId=${order.id}&paymentId=${paymentId}`;
-    const cancelUrl = params.cancelUrl || `${config.appUrl}/payment/cancelled?orderId=${order.id}`;
-
-    const paymentRecord: PaymentItem = {
-      id: paymentId,
-      orderId: order.id,
-      orderCode: order.trackingCode,
-      userId: order.userId || params.userId,
-      provider: 'geniuspay',
-      amount: verifiedFinalAmount,
-      currency: 'XOF',
-      status: 'pending',
-      paymentMethod: order.paymentMethod,
-      customerName: order.customerName,
-      customerEmail: order.customerEmail,
-      customerPhone: order.customerPhone,
-      metadata: {
-        order_id: order.id,
-        order_code: order.trackingCode,
-        payment_id: paymentId,
-        user_id: order.userId || params.userId
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    // 7. Appel du fournisseur GeniusPay
     const sessionResult = await this.provider.createPaymentSession({
-      orderId: order.id,
-      orderCode: order.trackingCode,
-      userId: order.userId || params.userId,
-      amount: verifiedFinalAmount,
-      currency: 'XOF',
+      orderId: attemptResult.order_id,
+      orderCode: attemptResult.tracking_code,
+      userId: params.userId,
+      merchantReference: attemptResult.merchant_reference,
+      amount: attemptResult.amount_xof,
+      currency: attemptResult.currency || 'XOF',
       customer: {
-        name: order.customerName,
-        email: order.customerEmail,
-        phone: order.customerPhone
+        name: attemptResult.customer_name || 'Client SinoSenegal',
+        email: attemptResult.customer_email || 'client@dallouchine.sn',
+        phone: attemptResult.customer_phone || ''
       },
       returnUrl,
       cancelUrl,
       metadata: {
-        payment_id: paymentId,
-        order_id: order.id,
-        order_code: order.trackingCode
+        payment_id: attemptResult.payment_id,
+        attempt_id: attemptResult.attempt_id,
+        merchant_reference: attemptResult.merchant_reference
       }
     });
 
@@ -155,273 +93,230 @@ export class PaymentService {
       console.error('[PaymentService] Provider session creation failed:', sessionResult.errorMessage);
       return {
         success: false,
-        errorMessage: sessionResult.errorMessage || 'Le paiement n\'a pas pu être initialisé. Veuillez réessayer.'
+        errorCode: 'PROVIDER_SESSION_FAILED',
+        errorMessage: sessionResult.errorMessage || 'Le paiement n\'a pas pu être initialisé auprès de la passerelle GeniusPay.'
       };
     }
 
-    // 8. Mise à jour de l'enregistrement avec les données du fournisseur
-    paymentRecord.checkoutUrl = sessionResult.checkoutUrl;
-    paymentRecord.providerTransactionId = sessionResult.providerTransactionId;
-    paymentRecord.providerReference = sessionResult.providerReference;
-    paymentRecord.expiresAt = sessionResult.expiresAt;
+    // 3. Mise à jour certifiée en base avec la réponse du fournisseur
+    const nowIso = new Date().toISOString();
+    await supabase.from('payments').update({
+      checkout_url: sessionResult.checkoutUrl,
+      provider_transaction_id: sessionResult.providerTransactionId || null,
+      provider_reference: sessionResult.providerReference || attemptResult.merchant_reference,
+      updated_at: nowIso
+    }).eq('id', attemptResult.payment_id);
 
-    await storage.savePayment(paymentRecord);
-
-    // 9. Enregistrement de la tentative pour audit log
-    const attempt: PaymentAttempt = {
-      id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      paymentId: paymentRecord.id,
-      orderId: order.id,
-      attemptNumber: 1,
-      status: 'pending',
-      providerTransactionId: sessionResult.providerTransactionId,
-      ipAddress: params.clientIp,
-      userAgent: params.userAgent,
-      createdAt: new Date().toISOString()
-    };
-    await storage.recordPaymentAttempt(attempt);
-
-    console.log('[PaymentService] Payment created successfully:', {
-      paymentId: paymentRecord.id,
-      orderCode: order.trackingCode,
-      providerTransactionId: sessionResult.providerTransactionId
-    });
+    await supabase.from('payment_attempts').update({
+      provider_payment_id: sessionResult.providerTransactionId || null,
+      provider_reference: sessionResult.providerReference || attemptResult.merchant_reference,
+      updated_at: nowIso
+    }).eq('id', attemptResult.attempt_id);
 
     return {
       success: true,
       checkoutUrl: sessionResult.checkoutUrl,
-      paymentId: paymentRecord.id,
+      paymentId: attemptResult.payment_id,
+      attemptId: attemptResult.attempt_id,
+      merchantReference: attemptResult.merchant_reference,
       providerTransactionId: sessionResult.providerTransactionId,
-      amount: verifiedFinalAmount,
+      amount: attemptResult.amount_xof,
       currency: 'XOF'
     };
   }
 
   /**
-   * 2. Traitement sécurisé et idempotent des Webhooks GeniusPay
+   * 2. Traitement sécurisé, transactionnel et idempotent des Webhooks GeniusPay
+   * Valide la signature cryptographique sur le payload brut, compare les montants au centime près,
+   * garantit l'idempotence et applique les transitions d'état en une seule transaction PostgreSQL.
    */
   async handleWebhook(
     rawBody: string | Buffer,
     headers: Record<string, string | string[] | undefined>
-  ): Promise<{ status: number; message: string; data?: any }> {
+  ): Promise<{ status: number; message: string; data?: any; errorCode?: string }> {
     console.log('[PaymentService] Processing incoming webhook...');
+    const supabase = getSupabaseServerClient();
 
-    // 1. Vérification cryptographique et temporelle
+    // 1. Vérification cryptographique et temporelle de la signature HMAC-SHA256
     const verification = await this.provider.verifyWebhook(rawBody, headers);
 
     if (!verification.isValid) {
-      console.warn('[PaymentService] Webhook verification failed:', verification.reason);
+      console.warn('[PaymentService] Webhook rejected (invalid signature):', verification.reason);
+
+      // Audit de l'événement rejeté
+      try {
+        await supabase.rpc('process_geniuspay_webhook', {
+          p_event_id: verification.eventId || `evt_invalid_${Date.now()}`,
+          p_event_type: verification.eventType || 'webhook.signature_failed',
+          p_provider_payment_id: verification.providerTransactionId || null,
+          p_merchant_reference: verification.providerReference || null,
+          p_order_id: verification.orderId || null,
+          p_status: 'failed',
+          p_amount_xof: verification.amount || 0,
+          p_currency: verification.currency || 'XOF',
+          p_payload: verification.rawPayload || {},
+          p_signature_verified: false
+        });
+      } catch (err: any) {
+        console.warn('[PaymentService] Failed to record invalid signature event:', err.message);
+      }
+
       return {
         status: 400,
+        errorCode: 'INVALID_SIGNATURE',
         message: verification.reason || 'Signature de webhook invalide.'
       };
     }
 
-    const {
-      eventId,
-      eventType = 'payment_intent.confirmed',
-      providerTransactionId,
-      status: mappedPaymentStatus,
-      orderId,
-      paymentId,
-      rawPayload
-    } = verification;
-
-    // 2. Vérification d'idempotence (Anti-doublon)
-    if (eventId) {
-      const alreadyProcessed = await storage.isWebhookEventProcessed(eventId);
-      if (alreadyProcessed) {
-        console.log(`[PaymentService] Idempotency: Webhook event ${eventId} already processed.`);
-        return {
-          status: 200,
-          message: 'Événement déjà traité avec succès.'
-        };
-      }
-    }
-
-    // 3. Recherche du paiement associé
-    let payment: PaymentItem | null = null;
-    if (paymentId) {
-      payment = await storage.getPaymentById(paymentId);
-    }
-    if (!payment && providerTransactionId) {
-      payment = await storage.getPaymentByProviderTxId(providerTransactionId);
-    }
-    if (!payment && orderId) {
-      payment = await storage.getPaymentByOrderId(orderId);
-    }
-
-    const targetOrderId = orderId || payment?.orderId;
-    if (!targetOrderId) {
-      console.error('[PaymentService] Webhook does not map to any known order:', {
-        providerTransactionId,
-        orderId,
-        paymentId
-      });
-
-      // On enregistre le log pour audit même si orphelin
-      await storage.recordWebhookLog({
-        id: `whlog_${Date.now()}`,
-        provider: this.provider.name,
-        eventType,
-        eventId,
-        providerTransactionId,
-        payload: rawPayload,
-        processed: false,
-        processingError: 'Commande associée introuvable.',
-        createdAt: new Date().toISOString()
-      });
-
-      return {
-        status: 404,
-        message: 'Commande introuvable pour ce webhook.'
-      };
-    }
-
-    const targetOrder = await storage.getOrder(targetOrderId);
-    if (!targetOrder) {
-      return {
-        status: 404,
-        message: 'Commande ciblée introuvable.'
-      };
-    }
-
-    const effectiveStatus: PaymentStatus = mappedPaymentStatus || 'paid';
-    const nowIso = new Date().toISOString();
-
-    // 4. Mise à jour transaction & commande selon le statut
-    if (effectiveStatus === 'paid') {
-      // Confirmation de paiement
-      if (payment) {
-        payment.status = 'paid';
-        payment.paidAt = nowIso;
-        payment.updatedAt = nowIso;
-        if (providerTransactionId) payment.providerTransactionId = providerTransactionId;
-        await storage.savePayment(payment);
-      }
-
-      const newOrderStatus: InternalOrderStatus = targetOrder.orderStatus === 'pending_payment'
-        ? 'paid'
-        : targetOrder.orderStatus;
-
-      await storage.updateOrderStatus(targetOrder.id, 'paid', newOrderStatus, nowIso);
-
-      console.log(`[PaymentService] [payment_confirmed] Order ${targetOrder.trackingCode} marked as PAID. Amount: ${targetOrder.totalXOF} XOF`);
-    } else if (effectiveStatus === 'failed') {
-      if (payment) {
-        payment.status = 'failed';
-        payment.updatedAt = nowIso;
-        await storage.savePayment(payment);
-      }
-      await storage.updateOrderStatus(targetOrder.id, 'failed');
-      console.log(`[PaymentService] [payment_failed] Order ${targetOrder.trackingCode} payment failed.`);
-    } else if (effectiveStatus === 'cancelled') {
-      if (payment) {
-        payment.status = 'cancelled';
-        payment.updatedAt = nowIso;
-        await storage.savePayment(payment);
-      }
-      await storage.updateOrderStatus(targetOrder.id, 'cancelled');
-    } else if (effectiveStatus === 'expired') {
-      if (payment) {
-        payment.status = 'expired';
-        payment.updatedAt = nowIso;
-        await storage.savePayment(payment);
-      }
-      await storage.updateOrderStatus(targetOrder.id, 'expired');
-    } else if (effectiveStatus === 'refunded') {
-      if (payment) {
-        payment.status = 'refunded';
-        payment.updatedAt = nowIso;
-        await storage.savePayment(payment);
-      }
-      await storage.updateOrderStatus(targetOrder.id, 'refunded');
-    }
-
-    // 5. Enregistrement de l'idempotence et du log d'audit
-    await storage.recordWebhookLog({
-      id: `whlog_${Date.now()}`,
-      provider: this.provider.name,
-      eventType,
-      eventId,
-      providerTransactionId,
-      payload: rawPayload,
-      processed: true,
-      processedAt: nowIso,
-      createdAt: nowIso
+    // 2. Exécution de la transaction PostgreSQL complète (RPC process_geniuspay_webhook)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('process_geniuspay_webhook', {
+      p_event_id: verification.eventId || null,
+      p_event_type: verification.eventType || 'payment_intent.confirmed',
+      p_provider_payment_id: verification.providerTransactionId || null,
+      p_merchant_reference: verification.providerReference || null,
+      p_order_id: verification.orderId || null,
+      p_status: verification.status || 'paid',
+      p_amount_xof: verification.amount,
+      p_currency: verification.currency || 'XOF',
+      p_payload: verification.rawPayload || {},
+      p_signature_verified: true
     });
 
+    if (rpcError) {
+      console.error('[PaymentService] PostgreSQL transaction error during webhook processing:', rpcError);
+      return {
+        status: 500,
+        message: 'Erreur interne de base de données lors du traitement du webhook.'
+      };
+    }
+
+    // 3. Gestion des réponses selon le résultat transactionnel
+    if (rpcResult.already_processed) {
+      console.log(`[PaymentService] [Idempotence] Event ${verification.eventId} was already processed.`);
+      return {
+        status: 200,
+        message: 'Événement déjà traité avec succès (idempotence).',
+        data: rpcResult
+      };
+    }
+
+    if (!rpcResult.success) {
+      const code = rpcResult.error_code;
+      console.warn('[PaymentService] [Security Rejection] Webhook validation failed in database:', {
+        errorCode: code,
+        errorMessage: rpcResult.error_message
+      });
+
+      let statusCode = 400;
+      if (code === 'AMOUNT_MISMATCH' || code === 'REFERENCE_MISMATCH' || code === 'CURRENCY_MISMATCH') {
+        statusCode = 422;
+      } else if (code === 'PAYMENT_ATTEMPT_NOT_FOUND' || code === 'ORDER_NOT_FOUND') {
+        statusCode = 404;
+      } else if (code === 'ORDER_CANCELLED') {
+        statusCode = 409;
+      }
+
+      return {
+        status: statusCode,
+        errorCode: code,
+        message: rpcResult.error_message || 'Échec de traitement du webhook.',
+        data: rpcResult
+      };
+    }
+
+    console.log(`[PaymentService] [payment_confirmed] Order ${rpcResult.tracking_code} payment status updated to: ${rpcResult.payment_status}`);
     return {
       status: 200,
       message: 'Webhook traité avec succès.',
-      data: {
-        orderId: targetOrder.id,
-        orderCode: targetOrder.trackingCode,
-        paymentStatus: effectiveStatus
-      }
+      data: rpcResult
     };
   }
 
   /**
-   * 3. Récupération et synchronisation du statut d'un paiement
+   * 3. Récupération et synchronisation certifiée du statut d'un paiement
+   * La source de vérité est la base de données PostgreSQL certifiée.
    */
   async getPaymentStatus(paymentIdOrOrderId: string): Promise<{
     found: boolean;
-    payment?: PaymentItem;
-    order?: OrderRecord;
+    payment?: any;
+    order?: any;
   }> {
-    let payment = await storage.getPaymentById(paymentIdOrOrderId);
-    let order: OrderRecord | null = null;
+    const supabase = getSupabaseServerClient();
 
-    if (!payment) {
-      payment = await storage.getPaymentByOrderId(paymentIdOrOrderId);
-    }
+    // Appel direct de la fonction PostgreSQL SECURITY DEFINER get_order_payment_details
+    const { data, error } = await supabase.rpc('get_order_payment_details', {
+      p_order_id: paymentIdOrOrderId
+    });
 
-    if (payment) {
-      order = await storage.getOrder(payment.orderId);
-    } else {
-      order = await storage.getOrder(paymentIdOrOrderId);
-      if (order) {
-        payment = await storage.getPaymentByOrderId(order.id);
-      }
-    }
-
-    if (!payment && !order) {
+    if (error || !data || !data.found) {
       return { found: false };
-    }
-
-    // Si le paiement est en statut 'pending' mais a un providerTransactionId, on peut interroger le provider
-    if (payment && payment.status === 'pending' && payment.providerTransactionId) {
-      try {
-        const liveStatus = await this.provider.getPaymentStatus(payment.providerTransactionId);
-        if (liveStatus.status && liveStatus.status !== 'pending') {
-          payment.status = liveStatus.status;
-          if (liveStatus.status === 'paid') {
-            payment.paidAt = liveStatus.paidAt || new Date().toISOString();
-            if (order) {
-              await storage.updateOrderStatus(order.id, 'paid', 'paid', payment.paidAt);
-              order.paymentStatus = 'paid';
-            }
-          }
-          await storage.savePayment(payment);
-        }
-      } catch (err) {
-        // Silently continue with current recorded status
-      }
     }
 
     return {
       found: true,
-      payment: payment || undefined,
-      order: order || undefined
+      payment: data.payment ? {
+        id: data.payment.id,
+        orderId: data.payment.order_id,
+        orderCode: data.order?.tracking_code || 'AWP-N/A',
+        amount: Number(data.payment.amount),
+        currency: data.payment.currency,
+        status: data.payment.status,
+        paymentMethod: data.payment.payment_method,
+        provider: data.payment.provider,
+        providerTransactionId: data.payment.provider_transaction_id,
+        providerReference: data.payment.provider_reference,
+        paidAt: data.payment.paid_at,
+        createdAt: data.payment.created_at,
+        updatedAt: data.payment.updated_at
+      } : undefined,
+      order: data.order ? {
+        id: data.order.id,
+        trackingCode: data.order.tracking_code,
+        userId: data.order.user_id,
+        customerName: data.order.customer_name,
+        paymentStatus: data.order.payment_status,
+        orderStatus: data.order.order_status,
+        totalXOF: Number(data.order.total_xof),
+        shippingFeeXOF: Number(data.order.shipping_fee_xof),
+        paidAt: data.order.paid_at
+      } : undefined
     };
   }
 
   /**
-   * 4. Récupère tous les paiements (Pour l'administration)
+   * 4. Journal des paiements pour l'administration
    */
   async getAdminPayments(): Promise<PaymentItem[]> {
-    return storage.getAllPayments();
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*, orders(tracking_code, customer_name, customer_email, total_xof)')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map((d: any) => ({
+      id: d.id,
+      orderId: d.order_id,
+      orderCode: d.orders?.tracking_code || d.metadata?.order_code || 'AWP-N/A',
+      userId: d.user_id,
+      provider: d.provider,
+      providerTransactionId: d.provider_transaction_id,
+      providerReference: d.provider_reference,
+      amount: Number(d.amount_xof),
+      currency: d.currency,
+      status: d.status,
+      paymentMethod: d.payment_method,
+      checkoutUrl: d.checkout_url,
+      customerName: d.customer_name || d.orders?.customer_name || '',
+      customerEmail: d.customer_email || d.orders?.customer_email || '',
+      customerPhone: d.customer_phone || '',
+      paidAt: d.paid_at,
+      createdAt: d.created_at,
+      updatedAt: d.updated_at
+    }));
   }
 }
 

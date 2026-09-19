@@ -474,10 +474,10 @@ class StorageManager {
     if (this.supabase) {
       try {
         const { data } = await this.supabase
-          .from('webhook_logs')
+          .from('webhook_events')
           .select('processed')
-          .eq('event_id', eventId)
-          .single();
+          .or(`event_id.eq.${eventId},provider_event_id.eq.${eventId}`)
+          .maybeSingle();
 
         if (data && data.processed) return true;
       } catch {
@@ -496,16 +496,18 @@ class StorageManager {
 
     if (this.supabase) {
       try {
-        await this.supabase.from('webhook_logs').upsert({
-          id: log.id,
+        await this.supabase.from('webhook_events').upsert({
+          id: log.id.startsWith('whlog_') ? undefined : log.id,
           provider: log.provider,
           event_type: log.eventType,
           event_id: log.eventId || null,
-          provider_transaction_id: log.providerTransactionId || null,
-          signature_header: log.signatureHeader || null,
+          provider_event_id: log.eventId || null,
           payload: log.payload,
+          signature_valid: true,
+          signature_verified: true,
           processed: log.processed,
           processing_error: log.processingError || null,
+          error: log.processingError || null,
           processed_at: log.processedAt || null
         });
       } catch (err) {
