@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
 import { UnifiedAuthForm } from '../../components/auth/UnifiedAuthForm';
 import { sourcingClient, SourcingRequestData } from '../../services/sourcingService';
+import { b2bService, B2BRequestData } from '../../services/b2bService';
 import {
   User,
   Package,
@@ -26,7 +27,10 @@ import {
   XCircle,
   AlertCircle,
   Eye,
-  ExternalLink
+  ExternalLink,
+  CreditCard,
+  Truck,
+  Factory
 } from 'lucide-react';
 
 export const AccountPage: React.FC = () => {
@@ -44,13 +48,22 @@ export const AccountPage: React.FC = () => {
     currentPath
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'favorites' | 'groupages' | 'sourcing' | 'profile'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'favorites' | 'groupages' | 'sourcing' | 'b2b' | 'profile'>('orders');
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequestData[]>([]);
   const [isLoadingSourcing, setIsLoadingSourcing] = useState(false);
   const [selectedQuoteModal, setSelectedQuoteModal] = useState<any | null>(null);
   const [quoteActionLoading, setQuoteActionLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+
+  // B2B state
+  const [b2bRequests, setB2bRequests] = useState<B2BRequestData[]>([]);
+  const [isLoadingB2b, setIsLoadingB2b] = useState(false);
+  const [selectedB2bQuoteModal, setSelectedB2bQuoteModal] = useState<any | null>(null);
+  const [b2bQuoteActionLoading, setB2bQuoteActionLoading] = useState(false);
+  const [rejectionB2bReason, setRejectionB2bReason] = useState('');
+  const [isRejectB2bModalOpen, setIsRejectB2bModalOpen] = useState(false);
+  const [payingDepositOrderId, setPayingDepositOrderId] = useState<string | null>(null);
 
   // Charger les demandes de sourcing dès que l'onglet sourcing est actif
   useEffect(() => {
@@ -61,6 +74,18 @@ export const AccountPage: React.FC = () => {
           if (res.success) setSourcingRequests(res.requests);
         })
         .finally(() => setIsLoadingSourcing(false));
+    }
+  }, [currentUser.isLoggedIn, activeTab]);
+
+  // Charger les demandes B2B dès que l'onglet B2B est actif
+  useEffect(() => {
+    if (currentUser.isLoggedIn && activeTab === 'b2b') {
+      setIsLoadingB2b(true);
+      b2bService.getRequests()
+        .then(res => {
+          if (res.success) setB2bRequests(res.requests);
+        })
+        .finally(() => setIsLoadingB2b(false));
     }
   }, [currentUser.isLoggedIn, activeTab]);
 
@@ -99,6 +124,65 @@ export const AccountPage: React.FC = () => {
       }
     } finally {
       setQuoteActionLoading(false);
+    }
+  };
+
+  const handleAcceptB2bQuote = async (quoteId: string) => {
+    setB2bQuoteActionLoading(true);
+    try {
+      const res = await b2bService.acceptQuote(quoteId);
+      if (res.success) {
+        const refreshed = await b2bService.getRequests();
+        if (refreshed.success) setB2bRequests(refreshed.requests);
+        if (selectedB2bQuoteModal?.id === quoteId) {
+          setSelectedB2bQuoteModal((prev: any) => ({ ...prev, status: 'accepted' }));
+        }
+      } else {
+        alert(res.errorMessage || 'Erreur lors de l\'acceptation du devis B2B.');
+      }
+    } finally {
+      setB2bQuoteActionLoading(false);
+    }
+  };
+
+  const handleRejectB2bQuote = async (quoteId: string) => {
+    setB2bQuoteActionLoading(true);
+    try {
+      const res = await b2bService.rejectQuote(quoteId, rejectionB2bReason);
+      if (res.success) {
+        setIsRejectB2bModalOpen(false);
+        setRejectionB2bReason('');
+        const refreshed = await b2bService.getRequests();
+        if (refreshed.success) setB2bRequests(refreshed.requests);
+        if (selectedB2bQuoteModal?.id === quoteId) {
+          setSelectedB2bQuoteModal((prev: any) => ({ ...prev, status: 'rejected' }));
+        }
+      } else {
+        alert(res.errorMessage || 'Erreur lors du refus du devis B2B.');
+      }
+    } finally {
+      setB2bQuoteActionLoading(false);
+    }
+  };
+
+  const handlePayB2bDeposit = async (orderId: string) => {
+    setPayingDepositOrderId(orderId);
+    try {
+      const { PaymentApiClient } = await import('../../services/paymentApiClient');
+      const res = await PaymentApiClient.createPayment({
+        orderId,
+        returnUrl: `${window.location.origin}/account?tab=b2b&paid=true`,
+        cancelUrl: `${window.location.origin}/account?tab=b2b&cancelled=true`
+      });
+      if (res.success && res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+      } else {
+        alert(res.errorMessage || 'Erreur lors de l\'initialisation du paiement GeniusPay.');
+      }
+    } catch (e: any) {
+      alert(e.message || 'Erreur de connexion au système de paiement.');
+    } finally {
+      setPayingDepositOrderId(null);
     }
   };
 
@@ -229,6 +313,18 @@ export const AccountPage: React.FC = () => {
         >
           <Compass className="w-4 h-4 text-cyan-500" />
           <span>Mes Demandes Sourcing & Devis ({sourcingRequests.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('b2b')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'b2b'
+              ? 'bg-[#0B192C] text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Building className="w-4 h-4 text-emerald-500" />
+          <span>Mes Dossiers B2B Entreprises ({b2bRequests.length})</span>
         </button>
       </div>
 
@@ -633,6 +729,306 @@ export const AccountPage: React.FC = () => {
               })}
             </div>
           )}
+        </div>
+      )}
+      {/* Tab 5: B2B & Grands Comptes */}
+      {activeTab === 'b2b' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-black text-[#0B192C]">Mes Dossiers B2B Entreprises</h2>
+              <p className="text-xs text-slate-500">Achats direct usine, importations conteneurisées FCL/LCL et devis formels.</p>
+            </div>
+            <button
+              onClick={() => navigate('/b2b')}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+            >
+              <span>Nouveau projet B2B</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {isLoadingB2b ? (
+            <div className="glass-panel bg-white/80 rounded-3xl p-10 text-center space-y-3">
+              <Clock className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
+              <p className="text-xs text-slate-500 font-semibold">Chargement de vos dossiers B2B...</p>
+            </div>
+          ) : b2bRequests.length === 0 ? (
+            <div className="glass-panel bg-white/80 rounded-3xl p-10 text-center space-y-3">
+              <Building className="w-10 h-10 text-slate-300 mx-auto" />
+              <h3 className="text-sm font-bold text-slate-700">Aucune demande entreprise en cours</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Vous représentez une société ou un grossiste ? Déposez votre appel d'offres pour obtenir un chiffrage usine DDP Port de Dakar.
+              </p>
+              <button
+                onClick={() => navigate('/b2b')}
+                className="bg-[#0B192C] hover:bg-emerald-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors inline-block"
+              >
+                Déposer un cahier des charges
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {b2bRequests.map(req => {
+                const getB2bBadge = (status?: string) => {
+                  switch (status) {
+                    case 'new':
+                      return <span className="bg-sky-100 text-sky-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">Enregistré</span>;
+                    case 'qualified':
+                      return <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">Qualifié</span>;
+                    case 'sourcing':
+                    case 'negotiation':
+                      return <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">Négociation Usine</span>;
+                    case 'quote_ready':
+                    case 'quote_sent':
+                      return <span className="bg-cyan-100 text-cyan-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase animate-pulse">Devis Disponible</span>;
+                    case 'accepted':
+                      return <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">Devis Accepté</span>;
+                    case 'deposit_paid':
+                      return <span className="bg-teal-100 text-teal-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">Acompte Réglé</span>;
+                    case 'production':
+                      return <span className="bg-orange-100 text-orange-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">En Production</span>;
+                    case 'shipping':
+                      return <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">Expédié Mer</span>;
+                    case 'completed':
+                      return <span className="bg-emerald-200 text-emerald-900 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">Livré / Clôturé</span>;
+                    default:
+                      return <span className="bg-slate-100 text-slate-700 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">{status}</span>;
+                  }
+                };
+
+                return (
+                  <div
+                    key={req.id}
+                    className="glass-panel bg-white/95 rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="font-mono text-xs font-black text-[#0B192C] bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                          {req.code}
+                        </span>
+                        {getB2bBadge(req.status)}
+                      </div>
+                      <span className="text-[11px] text-slate-400">
+                        {req.created_at ? new Date(req.created_at).toLocaleDateString('fr-FR') : ''}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <h3 className="text-base font-black text-[#0B192C]">{req.product_name || 'Projet B2B'}</h3>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                          <span>Quantité : <strong className="text-slate-800">{req.quantity} pcs</strong></span>
+                          <span>•</span>
+                          <span>Budget cible : <strong className="text-slate-800">{Number(req.budget_xof || 0).toLocaleString('fr-FR')} FCFA</strong></span>
+                          <span>•</span>
+                          <span>Port : <strong className="text-slate-800">{req.destination || 'Dakar'}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Suivi production si en cours */}
+                      {req.status === 'production' && (
+                        <div className="p-3 bg-orange-50 rounded-2xl border border-orange-200 space-y-1 text-xs">
+                          <div className="flex items-center gap-2 font-bold text-orange-800">
+                            <Factory className="w-4 h-4" />
+                            <span>Jalon : {req.production_stage || 'Usinage'}</span>
+                          </div>
+                          {req.expected_completion_date && (
+                            <div className="text-[11px] text-orange-600">
+                              Fin estimée : {req.expected_completion_date}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Expédition si en cours */}
+                      {req.status === 'shipping' && (
+                        <button
+                          onClick={() => navigate('/tracking')}
+                          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2"
+                        >
+                          <Truck className="w-4 h-4" />
+                          <span>Suivre le conteneur</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Devis associés */}
+                    {req.quotes && req.quotes.length > 0 && (
+                      <div className="pt-3 border-t border-slate-100 space-y-2">
+                        <span className="text-xs font-bold text-slate-700 block">Propositions tarifaires & Devis formels :</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {req.quotes.map((q: any) => (
+                            <div
+                              key={q.id}
+                              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-3"
+                            >
+                              <div>
+                                <div className="flex justify-between items-center">
+                                  <span className="font-mono text-xs font-black text-slate-800">{q.quote_number}</span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    q.status === 'accepted' ? 'bg-emerald-100 text-emerald-800' :
+                                    q.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {q.status}
+                                  </span>
+                                </div>
+                                <div className="mt-2 space-y-1 text-xs">
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-500">Montant Total :</span>
+                                    <strong className="text-slate-900 font-mono">{Number(q.total_xof).toLocaleString('fr-FR')} F</strong>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-500">Acompte requis (50%) :</span>
+                                    <strong className="text-amber-600 font-mono">{Number(q.deposit_amount_xof).toLocaleString('fr-FR')} F</strong>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2 pt-2 border-t border-slate-200/60">
+                                <button
+                                  onClick={() => setSelectedB2bQuoteModal(q)}
+                                  className="w-full py-1.5 rounded-lg bg-[#0B192C] hover:bg-[#FF4500] text-white text-xs font-bold transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>Détails & Conditions</span>
+                                </button>
+
+                                {/* Bouton de règlement de l'acompte si accepté */}
+                                {req.status === 'accepted' && req.order_id && (
+                                  <button
+                                    onClick={() => handlePayB2bDeposit(req.order_id!)}
+                                    disabled={payingDepositOrderId === req.order_id}
+                                    className="w-full py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
+                                  >
+                                    <CreditCard className="w-3.5 h-3.5" />
+                                    <span>{payingDepositOrderId === req.order_id ? 'Paiement en cours...' : `Payer l'acompte (${Number(q.deposit_amount_xof).toLocaleString('fr-FR')} F)`}</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal B2B Devis Consultation & Acceptation */}
+      {selectedB2bQuoteModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-black text-[#0B192C] bg-slate-100 px-3 py-1 rounded-lg border">
+                    {selectedB2bQuoteModal.quote_number}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">v{selectedB2bQuoteModal.version}</span>
+                </div>
+                <h3 className="text-lg font-black text-[#0B192C] mt-2">Devis Formel Grands Comptes</h3>
+              </div>
+              <button
+                onClick={() => setSelectedB2bQuoteModal(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Chiffrage financier */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Montant Total TTC :</span>
+                <strong className="text-slate-900 font-mono text-sm">{Number(selectedB2bQuoteModal.total_xof).toLocaleString('fr-FR')} FCFA</strong>
+              </div>
+              <div className="flex justify-between text-amber-700 font-semibold">
+                <span>Acompte requis à la commande (50%) :</span>
+                <span className="font-mono">{Number(selectedB2bQuoteModal.deposit_amount_xof).toLocaleString('fr-FR')} FCFA</span>
+              </div>
+              <div className="flex justify-between text-emerald-700 font-semibold">
+                <span>Solde à la livraison / contrôle usine :</span>
+                <span className="font-mono">{Number(selectedB2bQuoteModal.balance_due_xof).toLocaleString('fr-FR')} FCFA</span>
+              </div>
+              <div className="flex justify-between text-slate-500 pt-1 border-t border-slate-200">
+                <span>Offre valable jusqu'au :</span>
+                <strong>{selectedB2bQuoteModal.valid_until}</strong>
+              </div>
+            </div>
+
+            {/* Actions d'acceptation / refus */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row gap-3 justify-end">
+              {selectedB2bQuoteModal.status === 'accepted' ? (
+                <div className="flex items-center gap-2 text-emerald-700 bg-emerald-100 px-4 py-2.5 rounded-xl font-bold text-xs w-full justify-center">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Devis accepté formellement</span>
+                </div>
+              ) : selectedB2bQuoteModal.status === 'rejected' ? (
+                <div className="flex items-center gap-2 text-rose-700 bg-rose-100 px-4 py-2.5 rounded-xl font-bold text-xs w-full justify-center">
+                  <XCircle className="w-4 h-4" />
+                  <span>Devis refusé</span>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsRejectB2bModalOpen(true)}
+                    disabled={b2bQuoteActionLoading}
+                    className="px-5 py-3 rounded-xl border border-rose-300 hover:bg-rose-50 text-rose-700 font-bold text-xs transition-colors"
+                  >
+                    Refuser la proposition
+                  </button>
+                  <button
+                    onClick={() => handleAcceptB2bQuote(selectedB2bQuoteModal.id)}
+                    disabled={b2bQuoteActionLoading}
+                    className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                  >
+                    {b2bQuoteActionLoading ? (
+                      <span>Validation en cours...</span>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Accepter formellement ce devis</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Refus Devis B2B */}
+      {isRejectB2bModalOpen && (
+        <div className="fixed inset-0 z-60 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h4 className="text-base font-black text-slate-900">Motif du refus du devis B2B</h4>
+            <textarea
+              value={rejectionB2bReason}
+              onChange={e => setRejectionB2bReason(e.target.value)}
+              placeholder="Indiquez pourquoi ce devis ne convient pas..."
+              className="w-full h-24 p-3 text-xs border border-slate-200 rounded-xl outline-none focus:border-[#FF4500]"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setIsRejectB2bModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => handleRejectB2bQuote(selectedB2bQuoteModal.id)}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
+              >
+                Confirmer le refus
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -211,12 +211,22 @@ paymentsRouter.post('/simulate-sandbox-webhook', async (req: Request, res: Respo
     }
 
     const order = details.order;
-    const attempt = details.attempt;
+    let attempt = details.attempt;
     const realAmount = attempt ? Number(attempt.amount_xof) : Number(order.total_xof);
     const merchantReference = attempt?.merchant_reference || `DALLOU-SIM-${Date.now()}`;
-
-    // 3. Construction du payload conforme GeniusPay
     const txId = providerTransactionId || attempt?.provider_payment_id || `gp_tx_sim_${Date.now()}`;
+
+    if (!attempt) {
+      await supabase.from('payment_attempts').insert({
+        order_id: order.id,
+        attempt_number: 1,
+        merchant_reference: merchantReference,
+        provider_payment_id: txId,
+        amount_xof: realAmount,
+        currency: 'XOF',
+        status: 'pending'
+      });
+    }
     const payloadStatus = eventType === 'payment_success' ? 'completed' : eventType === 'payment_failed' ? 'failed' : 'cancelled';
 
     const mockPayload = {

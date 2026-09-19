@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { shipmentsRouter } from './server/api/shipmentsRouter';
 import { sourcingRouter } from './server/api/sourcingRouter';
+import { b2bRouter } from './server/api/b2bRouter';
 import { paymentsRouter } from './server/api/paymentsRouter';
 import { authRouter } from './server/api/authRouter';
 import { config, logServerConfig } from './server/config';
@@ -49,6 +50,7 @@ app.use('/api/payments', paymentsRouter);
 app.use('/api', paymentsRouter); // Supporte aussi /api/webhooks/geniuspay
 app.use('/api/shipments', shipmentsRouter);
 app.use('/api/sourcing', sourcingRouter);
+app.use('/api/b2b', b2bRouter);
 
 
 // 3. Fichiers statiques et SPA Fallback en production

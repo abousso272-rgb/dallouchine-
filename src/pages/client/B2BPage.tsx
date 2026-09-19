@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { b2bService } from '../../services/b2bService';
 
 export const B2BPage: React.FC = () => {
   const { navigate, submitB2BRequest } = useApp();
@@ -8,33 +9,112 @@ export const B2BPage: React.FC = () => {
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [productName, setProductName] = useState('');
+  const [productLink, setProductLink] = useState('');
+  const [quantity, setQuantity] = useState<number>(50);
+  const [budgetXof, setBudgetXof] = useState<number>(15000000);
   const [industrySector, setIndustrySector] = useState('auto-ev');
   const [expectedVolume, setExpectedVolume] = useState('40hq');
   const [specifications, setSpecifications] = useState('');
   const [sampleNeeded, setSampleNeeded] = useState(false);
+  const [customization, setCustomization] = useState(false);
+  const [packagingRequested, setPackagingRequested] = useState(false);
+  const [desiredDeadline, setDesiredDeadline] = useState('');
+  const [destination, setDestination] = useState('Dakar, Sénégal');
 
+  const [attachments, setAttachments] = useState<Array<{ name: string; url: string; size?: number; mimeType?: string }>>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submittedCode, setSubmittedCode] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setErrorMessage(null);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const res = await b2bService.uploadFile(file, 'b2b-attachments');
+        if (res.success) {
+          setAttachments(prev => [...prev, {
+            name: file.name,
+            url: res.url,
+            size: file.size,
+            mimeType: file.type
+          }]);
+        } else {
+          setErrorMessage(res.error || `Erreur lors de l'upload de ${file.name}`);
+        }
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Erreur lors de l'envoi des documents.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactName || !phone) {
       alert('Veuillez renseigner votre nom et votre numéro de téléphone.');
       return;
     }
 
-    const newReq = submitB2BRequest({
-      companyName: companyName || 'Société Grands Comptes',
-      contactName,
-      phone,
-      email: email || 'b2b@entreprise.sn',
-      productType: `[B2B ${industrySector}] Volume: ${expectedVolume}`,
-      quantity: expectedVolume === '40hq' ? 100 : 50,
-      targetBudgetXOF: 15000000,
-      transportPreference: 'sea',
-      specifications: `${specifications} \n[Filière: ${industrySector}] \n[Volume prévisionnel: ${expectedVolume}] \n[Échantillon requis: ${sampleNeeded ? 'Oui' : 'Non'}]`
-    });
+    setIsSubmitting(true);
+    setErrorMessage(null);
 
-    setSubmittedCode(newReq.code || 'DLC-2026-B2B88');
+    try {
+      const pName = productName.trim() || `[B2B ${industrySector}] Volume: ${expectedVolume}`;
+      const specsFull = `${specifications} \n[Filière: ${industrySector}] \n[Volume prévisionnel: ${expectedVolume}] \n[Échantillon requis: ${sampleNeeded ? 'Oui' : 'Non'}]`;
+
+      const res = await b2bService.createRequest({
+        companyName: companyName.trim() || 'Société Grands Comptes',
+        contactName: contactName.trim(),
+        phone: phone.trim(),
+        email: email.trim() || 'b2b@entreprise.sn',
+        sector: industrySector,
+        productName: pName,
+        productDescription: specifications.trim() || pName,
+        productLink: productLink.trim() || undefined,
+        quantity: Number(quantity) || 50,
+        budgetXof: Number(budgetXof) || undefined,
+        transportPreference: 'sea',
+        destination,
+        specifications: specsFull,
+        customization,
+        packagingRequested,
+        desiredDeadline: desiredDeadline || undefined,
+        attachments
+      });
+
+      if (!res.success) {
+        setErrorMessage(res.error || res.errorMessage || 'Erreur lors de la création de la demande B2B.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Synchroniser avec le contexte pour rétro-compatibilité
+      submitB2BRequest({
+        companyName: companyName || 'Société Grands Comptes',
+        contactName,
+        phone,
+        email: email || 'b2b@entreprise.sn',
+        productType: pName,
+        quantity: Number(quantity) || 50,
+        targetBudgetXOF: Number(budgetXof) || 15000000,
+        transportPreference: 'sea',
+        specifications: specsFull
+      });
+
+      setSubmittedCode(res.code || 'DLC-B2B-CONFIRMED');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Erreur de connexion au serveur.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const scrollToDevis = () => {
@@ -688,6 +768,85 @@ export const B2BPage: React.FC = () => {
               </select>
             </div>
 
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Désignation du Produit ou Équipement *
+              </label>
+              <input
+                type="text"
+                value={productName}
+                onChange={e => setProductName(e.target.value)}
+                placeholder="ex: Groupes électrogènes industriels 100kVA, Motos électriques..."
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Lien Produit / Référence Fournisseur (Optionnel)
+              </label>
+              <input
+                type="url"
+                value={productLink}
+                onChange={e => setProductLink(e.target.value)}
+                placeholder="https://alibaba.com/product/... ou lien 1688"
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Quantité Prévisionnelle (Unités) *
+              </label>
+              <input
+                type="number"
+                min="1"
+                required
+                value={quantity}
+                onChange={e => setQuantity(Number(e.target.value))}
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Budget Cible Indicatif (FCFA)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={budgetXof}
+                onChange={e => setBudgetXof(Number(e.target.value))}
+                placeholder="ex: 20000000"
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Délai Souhaité / Date Limite
+              </label>
+              <input
+                type="date"
+                value={desiredDeadline}
+                onChange={e => setDesiredDeadline(e.target.value)}
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Destination de Livraison
+              </label>
+              <input
+                type="text"
+                value={destination}
+                onChange={e => setDestination(e.target.value)}
+                placeholder="ex: Port de Dakar / Entrepôt Diamniadio"
+                className="w-full h-12 px-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container"
+              />
+            </div>
+
             <div className="md:col-span-2 space-y-1.5">
               <label className="font-label-sm text-label-sm text-on-surface font-semibold">
                 Spécifications Techniques ou Description des Besoins
@@ -700,28 +859,109 @@ export const B2BPage: React.FC = () => {
                 className="w-full p-4 bg-surface-container-low rounded-xl font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container/30 transition-all border border-transparent focus:border-primary-container resize-none"
               />
             </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <label className="font-label-sm text-label-sm text-on-surface font-semibold">
+                Pièces Jointes & Cahier des Charges (PDF, DOCX, Images, max 10 Mo)
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold transition-all">
+                  <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                  <span>{isUploading ? 'Téléversement en cours...' : 'Ajouter des fichiers'}</span>
+                  <input
+                    type="file"
+                    multiple
+                    disabled={isUploading}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
+                  />
+                </label>
+                {attachments.length > 0 && (
+                  <span className="text-xs text-emerald-600 font-semibold">
+                    {attachments.length} document(s) joint(s)
+                  </span>
+                )}
+              </div>
+
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {attachments.map((att, idx) => (
+                    <div key={idx} className="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-lg text-xs border border-slate-200">
+                      <span className="material-symbols-outlined text-[14px] text-primary">description</span>
+                      <span className="truncate max-w-[180px]">{att.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-rose-500"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="sample-needed"
-              checked={sampleNeeded}
-              onChange={e => setSampleNeeded(e.target.checked)}
-              className="accent-primary-container rounded w-4 h-4 cursor-pointer"
-            />
-            <label htmlFor="sample-needed" className="font-body-sm text-body-sm text-on-surface cursor-pointer">
-              Nous souhaitons recevoir un échantillon pré-série ou organiser une validation vidéo en usine avant signature définitive.
-            </label>
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="sample-needed"
+                checked={sampleNeeded}
+                onChange={e => setSampleNeeded(e.target.checked)}
+                className="accent-primary-container rounded w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="sample-needed" className="font-body-sm text-body-sm text-on-surface cursor-pointer">
+                Nous souhaitons recevoir un échantillon pré-série ou organiser une validation vidéo en usine avant signature définitive.
+              </label>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="customization"
+                checked={customization}
+                onChange={e => setCustomization(e.target.checked)}
+                className="accent-primary-container rounded w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="customization" className="font-body-sm text-body-sm text-on-surface cursor-pointer">
+                Personnalisation industrielle requise (Logo entreprise, marquage sérigraphie OEM).
+              </label>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="packaging-requested"
+                checked={packagingRequested}
+                onChange={e => setPackagingRequested(e.target.checked)}
+                className="accent-primary-container rounded w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="packaging-requested" className="font-body-sm text-body-sm text-on-surface cursor-pointer">
+                Conditionnement et emballage sur-mesure aux couleurs de notre marque.
+              </label>
+            </div>
           </div>
+
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">error</span>
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
             <button
               type="submit"
-              className="w-full sm:w-auto h-14 px-8 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/30 hover:bg-secondary-container transition-all cursor-pointer"
+              disabled={isSubmitting || isUploading}
+              className={`w-full sm:w-auto h-14 px-8 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/30 hover:bg-secondary-container transition-all cursor-pointer ${
+                isSubmitting ? 'opacity-70 cursor-wait' : ''
+              }`}
             >
-              <span>Transmettre ma Demande B2B</span>
-              <span className="material-symbols-outlined text-[20px]">send</span>
+              <span>{isSubmitting ? 'Traitement en cours...' : 'Transmettre ma Demande B2B'}</span>
+              <span className="material-symbols-outlined text-[20px]">{isSubmitting ? 'hourglass_empty' : 'send'}</span>
             </button>
 
             <div className="text-on-surface-variant font-body-sm text-body-sm flex items-center gap-2">
