@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SourcingPipelineRequest } from '../../types';
+import { SourcingPipelineRequest, Quote } from '../../types';
 import {
   Compass,
   Plus,
@@ -14,7 +14,15 @@ import {
   X,
   ChevronRight,
   ShieldCheck,
-  FileCheck
+  FileCheck,
+  Building2,
+  Layers,
+  Calculator,
+  Tag,
+  ArrowRight,
+  RefreshCw,
+  AlertCircle,
+  FileText
 } from 'lucide-react';
 
 export const AdminSourcingPage: React.FC = () => {
@@ -22,6 +30,12 @@ export const AdminSourcingPage: React.FC = () => {
     sourcingPipeline,
     addSourcingPipelineRequest,
     updateSourcingPipelineStatus,
+    assignSourcerToRequest,
+    addSupplierToRequest,
+    createRealQuote,
+    sendRealQuote,
+    refreshSourcingData,
+    quotes,
     sourcers,
     showToast,
     addQuote,
@@ -32,6 +46,40 @@ export const AdminSourcingPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<SourcingPipelineRequest | null>(null);
+
+  // Drawer Tabs & States
+  const [drawerTab, setDrawerTab] = useState<'overview' | 'sourcer' | 'suppliers' | 'quote'>('overview');
+  const [selectedSourcerId, setSelectedSourcerId] = useState('');
+  const [isActionPending, setIsActionPending] = useState(false);
+
+  // Supplier Form State
+  const [supplierForm, setSupplierForm] = useState({
+    supplierName: '',
+    platform: '1688' as const,
+    productUrl: '',
+    unitPriceRMB: 35,
+    unitPriceUSD: 5,
+    moq: 100,
+    contactPerson: '',
+    phone: '',
+    internalNotes: ''
+  });
+
+  // Quote Builder Form State
+  const [quoteForm, setQuoteForm] = useState({
+    unitProductPriceXOF: 12500,
+    estimatedLogisticsXOF: 3500,
+    estimatedCustomsXOF: 1200,
+    additionalFeesXOF: 800,
+    depositRequiredPercent: 40,
+    leadTimeDays: '15-20 jours',
+    transportMode: 'sea' as const,
+    conditions: [
+      'Tarif usine certifié vérifié sur site (Guangzhou / Yiwu)',
+      'Assurance maritime et inspection qualité avant empotage conteneur',
+      'Dédouanement Gaindé Dakar inclus'
+    ]
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -230,14 +278,17 @@ export const AdminSourcingPage: React.FC = () => {
       {/* 4. DETAIL DRAWER */}
       {selectedRequest && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex justify-end">
-          <div className="w-full max-w-lg bg-[#0a1945] h-full shadow-2xl border-l border-blue-900/50 p-6 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-200">
-            <div className="space-y-5">
+          <div className="w-full max-w-xl bg-[#0a1945] h-full shadow-2xl border-l border-blue-900/50 p-6 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-200 space-y-4">
+            <div className="space-y-4">
+              {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-blue-900/40">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-bold text-blue-300 bg-blue-950 px-2 py-0.5 rounded border border-blue-800">
                     {selectedRequest.code}
                   </span>
-                  <h2 className="text-base font-black text-white">{selectedRequest.productName}</h2>
+                  <h2 className="text-base font-black text-white truncate max-w-[280px]">
+                    {selectedRequest.productName}
+                  </h2>
                 </div>
                 <button
                   onClick={() => setSelectedRequest(null)}
@@ -247,140 +298,491 @@ export const AdminSourcingPage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white/5 space-y-2.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Client Mandataire</span>
-                  <strong className="text-white">{selectedRequest.clientName} ({selectedRequest.clientPhone})</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Quantité Cible</span>
-                  <strong className="text-white font-mono">{selectedRequest.targetQuantity} unités</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Budget Maximum</span>
-                  <strong className="text-emerald-300 font-mono">{selectedRequest.targetBudgetUSD} USD (~{selectedRequest.targetBudgetCNY} RMB)</strong>
-                </div>
+              {/* Drawer Tabs */}
+              <div className="flex items-center gap-1.5 p-1 bg-black/30 rounded-xl border border-white/5 text-xs font-bold">
+                <button
+                  onClick={() => setDrawerTab('overview')}
+                  className={`flex-1 py-1.5 rounded-lg transition-all ${
+                    drawerTab === 'overview'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Dossier
+                </button>
+                <button
+                  onClick={() => setDrawerTab('sourcer')}
+                  className={`flex-1 py-1.5 rounded-lg transition-all ${
+                    drawerTab === 'sourcer'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Agent Chine
+                </button>
+                <button
+                  onClick={() => setDrawerTab('suppliers')}
+                  className={`flex-1 py-1.5 rounded-lg transition-all ${
+                    drawerTab === 'suppliers'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Fournisseurs
+                </button>
+                <button
+                  onClick={() => setDrawerTab('quote')}
+                  className={`flex-1 py-1.5 rounded-lg transition-all ${
+                    drawerTab === 'quote'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Devis Séparé
+                </button>
               </div>
 
-              {selectedRequest.referenceUrl && (
-                <a
-                  href={selectedRequest.referenceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-xs text-blue-400 flex items-center justify-between transition-colors"
-                >
-                  <span className="truncate">Lien fiche 1688 / Taobao</span>
-                  <ExternalLink className="w-4 h-4 shrink-0" />
-                </a>
+              {/* TAB 1: OVERVIEW */}
+              {drawerTab === 'overview' && (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 rounded-2xl bg-white/5 space-y-2.5">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Client Mandataire</span>
+                      <strong className="text-white">
+                        {selectedRequest.clientName} ({selectedRequest.clientPhone})
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Quantité Cible</span>
+                      <strong className="text-white font-mono">
+                        {selectedRequest.targetQuantity} unités
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Budget Indicatif</span>
+                      <strong className="text-emerald-300 font-mono">
+                        {selectedRequest.targetBudgetXOF
+                          ? `${selectedRequest.targetBudgetXOF.toLocaleString('fr-FR')} FCFA`
+                          : `${selectedRequest.targetBudgetUSD || 0} USD`}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Agent en Charge</span>
+                      <strong className="text-blue-300">
+                        {selectedRequest.assignedSourcerName || 'Non assigné'}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Statut Cycle de Vie</span>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-900/60 border border-blue-700 text-blue-200 font-mono font-bold">
+                        {selectedRequest.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {selectedRequest.specifications && (
+                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+                      <span className="text-slate-400 font-bold block">Spécifications & Exigences :</span>
+                      <p className="text-slate-300 leading-relaxed italic whitespace-pre-line">
+                        {selectedRequest.specifications}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedRequest.alibabaUrl && (
+                    <a
+                      href={selectedRequest.alibabaUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-blue-400 flex items-center justify-between transition-colors"
+                    >
+                      <span className="truncate">Lien fiche 1688 / Taobao / Alibaba</span>
+                      <ExternalLink className="w-4 h-4 shrink-0" />
+                    </a>
+                  )}
+
+                  {/* Status Progression Controls */}
+                  <div className="p-4 rounded-2xl bg-blue-950/40 border border-blue-800/50 space-y-3">
+                    <span className="text-blue-300 font-bold block">
+                      Faire progresser le statut de mission :
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          updateSourcingPipelineStatus(selectedRequest.id, 'sourcing_in_progress', 'Recherche usine en cours sur Guangzhou et Yiwu');
+                        }}
+                        className="py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold"
+                      >
+                        En Recherche Usine
+                      </button>
+                      <button
+                        onClick={() => {
+                          updateSourcingPipelineStatus(selectedRequest.id, 'quotes_received', 'Offres fournisseurs obtenues et comparées');
+                        }}
+                        className="py-2 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold"
+                      >
+                        Offres Fabricants Reçues
+                      </button>
+                      <button
+                        onClick={() => {
+                          updateSourcingPipelineStatus(selectedRequest.id, 'sample_ordered', 'Échantillon commandé pour contrôle qualité');
+                        }}
+                        className="py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold"
+                      >
+                        Échantillon Commandé
+                      </button>
+                      <button
+                        onClick={() => {
+                          updateSourcingPipelineStatus(selectedRequest.id, 'validated', 'Fournisseur audité et validé pour production');
+                        }}
+                        className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                      >
+                        Conforme & Validé
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
-              {/* Status advancement buttons */}
-              <div className="p-4 rounded-2xl bg-blue-950/40 border border-blue-800/50 space-y-3 text-xs">
-                <span className="text-blue-300 font-bold block">Faire progresser la mission :</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => {
-                      updateSourcingPipelineStatus(selectedRequest.id, 'sourcing_in_progress');
-                      setSelectedRequest(null);
-                    }}
-                    className="py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold"
-                  >
-                    En Recherche Usine
-                  </button>
-                  <button
-                    onClick={() => {
-                      updateSourcingPipelineStatus(selectedRequest.id, 'quotes_received');
-                      setSelectedRequest(null);
-                    }}
-                    className="py-2 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold"
-                  >
-                    Devis Usine Reçu
-                  </button>
-                  <button
-                    onClick={() => {
-                      updateSourcingPipelineStatus(selectedRequest.id, 'sample_ordered');
-                      setSelectedRequest(null);
-                    }}
-                    className="py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold"
-                  >
-                    Échantillon Commandé
-                  </button>
-                  <button
-                    onClick={() => {
-                      updateSourcingPipelineStatus(selectedRequest.id, 'validated');
-                      setSelectedRequest(null);
-                    }}
-                    className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
-                  >
-                    Conforme & Validé
-                  </button>
+              {/* TAB 2: SOURCER ASSIGNMENT */}
+              {drawerTab === 'sourcer' && (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 rounded-2xl bg-white/5 space-y-3">
+                    <span className="text-slate-300 font-bold block">
+                      Assigner un Agent Sourcer sur le Terrain en Chine
+                    </span>
+                    <p className="text-slate-400 leading-relaxed">
+                      L'agent assigné se chargera des visites usines, des audits de conformité CE/ISO et de la négociation directe en mandarin.
+                    </p>
+
+                    <div className="space-y-2 pt-2">
+                      {sourcers.map(s => {
+                        const isCurrent = (selectedRequest.assignedSourcerId === s.id) || (selectedSourcerId === s.id);
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => setSelectedSourcerId(s.id)}
+                            className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                              isCurrent
+                                ? 'bg-blue-600/30 border-blue-500 text-white'
+                                : 'bg-white/5 border-white/5 hover:bg-white/10 text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold">
+                                {s.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-bold text-white">{s.name}</div>
+                                <div className="text-[10px] text-slate-400">
+                                  {s.specialty} • Hub {s.hubCity || 'Guangzhou'}
+                                </div>
+                              </div>
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 border border-emerald-700">
+                              {s.rating || 4.9} ★
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      disabled={isActionPending || !selectedSourcerId}
+                      onClick={async () => {
+                        const s = sourcers.find(x => x.id === selectedSourcerId);
+                        if (!s) return;
+                        setIsActionPending(true);
+                        try {
+                          await assignSourcerToRequest(selectedRequest.id, s.id, s.name);
+                        } finally {
+                          setIsActionPending(false);
+                        }
+                      }}
+                      className="w-full mt-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold transition-colors cursor-pointer"
+                    >
+                      {isActionPending ? 'Assignation en cours...' : 'Confirmer l\'assignation de l\'agent'}
+                    </button>
+                  </div>
                 </div>
+              )}
 
-                <div className="pt-2 border-t border-blue-900/50">
-                  <button
-                    onClick={() => {
-                      const qty = selectedRequest.targetQuantity || 50;
-                      const unitProd = 12500;
-                      const unitFreight = 3500;
-                      const unitCustoms = 1200;
-                      const prodTot = qty * unitProd;
-                      const logTot = qty * unitFreight;
-                      const custTot = qty * unitCustoms;
-                      const grandTot = prodTot + logTot + custTot;
-                      const depAmt = Math.round(grandTot * 0.4);
+              {/* TAB 3: SUPPLIERS CANDIDATES */}
+              {drawerTab === 'suppliers' && (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 rounded-2xl bg-white/5 space-y-3">
+                    <span className="text-slate-200 font-bold block">
+                      Ajouter une Offre Fabricant / Négociation
+                    </span>
 
-                      const q = addQuote({
-                        clientName: selectedRequest.clientName,
-                        companyName: 'Importateur Mandataire',
-                        phone: selectedRequest.clientPhone,
-                        email: 'sourcing@client.sn',
-                        productName: selectedRequest.productName,
-                        quantity: qty,
-                        unitProductPriceXOF: unitProd,
-                        totalProductPriceXOF: prodTot,
-                        productPriceStatus: 'confirmed',
-                        estimatedLogisticsXOF: logTot,
-                        logisticsStatus: 'estimated',
-                        estimatedCustomsXOF: custTot,
-                        customsStatus: 'estimated',
-                        additionalFeesXOF: 0,
-                        totalEstimatedXOF: grandTot,
-                        depositRequiredPercent: 40,
-                        depositAmountXOF: depAmt,
-                        balanceDueXOF: grandTot - depAmt,
-                        amountPaidXOF: 0,
-                        paymentStatus: 'pending',
-                        leadTimeDays: '15-20 jours',
-                        conditions: [
-                          'Tarif usine certifié vérifié sur site (Guangzhou/Yiwu)',
-                          'Assurance maritime et inspection avant conteneurisation',
-                          'Dédouanement Gaindé Dakar inclus'
-                        ],
-                        validUntil: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
-                        status: 'sent',
-                        transportMode: 'sea',
-                        notes: `Mission sourcing ${selectedRequest.code}. Référence usine : ${selectedRequest.referenceUrl || 'Audit usine direct'}`
-                      });
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Nom Usine / Fournisseur</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Yiwu Jinding Tech Co."
+                          value={supplierForm.supplierName}
+                          onChange={e => setSupplierForm({ ...supplierForm, supplierName: e.target.value })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Plateforme / Origine</label>
+                        <select
+                          value={supplierForm.platform}
+                          onChange={e => setSupplierForm({ ...supplierForm, platform: e.target.value as any })}
+                          className="w-full p-2 rounded-xl bg-[#0e214d] border border-white/10 text-white"
+                        >
+                          <option value="1688">1688.com (Direct Chine)</option>
+                          <option value="taobao">Taobao Pro</option>
+                          <option value="alibaba">Alibaba Gold</option>
+                          <option value="factory_direct">Visite Usine Physique</option>
+                        </select>
+                      </div>
+                    </div>
 
-                      updateSourcingPipelineStatus(selectedRequest.id, 'quotes_received', `Devis ${q.code} généré avec transparence totale.`);
-                      setSelectedRequest(null);
-                      openDocumentModal('quote', { quote: q });
-                    }}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold flex items-center justify-center gap-2 shadow-md text-xs"
-                  >
-                    <FileCheck className="w-4 h-4" />
-                    <span>Générer Devis Séparé (Prix Usine + Fret Séparé)</span>
-                  </button>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Prix Unitaire (RMB ¥)</label>
+                        <input
+                          type="number"
+                          value={supplierForm.unitPriceRMB}
+                          onChange={e => setSupplierForm({ ...supplierForm, unitPriceRMB: Number(e.target.value) })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Prix Unitaire ($ USD)</label>
+                        <input
+                          type="number"
+                          value={supplierForm.unitPriceUSD}
+                          onChange={e => setSupplierForm({ ...supplierForm, unitPriceUSD: Number(e.target.value) })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-emerald-300 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">MOQ (Qté Min)</label>
+                        <input
+                          type="number"
+                          value={supplierForm.moq}
+                          onChange={e => setSupplierForm({ ...supplierForm, moq: Number(e.target.value) })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 text-[10px] block mb-1">Notes Internes de Négociation (Protégé du client)</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: MOQ négociable à 50 pcs si acompte 50%. Certification CE fournie."
+                        value={supplierForm.internalNotes}
+                        onChange={e => setSupplierForm({ ...supplierForm, internalNotes: e.target.value })}
+                        className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white"
+                      />
+                    </div>
+
+                    <button
+                      disabled={isActionPending || !supplierForm.supplierName.trim()}
+                      onClick={async () => {
+                        setIsActionPending(true);
+                        try {
+                          await addSupplierToRequest(selectedRequest.id, {
+                            name: supplierForm.supplierName,
+                            platform: supplierForm.platform,
+                            productUrl: supplierForm.productUrl || selectedRequest.alibabaUrl,
+                            unitPriceRMB: supplierForm.unitPriceRMB,
+                            unitPriceUSD: supplierForm.unitPriceUSD,
+                            moq: supplierForm.moq,
+                            notes: supplierForm.internalNotes,
+                            verified: true
+                          });
+                          setSupplierForm({
+                            supplierName: '',
+                            platform: '1688',
+                            productUrl: '',
+                            unitPriceRMB: 35,
+                            unitPriceUSD: 5,
+                            moq: 100,
+                            contactPerson: '',
+                            phone: '',
+                            internalNotes: ''
+                          });
+                        } finally {
+                          setIsActionPending(false);
+                        }
+                      }}
+                      className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold transition-colors cursor-pointer"
+                    >
+                      {isActionPending ? 'Enregistrement...' : 'Ajouter cette offre usine au comparatif'}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 4: QUOTE BUILDER WITH STRICT SPLIT */}
+              {drawerTab === 'quote' && (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 rounded-2xl bg-white/5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-200 font-bold">
+                        Calculateur de Devis Transparent
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
+                        Prix Usine + Fret Séparé
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Prix Usine Unitaire (FCFA)</label>
+                        <input
+                          type="number"
+                          value={quoteForm.unitProductPriceXOF}
+                          onChange={e => setQuoteForm({ ...quoteForm, unitProductPriceXOF: Number(e.target.value) })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Fret Chine → Dakar (FCFA total)</label>
+                        <input
+                          type="number"
+                          value={quoteForm.estimatedLogisticsXOF}
+                          onChange={e => setQuoteForm({ ...quoteForm, estimatedLogisticsXOF: Number(e.target.value) })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Douane Gaindé Dakar (FCFA)</label>
+                        <input
+                          type="number"
+                          value={quoteForm.estimatedCustomsXOF}
+                          onChange={e => setQuoteForm({ ...quoteForm, estimatedCustomsXOF: Number(e.target.value) })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Frais Mandataire / Audit (FCFA)</label>
+                        <input
+                          type="number"
+                          value={quoteForm.additionalFeesXOF}
+                          onChange={e => setQuoteForm({ ...quoteForm, additionalFeesXOF: Number(e.target.value) })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Mode de Transport</label>
+                        <select
+                          value={quoteForm.transportMode}
+                          onChange={e => setQuoteForm({ ...quoteForm, transportMode: e.target.value as any })}
+                          className="w-full p-2 rounded-xl bg-[#0e214d] border border-white/10 text-white"
+                        >
+                          <option value="sea">Maritime (Groupage)</option>
+                          <option value="air_express">Aérien Express</option>
+                          <option value="air_standard">Aérien Standard</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Acompte Requis (%)</label>
+                        <input
+                          type="number"
+                          value={quoteForm.depositRequiredPercent}
+                          onChange={e => setQuoteForm({ ...quoteForm, depositRequiredPercent: Number(e.target.value) })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[10px] block mb-1">Délais (jours)</label>
+                        <input
+                          type="text"
+                          value={quoteForm.leadTimeDays}
+                          onChange={e => setQuoteForm({ ...quoteForm, leadTimeDays: e.target.value })}
+                          className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Dynamic Real-time Calculations Breakdown */}
+                    {(() => {
+                      const qty = selectedRequest.targetQuantity || 1;
+                      const prodTotal = qty * quoteForm.unitProductPriceXOF;
+                      const grandTotal = prodTotal + quoteForm.estimatedLogisticsXOF + quoteForm.estimatedCustomsXOF + quoteForm.additionalFeesXOF;
+                      const depositAmount = Math.round(grandTotal * (quoteForm.depositRequiredPercent / 100));
+                      const balance = grandTotal - depositAmount;
+
+                      return (
+                        <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 space-y-2 text-xs">
+                          <div className="flex justify-between text-slate-300">
+                            <span>Sous-total Usine ({qty} pcs × {quoteForm.unitProductPriceXOF.toLocaleString('fr-FR')} F) :</span>
+                            <span className="font-mono font-bold text-white">{prodTotal.toLocaleString('fr-FR')} FCFA</span>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>Fret + Douane + Frais :</span>
+                            <span className="font-mono text-slate-200">
+                              {(quoteForm.estimatedLogisticsXOF + quoteForm.estimatedCustomsXOF + quoteForm.additionalFeesXOF).toLocaleString('fr-FR')} FCFA
+                            </span>
+                          </div>
+                          <div className="pt-2 border-t border-emerald-800/60 flex justify-between text-sm font-bold text-emerald-300">
+                            <span>Total Devis Estimé :</span>
+                            <span className="font-mono">{grandTotal.toLocaleString('fr-FR')} FCFA</span>
+                          </div>
+                          <div className="flex justify-between text-[11px] text-emerald-200">
+                            <span>Acompte {quoteForm.depositRequiredPercent}% : <strong className="font-mono">{depositAmount.toLocaleString('fr-FR')} FCFA</strong></span>
+                            <span>Solde à livraison : <strong className="font-mono">{balance.toLocaleString('fr-FR')} FCFA</strong></span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <button
+                      disabled={isActionPending}
+                      onClick={async () => {
+                        setIsActionPending(true);
+                        try {
+                          const createdQuote = await createRealQuote(selectedRequest.id, {
+                            quantity: selectedRequest.targetQuantity || 1,
+                            unitProductPriceXOF: quoteForm.unitProductPriceXOF,
+                            estimatedLogisticsXOF: quoteForm.estimatedLogisticsXOF,
+                            estimatedCustomsXOF: quoteForm.estimatedCustomsXOF,
+                            additionalFeesXOF: quoteForm.additionalFeesXOF,
+                            depositRequiredPercent: quoteForm.depositRequiredPercent,
+                            leadTimeDays: quoteForm.leadTimeDays,
+                            transportMode: quoteForm.transportMode,
+                            conditions: quoteForm.conditions
+                          });
+
+                          // Automatically send and open modal
+                          if (createdQuote?.id) {
+                            await sendRealQuote(createdQuote.id);
+                          }
+                          openDocumentModal('quote', { quote: createdQuote });
+                        } finally {
+                          setIsActionPending(false);
+                        }
+                      }}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold flex items-center justify-center gap-2 shadow-lg text-xs cursor-pointer disabled:opacity-50"
+                    >
+                      <FileCheck className="w-4 h-4" />
+                      <span>{isActionPending ? 'Calcul & Émission...' : 'Calculer, Valider et Transmettre au Client'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
+            {/* Footer */}
             <div className="pt-4 border-t border-blue-900/40">
               <button
                 onClick={() => setSelectedRequest(null)}
-                className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs"
+                className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs cursor-pointer"
               >
-                Fermer
+                Fermer le Dossier
               </button>
             </div>
           </div>

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const SourcingRequestPage: React.FC = () => {
-  const { navigate, submitB2BRequest } = useApp();
+  const { navigate, submitB2BRequest, submitRealSourcingRequest, showToast } = useApp();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Selected Category Pill State
   const [activeCategory, setActiveCategory] = useState<string>('auto');
@@ -56,27 +57,53 @@ export const SourcingRequestPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productDesignation || !contactName || !whatsapp) {
       alert('Veuillez renseigner le produit, votre nom et votre numéro WhatsApp.');
       return;
     }
 
-    const newReq = submitB2BRequest({
-      companyName: 'Demandeur Sourcing Particulier/Pro',
-      contactName,
-      phone: whatsapp,
-      email: `${whatsapp}@client.sn`,
-      productType: productDesignation,
-      quantity: parseInt(quantity, 10) || 1,
-      targetBudgetXOF: parseInt(targetBudget, 10) || 0,
-      transportPreference: 'recommended',
-      specifications: `${technicalDetails} \n[Catégorie: ${productCategory}] \n[Lien: ${sourceUrl}] \n[Livraison: ${deliveryCity}] \n[Options: ${optBranding ? 'Branding OEM, ' : ''}${optSample ? 'Échantillon, ' : ''}${optInspection ? 'Inspection, ' : ''}${optCustoms ? 'Douane Dakar' : ''}]`
-    });
+    setIsSubmitting(true);
+    try {
+      // 1. Soumission réelle sur le serveur de sourcing (Étape 9)
+      const created = await submitRealSourcingRequest({
+        customerName: contactName,
+        customerPhone: whatsapp,
+        customerCompany: 'Particulier / Professionnel',
+        customerEmail: `${whatsapp.replace(/[^0-9]/g, '')}@client.sn`,
+        productName: productDesignation,
+        productDescription: technicalDetails,
+        productLink: sourceUrl || undefined,
+        quantity: parseInt(quantity, 10) || 1,
+        targetBudget: parseInt(targetBudget, 10) || 0,
+        currency: 'XOF',
+        specifications: `${productCategory ? `[Catégorie: ${productCategory}] ` : ''}${technicalDetails}`,
+        customization: optBranding ? 'Branding OEM personnalisé' : undefined,
+        destination: deliveryCity,
+        notes: `Options : ${optBranding ? 'Branding OEM, ' : ''}${optSample ? 'Échantillon, ' : ''}${optInspection ? 'Inspection, ' : ''}${optCustoms ? 'Douane Dakar' : ''}`
+      });
 
-    setTrackingCode(newReq.code || 'DLC-2026-SRC89');
-    setIsSuccessModalOpen(true);
+      // 2. Synchronisation B2B pour traçabilité locale
+      submitB2BRequest({
+        companyName: 'Demandeur Sourcing Particulier/Pro',
+        contactName,
+        phone: whatsapp,
+        email: `${whatsapp}@client.sn`,
+        productType: productDesignation,
+        quantity: parseInt(quantity, 10) || 1,
+        targetBudgetXOF: parseInt(targetBudget, 10) || 0,
+        transportPreference: 'recommended',
+        specifications: `${technicalDetails} \n[Catégorie: ${productCategory}] \n[Lien: ${sourceUrl}] \n[Livraison: ${deliveryCity}] \n[Options: ${optBranding ? 'Branding OEM, ' : ''}${optSample ? 'Échantillon, ' : ''}${optInspection ? 'Inspection, ' : ''}${optCustoms ? 'Douane Dakar' : ''}]`
+      });
+
+      setTrackingCode(created?.code || 'SRC-2026-0048');
+      setIsSuccessModalOpen(true);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la transmission de la demande.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -497,10 +524,11 @@ export const SourcingRequestPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full h-14 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/30 hover:bg-secondary-container hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+              disabled={isSubmitting}
+              className="w-full h-14 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/30 hover:bg-secondary-container hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50"
             >
-              <span>Lancer la recherche fournisseur sous 24h</span>
-              <span className="material-symbols-outlined text-[20px]">search</span>
+              <span>{isSubmitting ? 'Enregistrement en cours...' : 'Lancer la recherche fournisseur sous 24h'}</span>
+              <span className="material-symbols-outlined text-[20px]">{isSubmitting ? 'sync' : 'search'}</span>
             </button>
           </form>
         </div>

@@ -687,3 +687,132 @@ export interface AuthUser {
   adminRole?: AdminRole;
 }
 
+// --- LOGISTIQUE & EXPÉDITIONS RÉELLES (ÉTAPE 8) ---
+
+export type ShipmentStatus =
+  | 'awaiting_supplier'
+  | 'supplier_confirmed'
+  | 'preparing_in_china'
+  | 'ready_to_ship'
+  | 'shipped_from_china'
+  | 'in_transit'
+  | 'arrived_senegal'
+  | 'customs'
+  | 'at_hub'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'cancelled';
+
+export interface Shipment {
+  id: string;
+  orderId: string;
+  orderCode: string;
+  userId?: string;
+  trackingCode: string;
+  carrierId: string;
+  carrierName?: string;
+  carrierCode?: string;
+  origin: string;
+  destination: string;
+  transportMode: TransportMode;
+  status: ShipmentStatus;
+  estimatedDeparture?: string;
+  actualDeparture?: string;
+  estimatedArrival?: string;
+  actualArrival?: string;
+  hubId?: string;
+  hubName?: string;
+  notes?: string;
+  internalCostEstimatedXOF?: number;
+  internalCostConfirmedXOF?: number;
+  internalCostActualXOF?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShipmentEvent {
+  id: string;
+  shipmentId: string;
+  eventType: string;
+  previousStatus: ShipmentStatus | string;
+  newStatus: ShipmentStatus | string;
+  location: string;
+  description: string;
+  metadata?: Record<string, any>;
+  actorUserId?: string;
+  actorRole?: string;
+  actorName?: string;
+  createdAt: string;
+}
+
+export interface ShipmentDocument {
+  id: string;
+  shipmentId: string;
+  title: string;
+  docType: 'packing_list' | 'commercial_invoice' | 'bill_of_lading' | 'airway_bill' | 'customs_declaration' | 'inspection_certificate';
+  fileUrl: string;
+  isInternal: boolean;
+  uploadedBy?: string;
+  createdAt: string;
+}
+
+export interface InAppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'order' | 'logistics' | 'payment' | 'system';
+  shipmentId?: string;
+  trackingCode?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface PublicShipmentDTO {
+  id: string;
+  orderId: string;
+  orderCode: string;
+  trackingCode: string;
+  carrier: {
+    id: string;
+    name: string;
+    code: string;
+    mode: TransportMode;
+  } | null;
+  origin: string;
+  destination: string;
+  transportMode: TransportMode;
+  status: ShipmentStatus;
+  statusLabel: string;
+  estimatedDeparture?: string;
+  actualDeparture?: string;
+  estimatedArrival?: string;
+  actualArrival?: string;
+  isEtaEstimated: boolean;
+  hub: {
+    id: string;
+    name: string;
+    city: string;
+    address: string;
+  } | null;
+  notes?: string;
+  events: Array<{
+    id: string;
+    eventType: string;
+    previousStatus: string;
+    newStatus: string;
+    location: string;
+    description: string;
+    createdAt: string;
+  }>;
+  documents: Array<{
+    id: string;
+    title: string;
+    docType: string;
+    fileUrl: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+

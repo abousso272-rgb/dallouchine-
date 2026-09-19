@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
+import { PublicShipmentDTO } from '../../types';
 import {
   Search,
   Package,
   Ship,
+  Plane,
+  Truck,
   MapPin,
   Clock,
   Compass,
@@ -23,7 +26,8 @@ import {
   Boxes,
   ArrowRight,
   ExternalLink,
-  Navigation
+  Navigation,
+  AlertTriangle
 } from 'lucide-react';
 
 interface Milestone {
@@ -38,40 +42,71 @@ interface Milestone {
 }
 
 export const TrackingPage: React.FC = () => {
-  const { currentPath, addToast, navigate } = useApp();
-  const [trackingInput, setTrackingInput] = useState('CMD-2026-0048');
-  const [activeCode, setActiveCode] = useState('CMD-2026-0048');
+  const { currentPath, addToast } = useApp();
+  const [trackingInput, setTrackingInput] = useState('AWP-10482');
+  const [activeCode, setActiveCode] = useState('AWP-10482');
   const [isSearching, setIsSearching] = useState(false);
+  const [serverShipment, setServerShipment] = useState<PublicShipmentDTO | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const fetchRealTracking = useCallback(async (codeToFetch: string) => {
+    if (!codeToFetch.trim()) return;
+    setIsSearching(true);
+    setFetchError(null);
+    try {
+      const res = await fetch(`/api/tracking/${encodeURIComponent(codeToFetch.trim())}`);
+      const data = await res.json();
+      if (data.success && data.shipment) {
+        setServerShipment(data.shipment);
+      } else {
+        setServerShipment(null);
+        if (codeToFetch !== 'CMD-2026-0048') {
+          setFetchError(data.errorMessage || 'Bordereau non encore indexé sur les serveurs logistiques.');
+        }
+      }
+    } catch {
+      setServerShipment(null);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
 
   // Check URL query parameter if available
   useEffect(() => {
     if (currentPath.includes('code=')) {
       const paramCode = currentPath.split('code=')[1]?.split('&')[0];
       if (paramCode) {
-        setTrackingInput(paramCode);
-        setActiveCode(paramCode);
+        const clean = decodeURIComponent(paramCode).trim();
+        setTrackingInput(clean);
+        setActiveCode(clean);
       }
     }
   }, [currentPath]);
 
+  // Fetch when activeCode changes
+  useEffect(() => {
+    if (activeCode) {
+      fetchRealTracking(activeCode);
+    }
+  }, [activeCode, fetchRealTracking]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackingInput.trim()) return;
-    setIsSearching(true);
-    setTimeout(() => {
-      setIsSearching(false);
-      setActiveCode(trackingInput.trim().toUpperCase());
-      addToast({
-        title: 'Cargaison localisée',
-        message: `Bordereau ${trackingInput.trim().toUpperCase()} synchronisé avec les ports de Ningbo et Dakar.`,
-        type: 'success'
-      });
-    }, 450);
+    const clean = trackingInput.trim().toUpperCase();
+    setActiveCode(clean);
+    fetchRealTracking(clean);
+    addToast({
+      title: 'Recherche de fret',
+      message: `Interrogation des bases logistiques pour ${clean}...`,
+      type: 'info'
+    });
   };
 
   const setQuery = (code: string) => {
     setTrackingInput(code);
     setActiveCode(code);
+    fetchRealTracking(code);
     addToast({
       title: 'Dossier chargé',
       message: `Affichage des jalons logistiques pour ${code}.`,
@@ -234,13 +269,20 @@ export const TrackingPage: React.FC = () => {
 
           {/* Quick Chips */}
           <div className="flex items-center justify-center gap-2 flex-wrap mt-3 text-xs">
-            <span className="text-slate-400 font-medium">Dossiers récents :</span>
+            <span className="text-slate-400 font-medium">Bordereaux vérifiés :</span>
+            <button
+              type="button"
+              onClick={() => setQuery('AWP-10482')}
+              className="px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-[#FF4500] font-bold text-[11px] hover:bg-orange-100 transition-colors cursor-pointer"
+            >
+              AWP-10482 (Fret Réel)
+            </button>
             <button
               type="button"
               onClick={() => setQuery('CMD-2026-0048')}
               className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[#0B192C] font-bold text-[11px] hover:border-[#FF4500] transition-colors cursor-pointer"
             >
-              CMD-2026-0048 (Motos 2000W)
+              CMD-2026-0048 (Démo)
             </button>
             <button
               type="button"
@@ -249,14 +291,14 @@ export const TrackingPage: React.FC = () => {
             >
               GRP-2026-MOTO
             </button>
-            <button
-              type="button"
-              onClick={() => setQuery('DEV-2026-0089')}
-              className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[#0B192C] font-bold text-[11px] hover:border-[#FF4500] transition-colors cursor-pointer"
-            >
-              DEV-2026-0089
-            </button>
           </div>
+
+          {fetchError && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2 justify-center">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+              <span>{fetchError}</span>
+            </div>
+          )}
         </div>
       </section>
 
@@ -267,19 +309,26 @@ export const TrackingPage: React.FC = () => {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2.5 flex-wrap">
               <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-slate-100 text-[#0B192C] uppercase tracking-wider">
-                Fret Maritime LCL Groupé
+                {serverShipment ? (
+                  serverShipment.transportMode === 'air' ? 'Fret Aérien Express' :
+                  serverShipment.transportMode === 'sea' ? 'Fret Maritime LCL Groupé' : 'Fret Express Port-à-Port'
+                ) : 'Fret Maritime LCL Groupé'}
               </span>
               <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-orange-50 text-[#FF4500] border border-orange-200">
-                B/L: MSK-DKR-982341
+                Commande : {serverShipment ? serverShipment.orderCode : activeCode}
               </span>
             </div>
             <div className="flex items-baseline gap-3 mt-1 flex-wrap">
               <span className="text-2xl sm:text-3xl font-black text-[#0B192C] tracking-tight font-mono">
-                {activeCode}
+                {serverShipment ? serverShipment.trackingCode : activeCode}
               </span>
               <span className="text-xs sm:text-sm font-bold text-[#FF4500] flex items-center gap-1">
-                <Ship className="w-4 h-4" />
-                Porte-conteneurs : CMA CGM TANGIER (IMO 9436214)
+                {serverShipment?.transportMode === 'air' ? (
+                  <Plane className="w-4 h-4" />
+                ) : (
+                  <Ship className="w-4 h-4" />
+                )}
+                Transporteur : {serverShipment?.carrier ? `${serverShipment.carrier.name} (${serverShipment.carrier.code})` : 'CMA CGM TANGIER (IMO 9436214)'}
               </span>
             </div>
           </div>
@@ -289,11 +338,13 @@ export const TrackingPage: React.FC = () => {
             <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-[#FF4500] text-white shadow-md shadow-orange-500/25">
               <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
               <span className="text-xs font-black tracking-wide uppercase">
-                En transit maritime — ETA Dakar: 18 Août 2026
+                {serverShipment ? serverShipment.statusLabel : 'En transit maritime — ETA Dakar: 18 Août 2026'}
               </span>
             </div>
             <span className="text-[11px] text-slate-500 font-medium">
-              Position GPS estimée : 04°12'N 14°48'W (Atlantique Centre-Est)
+              {serverShipment?.isEtaEstimated
+                ? "Date d'arrivée indicative non contractuelle (formalités Gaindé)"
+                : "Position et statut vérifiés par les équipes logistiques"}
             </span>
           </div>
         </div>
@@ -308,9 +359,11 @@ export const TrackingPage: React.FC = () => {
               </span>
               <Anchor className="w-4 h-4 text-[#FF4500]" />
             </div>
-            <span className="text-base font-black text-[#0B192C]">Ningbo-Zhoushan (CN)</span>
+            <span className="text-base font-black text-[#0B192C]">
+              {serverShipment ? serverShipment.origin : 'Ningbo-Zhoushan (CN)'}
+            </span>
             <p className="text-xs text-slate-500">
-              Appareillage le 14 Juillet 2026<br />Quai Meishan Terminal 3
+              {serverShipment?.actualDeparture ? `Départ effectif le ${new Date(serverShipment.actualDeparture).toLocaleDateString('fr-FR')}` : 'Hub de consolidation Chine'}
             </p>
           </div>
 
@@ -318,13 +371,15 @@ export const TrackingPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Destination
+                Destination Finale
               </span>
               <MapPin className="w-4 h-4 text-[#FF4500]" />
             </div>
-            <span className="text-base font-black text-[#0B192C]">Port Autonome de Dakar (SN)</span>
+            <span className="text-base font-black text-[#0B192C]">
+              {serverShipment?.hub ? `${serverShipment.hub.name} (${serverShipment.hub.city})` : (serverShipment ? serverShipment.destination : 'Port Autonome de Dakar (SN)')}
+            </span>
             <p className="text-xs text-slate-500">
-              Dakar Terminal Conteneurs<br />Puis acheminement Hub Almadies
+              {serverShipment?.hub ? serverShipment.hub.address : 'Dakar Terminal Conteneurs'}
             </p>
           </div>
 
@@ -332,28 +387,36 @@ export const TrackingPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Temps Restant
+                Temps & Jalons
               </span>
               <Clock className="w-4 h-4 text-[#FF4500]" />
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-[#FF4500]">12</span>
-              <span className="text-xs font-bold text-[#0B192C]">jours de mer</span>
+              <span className="text-lg font-black text-[#FF4500]">
+                {serverShipment ? `${serverShipment.events?.length || 1} Événements` : '12 jours'}
+              </span>
             </div>
-            <p className="text-xs text-slate-500">Jour 23 sur 35 du cycle maritime</p>
+            <p className="text-xs text-slate-500">
+              {serverShipment?.estimatedArrival ? `ETA estimée : ${new Date(serverShipment.estimatedArrival).toLocaleDateString('fr-FR')}` : 'Cycle d\'acheminement sécurisé'}
+            </p>
           </div>
 
           {/* Container Spec */}
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Conditionnement
+                Mode de Fret
               </span>
               <Boxes className="w-4 h-4 text-slate-500" />
             </div>
-            <span className="text-base font-black text-[#0B192C]">Conteneur 40' High Cube</span>
+            <span className="text-base font-black text-[#0B192C]">
+              {serverShipment ? (
+                serverShipment.transportMode === 'air' ? 'Aérien Cargo' :
+                serverShipment.transportMode === 'sea' ? 'Maritime FCL/LCL' : 'Express Routier/Air'
+              ) : 'Conteneur 40\' High Cube'}
+            </span>
             <p className="text-xs text-slate-500">
-              Scellé douane CN-SH-882109<br />Régulation thermique &amp; calage lourd
+              Traçabilité certifiée Dallou Chine
             </p>
           </div>
         </div>
@@ -362,24 +425,49 @@ export const TrackingPage: React.FC = () => {
         <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-3 mt-1">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-600">
-              Progression globale de livraison : <strong className="text-[#0B192C]">70% achevé</strong>
+              Progression logistique : <strong className="text-[#0B192C]">
+                {serverShipment?.status === 'delivered' ? '100% Livré au destinataire' :
+                 serverShipment?.status === 'out_for_delivery' ? '90% En cours de livraison' :
+                 serverShipment?.status === 'at_hub' ? '80% Arrivé au Hub Dakar' :
+                 serverShipment?.status === 'customs' ? '70% Dédouanement Gaindé en cours' :
+                 serverShipment?.status === 'arrived_senegal' ? '65% Arrivé au Sénégal' :
+                 serverShipment?.status === 'in_transit' ? '50% En vol / En mer' :
+                 serverShipment?.status === 'shipped_from_china' ? '40% Expédié de Chine' :
+                 serverShipment?.status === 'ready_to_ship' ? '30% Prêt à expédier' :
+                 serverShipment?.status === 'preparing_in_china' ? '20% Préparation Chine' :
+                 serverShipment?.status === 'supplier_confirmed' ? '15% Fournisseur Confirmé' :
+                 '10% Attente validation usine'}
+              </strong>
             </span>
-            <span className="text-[#FF4500] font-bold">Étape 8 / 10 active</span>
+            <span className="text-[#FF4500] font-bold">
+              {serverShipment ? serverShipment.statusLabel : 'Étape 8 / 10 active'}
+            </span>
           </div>
 
           <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden p-0.5">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[#FF4500] via-orange-500 to-amber-400 transition-all duration-1000"
-              style={{ width: '70%' }}
+              style={{
+                width: serverShipment?.status === 'delivered' ? '100%' :
+                       serverShipment?.status === 'out_for_delivery' ? '90%' :
+                       serverShipment?.status === 'at_hub' ? '80%' :
+                       serverShipment?.status === 'customs' ? '70%' :
+                       serverShipment?.status === 'arrived_senegal' ? '65%' :
+                       serverShipment?.status === 'in_transit' ? '50%' :
+                       serverShipment?.status === 'shipped_from_china' ? '40%' :
+                       serverShipment?.status === 'ready_to_ship' ? '30%' :
+                       serverShipment?.status === 'preparing_in_china' ? '20%' :
+                       serverShipment?.status === 'supplier_confirmed' ? '15%' : '10%'
+              }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold">
-            <span>Usine Chine (10 Juin)</span>
-            <span>Empotage (09 Juil)</span>
-            <span className="text-[#FF4500] font-bold">Transit Atlantique (En mer)</span>
-            <span>Douane GAINDE (18 Août)</span>
-            <span>Remise Dakar (22 Août)</span>
+          <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold flex-wrap gap-1">
+            <span>1. Fournisseur</span>
+            <span>2. Préparation Chine</span>
+            <span>3. Fret International</span>
+            <span>4. Gaindé Douane</span>
+            <span>5. Hub Dakar</span>
           </div>
         </div>
       </section>
@@ -603,73 +691,103 @@ export const TrackingPage: React.FC = () => {
                   <span className="text-xs text-slate-500">Archivage numérique sécurisé Dallou Chine</span>
                 </div>
               </div>
-              <span className="text-xs text-slate-400 font-medium">4 Fichiers</span>
+              <span className="text-xs text-slate-400 font-medium">
+                {serverShipment ? `${serverShipment.documents.length} Fichier(s)` : '4 Fichiers'}
+              </span>
             </div>
 
             {/* Documents downloads list */}
             <div className="flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleDownloadDoc('Rapport vidéo inspection')}
-                className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
-                    <Video className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
-                      Rapport d'inspection vidéo HD (Guangzhou)
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      MP4 · 42 MB · Test d'accélération &amp; étanchéité
-                    </span>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
-              </button>
+              {serverShipment && serverShipment.documents.length > 0 ? (
+                serverShipment.documents.map(doc => (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    onClick={() => handleDownloadDoc(doc.title)}
+                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
+                          {doc.title}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          Format: {doc.docType.toUpperCase()} · Certifié public
+                        </span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+                  </button>
+                ))
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc('Rapport vidéo inspection')}
+                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
+                        <Video className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
+                          Rapport d'inspection vidéo HD (Guangzhou)
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          MP4 · 42 MB · Test d'accélération &amp; étanchéité
+                        </span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => handleDownloadDoc('Certificat d\'Origine Form E')}
-                className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
-                      Certificat d'Origine Form E &amp; Fiche CE
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      PDF certifié · 2.1 MB · Tampon chambre de commerce
-                    </span>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc('Certificat d\'Origine Form E')}
+                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
+                          Certificat d'Origine Form E &amp; Fiche CE
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          PDF certifié · 2.1 MB · Tampon chambre de commerce
+                        </span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => handleDownloadDoc('Connaissement Maritime B/L')}
-                className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
-                    <Ship className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
-                      Connaissement Maritime (Bill of Lading LCL)
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      PDF original · 1.4 MB · Maersk / Line Partner
-                    </span>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc('Connaissement Maritime B/L')}
+                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-all flex items-center justify-between group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#0B192C] group-hover:text-[#FF4500]">
+                        <Ship className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors">
+                          Connaissement Maritime (Bill of Lading LCL)
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          PDF original · 1.4 MB · Maersk / Line Partner
+                        </span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+                  </button>
+                </>
+              )}
 
               <button
                 type="button"
@@ -690,15 +808,6 @@ export const TrackingPage: React.FC = () => {
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/devis-documents')}
-                className="pt-2 text-xs font-bold text-[#FF4500] hover:text-[#E03D00] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Accéder au Centre de Documents Complet</span>
-                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

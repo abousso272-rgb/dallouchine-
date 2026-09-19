@@ -1,7 +1,8 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import express, { Request, Response } from 'express';
 import { paymentsRouter } from './api/paymentsRouter';
-import { authRouter } from './api/authRouter';
+import { logisticsRouter } from './api/logisticsRouter';
+import { sourcingRouter } from './api/sourcingRouter';
 
 export function expressApiPlugin(): Plugin {
   return {
@@ -22,9 +23,12 @@ export function expressApiPlugin(): Plugin {
         res.json({ status: 'online', mode: 'vite-dev', gateway: 'GeniusPay' });
       });
 
-      app.use('/api/auth', authRouter);
       app.use('/api/payments', paymentsRouter);
       app.use('/api', paymentsRouter);
+      app.use('/api/logistics', logisticsRouter);
+      app.use('/api', logisticsRouter);
+      app.use('/api/sourcing', sourcingRouter);
+      app.use('/api', sourcingRouter);
 
       server.middlewares.use(app);
     }

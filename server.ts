@@ -3,7 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { paymentsRouter } from './server/api/paymentsRouter';
-import { authRouter } from './server/api/authRouter';
+import { logisticsRouter } from './server/api/logisticsRouter';
+import { sourcingRouter } from './server/api/sourcingRouter';
 import { config, logServerConfig } from './server/config';
 
 dotenv.config();
@@ -36,16 +37,19 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'online',
-    service: 'SinoSenegal API & Payment Engine',
+    service: 'SinoSenegal API & Logistics Engine',
     gateway: 'GeniusPay',
     timestamp: new Date().toISOString()
   });
 });
 
 // 2. API Routes
-app.use('/api/auth', authRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api', paymentsRouter); // Supporte aussi /api/webhooks/geniuspay
+app.use('/api/logistics', logisticsRouter);
+app.use('/api', logisticsRouter); // Endpoints: /api/shipments, /api/carriers, /api/hubs, /api/notifications
+app.use('/api/sourcing', sourcingRouter);
+app.use('/api', sourcingRouter); // Endpoints: /api/requests, /api/quotes, /api/suppliers
 
 // 3. Fichiers statiques et SPA Fallback en production
 const distPath = path.resolve(__dirname, 'dist');
@@ -63,14 +67,10 @@ app.get('*', (req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
-  const PORT = config.port;
-  app.listen(PORT, '0.0.0.0', () => {
-    logServerConfig();
-    console.log(`[Dallou Chine Server] Express server running on port ${PORT}`);
-  });
-}
+const PORT = config.port;
+app.listen(PORT, '0.0.0.0', () => {
+  logServerConfig();
+  console.log(`[SinoSenegal Server] Express server running on port ${PORT}`);
+});
 
-export { app };
 export default app;
-
