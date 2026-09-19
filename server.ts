@@ -5,8 +5,7 @@ import dotenv from 'dotenv';
 import { shipmentsRouter } from './server/api/shipmentsRouter';
 import { sourcingRouter } from './server/api/sourcingRouter';
 import { paymentsRouter } from './server/api/paymentsRouter';
-import { logisticsRouter } from './server/api/logisticsRouter';
-import { sourcingRouter } from './server/api/sourcingRouter';
+import { authRouter } from './server/api/authRouter';
 import { config, logServerConfig } from './server/config';
 
 dotenv.config();

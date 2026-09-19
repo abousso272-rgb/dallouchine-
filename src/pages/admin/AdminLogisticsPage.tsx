@@ -21,82 +21,6 @@ import {
   Filter,
   X
 } from 'lucide-react';
-import { TransportMode } from '../../types';
-
-export interface AdminShipmentItem {
-  id: string;
-  orderId: string;
-  orderCode: string;
-  trackingCode: string;
-  carrierId: string;
-  carrierName?: string;
-  carrierCode?: string;
-  origin: string;
-  destination: string;
-  transportMode: TransportMode;
-  status: string;
-  estimatedDeparture?: string;
-  actualDeparture?: string;
-  estimatedArrival?: string;
-  actualArrival?: string;
-  hubId?: string;
-  hubName?: string;
-  notes?: string;
-  internalCostEstimatedXOF?: number;
-  internalCostConfirmedXOF?: number;
-  internalCostActualXOF?: number;
-  createdAt: string;
-  updatedAt: string;
-  carrier?: {
-    id: string;
-    name: string;
-    code: string;
-  };
-  hub?: {
-    id: string;
-    name: string;
-    city: string;
-  };
-  events?: Array<{
-    id: string;
-    eventType: string;
-    previousStatus: string;
-    newStatus: string;
-    location: string;
-    description: string;
-    createdAt: string;
-  }>;
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  awaiting_supplier: { label: 'Attente Fournisseur', color: 'text-amber-300', bg: 'bg-amber-950/60', border: 'border-amber-700/50' },
-  supplier_confirmed: { label: 'Confirmé Usine Chine', color: 'text-blue-300', bg: 'bg-blue-950/60', border: 'border-blue-700/50' },
-  preparing_in_china: { label: 'Préparation Chine', color: 'text-purple-300', bg: 'bg-purple-950/60', border: 'border-purple-700/50' },
-  ready_to_ship: { label: 'Prêt à Expédier', color: 'text-indigo-300', bg: 'bg-indigo-950/60', border: 'border-indigo-700/50' },
-  shipped_from_china: { label: 'Expédié Chine', color: 'text-cyan-300', bg: 'bg-cyan-950/60', border: 'border-cyan-700/50' },
-  in_transit: { label: 'Fret en Transit', color: 'text-orange-300', bg: 'bg-orange-950/60', border: 'border-orange-700/50' },
-  arrived_senegal: { label: 'Arrivé Sénégal (Port/AIBD)', color: 'text-teal-300', bg: 'bg-teal-950/60', border: 'border-teal-700/50' },
-  customs: { label: 'Douane Gaindé Dakar', color: 'text-yellow-300', bg: 'bg-yellow-950/60', border: 'border-yellow-700/50' },
-  at_hub: { label: 'Réceptionné au Hub', color: 'text-sky-300', bg: 'bg-sky-950/60', border: 'border-sky-700/50' },
-  out_for_delivery: { label: 'En Livraison Finale', color: 'text-emerald-300', bg: 'bg-emerald-950/60', border: 'border-emerald-700/50' },
-  delivered: { label: 'Livré au Client', color: 'text-emerald-400', bg: 'bg-emerald-900/60', border: 'border-emerald-600/50' },
-  cancelled: { label: 'Annulé', color: 'text-rose-400', bg: 'bg-rose-950/60', border: 'border-rose-700/50' }
-};
-
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  awaiting_supplier: ['supplier_confirmed', 'cancelled'],
-  supplier_confirmed: ['preparing_in_china', 'cancelled'],
-  preparing_in_china: ['ready_to_ship', 'cancelled'],
-  ready_to_ship: ['shipped_from_china', 'cancelled'],
-  shipped_from_china: ['in_transit', 'cancelled'],
-  in_transit: ['arrived_senegal'],
-  arrived_senegal: ['customs'],
-  customs: ['at_hub'],
-  at_hub: ['out_for_delivery', 'delivered'],
-  out_for_delivery: ['delivered'],
-  delivered: [],
-  cancelled: []
-};
 
 const ALLOWED_NEXT_STATUSES: Record<string, string[]> = {
   awaiting_supplier: ['supplier_confirmed', 'cancelled'],
@@ -340,23 +264,21 @@ export const AdminLogisticsPage: React.FC = () => {
             key={stage.id}
             className="p-4 rounded-2xl bg-[#0a1945] border border-blue-900/40 shadow-md flex flex-col justify-between space-y-2"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>Nouvelle Expédition</span>
-          </button>
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-blue-300 truncate">{stage.label}</span>
+              <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+            </div>
 
             <div className="my-1">
               <div className="text-2xl font-black text-white font-mono">{stage.count}</div>
               <div className="text-[10px] text-slate-400">expéditions actives</div>
             </div>
 
-          <button
-            onClick={() => navigate('/admin/hub')}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
-          >
-            <Warehouse className="w-4 h-4" />
-            <span>Scanner Hub</span>
-          </button>
-        </div>
+            <div className="text-[10px] text-slate-400 border-t border-blue-900/40 pt-1.5 truncate">
+              📍 {stage.location}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* 3. TABLEAU DE BORD EXPÉDITIONS */}

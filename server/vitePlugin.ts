@@ -3,8 +3,6 @@ import express, { Request, Response } from 'express';
 import { shipmentsRouter } from './api/shipmentsRouter';
 import { sourcingRouter } from './api/sourcingRouter';
 import { paymentsRouter } from './api/paymentsRouter';
-import { logisticsRouter } from './api/logisticsRouter';
-import { sourcingRouter } from './api/sourcingRouter';
 
 export function expressApiPlugin(): Plugin {
   return {
