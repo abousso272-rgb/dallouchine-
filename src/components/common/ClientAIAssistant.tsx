@@ -149,7 +149,7 @@ export const ClientAIAssistant: React.FC = () => {
       {/* Floating Action Button */}
       <button
         onClick={() => setClientChatOpen(true)}
-        className="fixed bottom-6 left-6 z-40 bg-gradient-to-r from-[#0B192C] to-[#1E3E62] text-white p-3.5 sm:px-4 sm:py-3 rounded-full shadow-2xl hover:shadow-[#FF4500]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 group border border-white/20"
+        className="fixed bottom-24 sm:bottom-6 left-3 sm:left-6 z-40 bg-gradient-to-r from-[#0B192C] to-[#1E3E62] text-white p-3.5 sm:px-4 sm:py-3 rounded-full shadow-2xl hover:shadow-[#FF4500]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 group border border-white/20"
         aria-label="Assistant Client Dallou Chine"
       >
         <div className="relative">

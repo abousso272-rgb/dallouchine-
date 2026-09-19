@@ -197,7 +197,7 @@ export const Navbar: React.FC = () => {
                     navigate('/login');
                   }
                 }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 transition-all shadow-2xs"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 transition-all shadow-2xs"
               >
                 <User className="w-3.5 h-3.5 text-[#FF4500]" />
                 <span className="hidden sm:inline">
@@ -208,9 +208,10 @@ export const Navbar: React.FC = () => {
               {/* Demander un devis -> Button (Orange Pill as in reference mockup) */}
               <button
                 onClick={() => navigate('/demande-devis')}
-                className="flex items-center gap-1.5 px-4 py-1.5 sm:py-2 rounded-full bg-[#FF4500] hover:bg-[#E03D00] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                aria-label="Demander un devis"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full bg-[#FF4500] hover:bg-[#E03D00] text-white text-xs font-bold shadow-xs transition-all cursor-pointer shrink-0"
               >
-                <span>Demander un devis</span>
+                <span className="hidden sm:inline">Demander un devis</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
 
@@ -218,7 +219,7 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={() => navigate('/cart')}
                 aria-label="Panier"
-                className="relative p-2 rounded-full hover:bg-slate-100 text-slate-700 transition-all shrink-0"
+                className="hidden sm:block relative p-2 rounded-full hover:bg-slate-100 text-slate-700 transition-all shrink-0"
                 title="Mon Panier"
               >
                 <ShoppingBag className="w-4 h-4 text-slate-700" />
@@ -393,7 +394,7 @@ export const Navbar: React.FC = () => {
         {/* Mobile / Tablet Drawer Menu */}
         {isMobileMenuOpen && (
           <div className="lg:hidden max-w-7xl mx-auto mt-2 pointer-events-auto px-2">
-            <div className="glass-panel bg-white/95 backdrop-blur-2xl rounded-3xl p-4 sm:p-5 shadow-2xl border border-white space-y-3 animate-in fade-in zoom-in-95">
+            <div className="liquid-glass bg-white/95 rounded-3xl p-4 sm:p-5 shadow-2xl border border-white space-y-3 animate-in fade-in zoom-in-95">
               <div className="space-y-1">
                 {navLinks.map(link => (
                   <button

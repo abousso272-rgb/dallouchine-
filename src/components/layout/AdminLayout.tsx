@@ -181,7 +181,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   ];
 
   return (
-    <div className="min-h-screen bg-[#071330] text-slate-100 flex flex-col lg:flex-row antialiased">
+    <div className="min-h-screen overflow-x-clip bg-[#071330] text-slate-100 flex flex-col lg:flex-row antialiased">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -395,7 +395,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       {/* Main Content Container with Sticky Header */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#081538] min-h-screen">
         <AdminHeader onOpenMobileMenu={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 lg:p-6 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 min-w-0 p-3 sm:p-4 lg:p-6 max-w-7xl w-full mx-auto space-y-4 sm:space-y-6 pb-24 lg:pb-6">
           {children}
         </main>
       </div>

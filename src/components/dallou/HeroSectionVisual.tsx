@@ -28,9 +28,9 @@ export const HeroSectionVisual: React.FC = () => {
         {/* ===================================================================== */}
         {/* LEFT COLUMN: BADGE, HEADLINE, SUBTITLE & 3 CTA BUTTONS */}
         {/* ===================================================================== */}
-        <div className="lg:col-span-6 space-y-6 text-left">
+        <div className="lg:col-span-6 space-y-6 text-left min-w-0">
           {/* Badge: Chine ➔ Sénégal */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100/80 border border-orange-200/80 text-[#D84315] text-xs font-black shadow-2xs">
+          <div className="liquid-glass inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[#D84315] text-xs font-black shadow-2xs">
             <span className="text-sm">🇨🇳</span>
             <span className="tracking-wide">Chine ➔ Sénégal</span>
             <span className="text-sm">🇸🇳</span>
@@ -38,8 +38,8 @@ export const HeroSectionVisual: React.FC = () => {
 
           {/* Huge Main Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-black text-[#0B192C] tracking-tight leading-[1.08]">
-            Votre passerelle entre<br />
-            la <span className="text-[#FF4500]">Chine et l’Afrique</span>
+            Votre passerelle entre<span className="hidden sm:inline"><br /></span>{' '}
+            la <span className="text-gradient-brand">Chine et l’Afrique</span>
           </h1>
 
           {/* Subtitle */}
@@ -48,11 +48,11 @@ export const HeroSectionVisual: React.FC = () => {
           </p>
 
           {/* 3 Call to Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 pt-2">
             {/* 1. Explorer les produits -> */}
             <button
               onClick={() => navigate('/products')}
-              className="px-7 py-3.5 rounded-full bg-[#FF4500] hover:bg-[#E03D00] active:scale-95 text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all flex items-center gap-2.5 cursor-pointer"
+              className="w-full sm:w-auto justify-center px-7 py-3.5 rounded-full bg-[#FF4500] hover:bg-[#E03D00] active:scale-95 text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all flex items-center gap-2.5 cursor-pointer"
             >
               <span>Explorer les produits</span>
               <ArrowRight className="w-4 h-4" />
@@ -61,7 +61,7 @@ export const HeroSectionVisual: React.FC = () => {
             {/* 2. Demander un devis */}
             <button
               onClick={() => navigate('/b2b')}
-              className="px-6 py-3.5 rounded-full bg-white hover:bg-slate-50 active:scale-95 text-slate-800 font-bold text-sm sm:text-base border border-slate-200/90 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-full liquid-glass hover:bg-slate-50 active:scale-95 text-slate-800 font-bold text-sm sm:text-base shadow-xs transition-all flex items-center gap-2 cursor-pointer"
             >
               <FileText className="w-4 h-4 text-slate-400" />
               <span>Demander un devis</span>
@@ -72,7 +72,7 @@ export const HeroSectionVisual: React.FC = () => {
               href="https://wa.me/221774201819?text=Bonjour%20Dallou%20Chine,%20je%20souhaite%20des%20renseignements%20sur%20vos%20services%20de%20transit%20et%20sourcing."
               target="_blank"
               rel="noreferrer"
-              className="px-5 py-3.5 rounded-full bg-white hover:bg-emerald-50/60 active:scale-95 text-[#10B981] font-bold text-sm sm:text-base border border-emerald-200/80 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto justify-center px-5 py-3.5 rounded-full bg-white hover:bg-emerald-50/60 active:scale-95 text-[#10B981] font-bold text-sm sm:text-base border border-emerald-200/80 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
             >
               <div className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-2xs">
                 <MessageCircle className="w-3 h-3 fill-current" />
@@ -85,7 +85,7 @@ export const HeroSectionVisual: React.FC = () => {
         {/* ===================================================================== */}
         {/* RIGHT COLUMN: HERO PHOTOGRAPHIC & LOGISTICS COMPOSITE */}
         {/* ===================================================================== */}
-        <div className="lg:col-span-6 relative">
+        <div className="lg:col-span-6 relative min-w-0 animate-float-soft">
           <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900 aspect-[16/11] group">
             {/* Base Background Image: Cargo Port with Container Ship, Cranes and Sunset */}
             <img
