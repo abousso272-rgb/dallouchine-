@@ -4,6 +4,7 @@ import {
   Search,
   Package,
   Ship,
+  Plane,
   MapPin,
   Clock,
   Compass,
@@ -26,6 +27,8 @@ import {
   Navigation
 } from 'lucide-react';
 
+import { shipmentClientService, PublicTrackingDetails } from '../../services/shipmentService';
+
 interface Milestone {
   id: string;
   num: string;
@@ -42,6 +45,58 @@ export const TrackingPage: React.FC = () => {
   const [trackingInput, setTrackingInput] = useState('CMD-2026-0048');
   const [activeCode, setActiveCode] = useState('CMD-2026-0048');
   const [isSearching, setIsSearching] = useState(false);
+  const [liveShipment, setLiveShipment] = useState<PublicTrackingDetails | null>(null);
+  const [recentShipments, setRecentShipments] = useState<Array<{ tracking_code: string; label: string }>>([]);
+
+  // 1. Charger les expéditions réelles du client connecté pour les dossiers récents
+  useEffect(() => {
+    async function loadRecent() {
+      try {
+        const res = await shipmentClientService.getShipments({ limit: 5 });
+        if (res.shipments && res.shipments.length > 0) {
+          const chips = res.shipments.map(s => ({
+            tracking_code: s.tracking_code,
+            label: `${s.tracking_code} (${s.transport_mode.toUpperCase()})`
+          }));
+          setRecentShipments(chips);
+          // Si aucun code dans l'URL, charger la première expédition du client
+          if (!currentPath.includes('code=')) {
+            setTrackingInput(chips[0].tracking_code);
+            setActiveCode(chips[0].tracking_code);
+          }
+        }
+      } catch (e) {
+        console.warn('Impossible de charger les expéditions récentes:', e);
+      }
+    }
+    loadRecent();
+  }, []);
+
+  // 2. Interroger le suivi réel dès que activeCode change
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchTracking() {
+      if (!activeCode) return;
+      setIsSearching(true);
+      try {
+        const data = await shipmentClientService.getPublicTracking(activeCode);
+        if (isMounted) {
+          if (data.found) {
+            setLiveShipment(data);
+          } else {
+            setLiveShipment(null);
+          }
+        }
+      } catch (err) {
+        console.error('Erreur chargement tracking:', err);
+        if (isMounted) setLiveShipment(null);
+      } finally {
+        if (isMounted) setIsSearching(false);
+      }
+    }
+    fetchTracking();
+    return () => { isMounted = false; };
+  }, [activeCode]);
 
   // Check URL query parameter if available
   useEffect(() => {
@@ -57,16 +112,13 @@ export const TrackingPage: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackingInput.trim()) return;
-    setIsSearching(true);
-    setTimeout(() => {
-      setIsSearching(false);
-      setActiveCode(trackingInput.trim().toUpperCase());
-      addToast({
-        title: 'Cargaison localisée',
-        message: `Bordereau ${trackingInput.trim().toUpperCase()} synchronisé avec les ports de Ningbo et Dakar.`,
-        type: 'success'
-      });
-    }, 450);
+    const cleanCode = trackingInput.trim().toUpperCase();
+    setActiveCode(cleanCode);
+    addToast({
+      title: 'Recherche en cours',
+      message: `Interrogation du réseau de transport pour ${cleanCode}...`,
+      type: 'info'
+    });
   };
 
   const setQuery = (code: string) => {
@@ -87,7 +139,23 @@ export const TrackingPage: React.FC = () => {
     });
   };
 
-  const milestones: Milestone[] = [
+
+  const STATUS_LABELS: Record<string, string> = {
+    awaiting_supplier: 'En attente confirmation usine (Chine)',
+    supplier_confirmed: 'Confirmé par le fournisseur',
+    preparing_in_china: 'En préparation dans nos entrepôts en Chine',
+    ready_to_ship: 'Contrôlé & Prêt pour l\'embarquement',
+    shipped_from_china: 'Expédié depuis la Chine',
+    in_transit: 'En transit international',
+    arrived_senegal: 'Arrivé au Sénégal',
+    customs: 'Formalités douanières GAINDE en cours',
+    at_hub: 'Disponible au Hub Relais Dakar',
+    out_for_delivery: 'En cours de livraison finale',
+    delivered: 'Colis livré avec succès',
+    cancelled: 'Expédition annulée'
+  };
+
+  const defaultMilestones: Milestone[] = [
     {
       id: 'm1',
       num: '01',
@@ -181,6 +249,74 @@ export const TrackingPage: React.FC = () => {
     }
   ];
 
+  // Calcul dynamique des jalons selon l'expédition réelle
+  const activeMilestones: Milestone[] = React.useMemo(() => {
+    if (!liveShipment) return defaultMilestones;
+
+    const STATUS_STAGES = [
+      { key: 'awaiting_supplier', num: '01', title: 'Dossier transmis au Desk Chine', desc: 'Commande enregistrée et transmise à nos équipes de Guangzhou / Yiwu.' },
+      { key: 'supplier_confirmed', num: '02', title: 'Confirmation fournisseur Chine', desc: 'Confirmation de commande et calendrier d\'approvisionnement validé.' },
+      { key: 'preparing_in_china', num: '03', title: 'Préparation & Conditionnement usine', desc: 'Conditionnement, étiquetage export et emballage renforcé.' },
+      { key: 'ready_to_ship', num: '04', title: 'Inspection qualité & Prêt à expédier', desc: 'Contrôle qualité physique terminé. Colis prêt pour embarquement.' },
+      { key: 'shipped_from_china', num: '05', title: 'Départ du fret depuis la Chine', desc: `Départ effectif depuis ${liveShipment.origin || 'la Chine'}.` },
+      { key: 'in_transit', num: '06', title: 'En transit international vers Dakar', desc: `Acheminement en cours par ${liveShipment.carrier_name || 'notre transitaire'}.` },
+      { key: 'arrived_senegal', num: '07', title: 'Arrivée sur le sol sénégalais', desc: `Arrivée à destination : ${liveShipment.destination || 'Dakar, Sénégal'}.` },
+      { key: 'customs', num: '08', title: 'Dédouanement GAINDE', desc: 'Prise en charge douanière et formalités de dédouanement officiel.' },
+      { key: 'at_hub', num: '09', title: 'Réceptionné au Hub Dakar', desc: `Colis disponible au ${liveShipment.hub_name || 'Hub Dakar'}.` },
+      { key: 'out_for_delivery', num: '10', title: 'En cours de livraison au client', desc: 'Pris en charge par notre équipe de livraison sur Dakar et régions.' },
+      { key: 'delivered', num: '11', title: 'Colis livré avec succès', desc: 'Marchandise remise au destinataire. Dossier clôturé.' }
+    ];
+
+    const currentKey = liveShipment.status || 'awaiting_supplier';
+    const currentIdx = STATUS_STAGES.findIndex(s => s.key === currentKey);
+
+    return STATUS_STAGES.map((st, idx) => {
+      const matchedEvent = (liveShipment.events || []).find(e => e.event_type === st.key || e.status === st.key);
+      let sState: 'completed' | 'active' | 'future' = 'future';
+      if (currentIdx !== -1) {
+        if (idx < currentIdx) sState = 'completed';
+        else if (idx === currentIdx) sState = 'active';
+      }
+
+      let dateLabel = 'À venir';
+      if (matchedEvent) {
+        dateLabel = new Date(matchedEvent.created_at).toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } else if (sState === 'active' && liveShipment.estimated_arrival) {
+        dateLabel = `ETA : ${new Date(liveShipment.estimated_arrival).toLocaleDateString('fr-FR')}`;
+      }
+
+      return {
+        id: `ms-${st.key}`,
+        num: st.num,
+        title: st.title,
+        desc: matchedEvent?.description || st.desc,
+        date: dateLabel,
+        status: sState,
+        tag: sState === 'completed' ? 'Validé' : sState === 'active' ? 'JALON ACTIF' : 'À venir',
+        coordinates: matchedEvent?.location
+      };
+    });
+  }, [liveShipment]);
+
+  const displayCode = liveShipment?.tracking_code || activeCode;
+  const displayStatusLabel = liveShipment?.status 
+    ? (STATUS_LABELS[liveShipment.status] || liveShipment.status)
+    : 'En transit maritime — ETA Dakar: 18 Août 2026';
+  const displayCarrier = liveShipment?.carrier_name || 'CMA CGM TANGIER (IMO 9436214)';
+  const displayOrigin = liveShipment?.origin || 'Ningbo-Zhoushan (CN)';
+  const displayDestination = liveShipment?.destination || 'Port Autonome de Dakar (SN)';
+  const displayEta = liveShipment?.estimated_arrival 
+    ? `ETA Estimée : ${new Date(liveShipment.estimated_arrival).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    : 'ETA Estimée : 18 Août 2026';
+  const displayMode = liveShipment?.transport_mode 
+    ? (liveShipment.transport_mode === 'air' ? 'Fret Aérien Express' : liveShipment.transport_mode === 'express' ? 'Courrier Express Prioritaire' : 'Fret Maritime LCL Groupé')
+    : 'Fret Maritime LCL Groupé';
+
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8 flex flex-col gap-10 pb-20 relative">
       {/* Background Ambience */}
@@ -192,7 +328,7 @@ export const TrackingPage: React.FC = () => {
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/80 shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-[#FF4500] animate-pulse" />
           <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-            Ligne Maritime Directe Asie · Afrique de l'Ouest
+            Ligne Directe Asie · Afrique de l'Ouest
           </span>
         </div>
 
@@ -217,7 +353,7 @@ export const TrackingPage: React.FC = () => {
                 type="text"
                 value={trackingInput}
                 onChange={e => setTrackingInput(e.target.value)}
-                placeholder="Ex: CMD-2026-0048 ou B/L..."
+                placeholder="Ex: DALLOU-EXP-... ou CMD-..."
                 className="w-full bg-transparent text-sm sm:text-base font-bold text-[#0B192C] font-mono outline-hidden placeholder:text-slate-400 uppercase"
               />
             </div>
@@ -232,30 +368,42 @@ export const TrackingPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Chips */}
+          {/* Quick Chips (Expéditions réelles ou démo) */}
           <div className="flex items-center justify-center gap-2 flex-wrap mt-3 text-xs">
-            <span className="text-slate-400 font-medium">Dossiers récents :</span>
-            <button
-              type="button"
-              onClick={() => setQuery('CMD-2026-0048')}
-              className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[#0B192C] font-bold text-[11px] hover:border-[#FF4500] transition-colors cursor-pointer"
-            >
-              CMD-2026-0048 (Motos 2000W)
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuery('GRP-2026-MOTO')}
-              className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[#0B192C] font-bold text-[11px] hover:border-[#FF4500] transition-colors cursor-pointer"
-            >
-              GRP-2026-MOTO
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuery('DEV-2026-0089')}
-              className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[#0B192C] font-bold text-[11px] hover:border-[#FF4500] transition-colors cursor-pointer"
-            >
-              DEV-2026-0089
-            </button>
+            <span className="text-slate-400 font-medium">Vos expéditions :</span>
+            {recentShipments.length > 0 ? (
+              recentShipments.map(s => (
+                <button
+                  key={s.tracking_code}
+                  type="button"
+                  onClick={() => setQuery(s.tracking_code)}
+                  className={`px-3 py-1 rounded-full border text-[11px] font-bold transition-colors cursor-pointer ${
+                    activeCode === s.tracking_code
+                      ? 'bg-[#FF4500] text-white border-[#FF4500]'
+                      : 'bg-white border-slate-200 text-[#0B192C] hover:border-[#FF4500]'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setQuery('CMD-2026-0048')}
+                  className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[#0B192C] font-bold text-[11px] hover:border-[#FF4500] transition-colors cursor-pointer"
+                >
+                  CMD-2026-0048 (Exemple)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuery('GRP-2026-MOTO')}
+                  className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[#0B192C] font-bold text-[11px] hover:border-[#FF4500] transition-colors cursor-pointer"
+                >
+                  GRP-2026-MOTO
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -267,19 +415,21 @@ export const TrackingPage: React.FC = () => {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2.5 flex-wrap">
               <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-slate-100 text-[#0B192C] uppercase tracking-wider">
-                Fret Maritime LCL Groupé
+                {displayMode}
               </span>
-              <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-orange-50 text-[#FF4500] border border-orange-200">
-                B/L: MSK-DKR-982341
-              </span>
+              {liveShipment?.order_tracking_code && (
+                <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-orange-50 text-[#FF4500] border border-orange-200">
+                  Commande : {liveShipment.order_tracking_code}
+                </span>
+              )}
             </div>
             <div className="flex items-baseline gap-3 mt-1 flex-wrap">
               <span className="text-2xl sm:text-3xl font-black text-[#0B192C] tracking-tight font-mono">
-                {activeCode}
+                {displayCode}
               </span>
               <span className="text-xs sm:text-sm font-bold text-[#FF4500] flex items-center gap-1">
-                <Ship className="w-4 h-4" />
-                Porte-conteneurs : CMA CGM TANGIER (IMO 9436214)
+                {liveShipment?.transport_mode === 'air' ? <Plane className="w-4 h-4" /> : <Ship className="w-4 h-4" />}
+                Transporteur : {displayCarrier}
               </span>
             </div>
           </div>
@@ -289,11 +439,11 @@ export const TrackingPage: React.FC = () => {
             <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-[#FF4500] text-white shadow-md shadow-orange-500/25">
               <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
               <span className="text-xs font-black tracking-wide uppercase">
-                En transit maritime — ETA Dakar: 18 Août 2026
+                {displayStatusLabel}
               </span>
             </div>
             <span className="text-[11px] text-slate-500 font-medium">
-              Position GPS estimée : 04°12'N 14°48'W (Atlantique Centre-Est)
+              {displayEta}
             </span>
           </div>
         </div>
@@ -308,9 +458,9 @@ export const TrackingPage: React.FC = () => {
               </span>
               <Anchor className="w-4 h-4 text-[#FF4500]" />
             </div>
-            <span className="text-base font-black text-[#0B192C]">Ningbo-Zhoushan (CN)</span>
+            <span className="text-base font-black text-[#0B192C]">{displayOrigin}</span>
             <p className="text-xs text-slate-500">
-              Appareillage le 14 Juillet 2026<br />Quai Meishan Terminal 3
+              Départ : Chine (Yiwu / Ningbo / Guangzhou)
             </p>
           </div>
 
@@ -322,9 +472,9 @@ export const TrackingPage: React.FC = () => {
               </span>
               <MapPin className="w-4 h-4 text-[#FF4500]" />
             </div>
-            <span className="text-base font-black text-[#0B192C]">Port Autonome de Dakar (SN)</span>
+            <span className="text-base font-black text-[#0B192C]">{displayDestination}</span>
             <p className="text-xs text-slate-500">
-              Dakar Terminal Conteneurs<br />Puis acheminement Hub Almadies
+              {liveShipment?.hub_name ? `Hub : ${liveShipment.hub_name}` : 'Acheminement Hub Dakar'}
             </p>
           </div>
 
@@ -332,28 +482,29 @@ export const TrackingPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Temps Restant
+                Estimation Délais
               </span>
               <Clock className="w-4 h-4 text-[#FF4500]" />
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-[#FF4500]">12</span>
-              <span className="text-xs font-bold text-[#0B192C]">jours de mer</span>
+              <span className="text-sm font-bold text-[#FF4500]">{displayEta}</span>
             </div>
-            <p className="text-xs text-slate-500">Jour 23 sur 35 du cycle maritime</p>
+            <p className="text-xs text-slate-500">Date estimative sujette aux aléas maritimes/météo</p>
           </div>
 
-          {/* Container Spec */}
+          {/* Container / Hub Spec */}
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Conditionnement
+                Hub & Retrait
               </span>
               <Boxes className="w-4 h-4 text-slate-500" />
             </div>
-            <span className="text-base font-black text-[#0B192C]">Conteneur 40' High Cube</span>
+            <span className="text-base font-black text-[#0B192C]">
+              {liveShipment?.hub_name || 'Hub Central Dakar HQ'}
+            </span>
             <p className="text-xs text-slate-500">
-              Scellé douane CN-SH-882109<br />Régulation thermique &amp; calage lourd
+              {liveShipment?.hub_address || 'Route des Almadies, Dakar'}
             </p>
           </div>
         </div>
@@ -362,24 +513,36 @@ export const TrackingPage: React.FC = () => {
         <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-3 mt-1">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-600">
-              Progression globale de livraison : <strong className="text-[#0B192C]">70% achevé</strong>
+              Statut de la cargaison : <strong className="text-[#0B192C]">{displayStatusLabel}</strong>
             </span>
-            <span className="text-[#FF4500] font-bold">Étape 8 / 10 active</span>
+            <span className="text-[#FF4500] font-bold">{displayMode}</span>
           </div>
 
           <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden p-0.5">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[#FF4500] via-orange-500 to-amber-400 transition-all duration-1000"
-              style={{ width: '70%' }}
+              style={{
+                width: liveShipment?.status === 'delivered' ? '100%'
+                  : liveShipment?.status === 'out_for_delivery' ? '90%'
+                  : liveShipment?.status === 'at_hub' ? '80%'
+                  : liveShipment?.status === 'customs' ? '70%'
+                  : liveShipment?.status === 'arrived_senegal' ? '60%'
+                  : liveShipment?.status === 'in_transit' ? '50%'
+                  : liveShipment?.status === 'shipped_from_china' ? '40%'
+                  : liveShipment?.status === 'ready_to_ship' ? '30%'
+                  : liveShipment?.status === 'preparing_in_china' ? '20%'
+                  : '10%'
+              }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold">
-            <span>Usine Chine (10 Juin)</span>
-            <span>Empotage (09 Juil)</span>
-            <span className="text-[#FF4500] font-bold">Transit Atlantique (En mer)</span>
-            <span>Douane GAINDE (18 Août)</span>
-            <span>Remise Dakar (22 Août)</span>
+          <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold flex-wrap gap-1">
+            <span>1. Chine</span>
+            <span>2. Départ</span>
+            <span className="text-[#FF4500] font-bold">3. Transit</span>
+            <span>4. Douane GAINDE</span>
+            <span>5. Hub Dakar</span>
+            <span>6. Livré</span>
           </div>
         </div>
       </section>
@@ -392,7 +555,7 @@ export const TrackingPage: React.FC = () => {
               Audit Chaîne d'Approvisionnement
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-[#0B192C] mt-0.5">
-              Traçabilité Totale en 10 Jalons
+              Traçabilité Totale en 11 Jalons
             </h2>
           </div>
           <span className="text-xs text-slate-500">
@@ -402,7 +565,7 @@ export const TrackingPage: React.FC = () => {
 
         {/* Milestones List */}
         <div className="flex flex-col gap-3">
-          {milestones.map(m => {
+          {activeMilestones.map(m => {
             if (m.status === 'active') {
               return (
                 <div

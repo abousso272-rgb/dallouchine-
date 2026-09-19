@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { shipmentsRouter } from './server/api/shipmentsRouter';
+import { sourcingRouter } from './server/api/sourcingRouter';
 import { paymentsRouter } from './server/api/paymentsRouter';
 import { authRouter } from './server/api/authRouter';
 import { config, logServerConfig } from './server/config';
@@ -36,7 +38,7 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'online',
-    service: 'SinoSenegal API & Payment Engine',
+    service: 'Dallou Chine API & Logistics Engine',
     gateway: 'GeniusPay',
     timestamp: new Date().toISOString()
   });
@@ -46,6 +48,9 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.use('/api/auth', authRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api', paymentsRouter); // Supporte aussi /api/webhooks/geniuspay
+app.use('/api/shipments', shipmentsRouter);
+app.use('/api/sourcing', sourcingRouter);
+
 
 // 3. Fichiers statiques et SPA Fallback en production
 const distPath = path.resolve(__dirname, 'dist');

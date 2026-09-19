@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { sourcingClient } from '../../services/sourcingService';
 
 export const SourcingRequestPage: React.FC = () => {
-  const { navigate, submitB2BRequest } = useApp();
+  const { navigate } = useApp();
 
   // Selected Category Pill State
   const [activeCategory, setActiveCategory] = useState<string>('auto');
@@ -27,8 +28,10 @@ export const SourcingRequestPage: React.FC = () => {
   const [whatsapp, setWhatsapp] = useState('');
   const [deliveryCity, setDeliveryCity] = useState('dakar');
 
-  // Files
+  // Files & State
   const [files, setFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Success Modal
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -56,27 +59,117 @@ export const SourcingRequestPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productDesignation || !contactName || !whatsapp) {
-      alert('Veuillez renseigner le produit, votre nom et votre numéro WhatsApp.');
+    setErrorMessage(null);
+
+    // Au moins un identifiant produit : nom, description, lien, ou fichier
+    if (!productDesignation && !technicalDetails && !sourceUrl && files.length === 0) {
+      setErrorMessage('Veuillez fournir au moins une description, un lien ou une photo du produit recherché.');
       return;
     }
 
-    const newReq = submitB2BRequest({
-      companyName: 'Demandeur Sourcing Particulier/Pro',
-      contactName,
-      phone: whatsapp,
-      email: `${whatsapp}@client.sn`,
-      productType: productDesignation,
-      quantity: parseInt(quantity, 10) || 1,
-      targetBudgetXOF: parseInt(targetBudget, 10) || 0,
-      transportPreference: 'recommended',
-      specifications: `${technicalDetails} \n[Catégorie: ${productCategory}] \n[Lien: ${sourceUrl}] \n[Livraison: ${deliveryCity}] \n[Options: ${optBranding ? 'Branding OEM, ' : ''}${optSample ? 'Échantillon, ' : ''}${optInspection ? 'Inspection, ' : ''}${optCustoms ? 'Douane Dakar' : ''}]`
-    });
+    if (!contactName || !whatsapp) {
+      setErrorMessage('Veuillez renseigner votre nom et votre numéro WhatsApp.');
+      return;
+    }
 
-    setTrackingCode(newReq.code || 'DLC-2026-SRC89');
-    setIsSuccessModalOpen(true);
+    setIsSubmitting(true);
+    try {
+      // 1. Upload des fichiers
+      const uploadedAttachments: Array<{ name: string; url: string; size?: number; mimeType?: string }> = [];
+      let firstImageUrl = '';
+
+      for (const file of files) {
+        try {
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve, reject) => {
+            reader.onload = () => {
+              const res = reader.result as string;
+              resolve(res.split(',')[1] || '');
+            };
+            reader.onerror = reject;
+          });
+          reader.readAsDataURL(file);
+          const base64Data = await base64Promise;
+          const isImg = file.type.startsWith('image/');
+          const uploadRes = await sourcingClient.uploadFile({
+            fileName: file.name,
+            fileType: file.type || (isImg ? 'image/jpeg' : 'application/pdf'),
+            fileSize: file.size,
+            fileBase64: base64Data,
+            bucket: isImg ? 'sourcing-images' : 'sourcing-attachments'
+          });
+
+          if (uploadRes.success) {
+            if (isImg && !firstImageUrl) {
+              firstImageUrl = uploadRes.url;
+            }
+            uploadedAttachments.push({
+              name: file.name,
+              url: uploadRes.url,
+              size: file.size,
+              mimeType: file.type
+            });
+          }
+        } catch (uploadErr) {
+          console.warn('[SourcingForm] Erreur upload fichier individuel:', uploadErr);
+        }
+      }
+
+      // 2. Détermination du titre du produit
+      let title = productDesignation.trim();
+      if (!title) {
+        if (sourceUrl) {
+          try {
+            const parsed = new URL(sourceUrl.trim());
+            title = `Produit sourcé via ${parsed.hostname}`;
+          } catch {
+            title = 'Recherche produit sur-mesure';
+          }
+        } else if (technicalDetails) {
+          title = technicalDetails.slice(0, 40) + '...';
+        } else {
+          title = `Recherche ${categories.find(c => c.id === productCategory)?.label || 'Produit Chine'}`;
+        }
+      }
+
+      // 3. Appel API réel
+      const res = await sourcingClient.createRequest({
+        title,
+        description: technicalDetails || 'Demande de sourcing sur-mesure',
+        productUrl: sourceUrl.trim() || undefined,
+        imageUrl: firstImageUrl || undefined,
+        additionalImages: uploadedAttachments.filter(a => a.mimeType?.startsWith('image/')).map(a => a.url),
+        attachments: uploadedAttachments,
+        category: productCategory,
+        quantity: parseInt(quantity, 10) || 1,
+        budgetXof: parseInt(targetBudget, 10) || undefined,
+        destination: deliveryCity === 'dakar' ? 'Dakar, Sénégal' : `${deliveryCity}, Sénégal`,
+        customization: optBranding || optSample,
+        customizationDetails: [
+          optBranding ? 'Branding OEM' : '',
+          optSample ? 'Échantillon requis' : '',
+          optInspection ? 'Inspection usine' : '',
+          optCustoms ? 'Dédouanement Gaindé' : ''
+        ].filter(Boolean).join(', '),
+        specifications: technicalDetails,
+        clientName: contactName,
+        clientPhone: whatsapp || phone,
+        clientEmail: `${whatsapp.replace(/\D/g, '') || 'client'}@dallouchine.sn`
+      });
+
+      if (res.success && res.request?.code) {
+        setTrackingCode(res.request.code);
+        setIsSuccessModalOpen(true);
+      } else {
+        setErrorMessage(res.errorMessage || res.error || 'Erreur lors de la création de la demande.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Erreur lors de la transmission.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -495,12 +588,24 @@ export const SourcingRequestPage: React.FC = () => {
               </div>
             </div>
 
+            {errorMessage && (
+              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-rose-500 text-base">error</span>
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full h-14 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/30 hover:bg-secondary-container hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+              disabled={isSubmitting}
+              className={`w-full h-14 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/30 hover:bg-secondary-container hover:scale-[1.01] active:scale-[0.99] transition-all ${
+                isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+              }`}
             >
-              <span>Lancer la recherche fournisseur sous 24h</span>
-              <span className="material-symbols-outlined text-[20px]">search</span>
+              <span>{isSubmitting ? 'Transmission en cours...' : 'Lancer la recherche fournisseur sous 24h'}</span>
+              <span className="material-symbols-outlined text-[20px]">
+                {isSubmitting ? 'sync' : 'search'}
+              </span>
             </button>
           </form>
         </div>

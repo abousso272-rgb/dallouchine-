@@ -1,5 +1,7 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import express, { Request, Response } from 'express';
+import { shipmentsRouter } from './api/shipmentsRouter';
+import { sourcingRouter } from './api/sourcingRouter';
 import { paymentsRouter } from './api/paymentsRouter';
 import { authRouter } from './api/authRouter';
 
@@ -25,6 +27,8 @@ export function expressApiPlugin(): Plugin {
       app.use('/api/auth', authRouter);
       app.use('/api/payments', paymentsRouter);
       app.use('/api', paymentsRouter);
+      app.use('/api/shipments', shipmentsRouter);
+      app.use('/api/sourcing', sourcingRouter);
 
       server.middlewares.use(app);
     }
