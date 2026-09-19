@@ -2,23 +2,45 @@ import { Router, Request, Response } from 'express';
 import { paymentService } from '../services/PaymentService';
 import { storage } from '../db/storage';
 import { config } from '../config';
+import { optionalAuth, requireAdmin } from '../middleware/auth';
 
 export const paymentsRouter = Router();
 
 /**
  * 1. POST /api/payments/create
  * Initialisation d'un paiement sécurisé
+ * L'identité provient exclusivement du jeton Supabase Auth
  */
-paymentsRouter.post('/create', async (req: Request, res: Response): Promise<void> => {
+paymentsRouter.post('/create', optionalAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { orderId, userId, returnUrl, cancelUrl, orderData } = req.body;
+    const { orderId, userId: unverifiedUserId, returnUrl, cancelUrl, orderData } = req.body;
+
+    // SÉCURITÉ AUTHENTIFICATION : L'identité provient TOUJOURS du jeton Supabase Auth
+    // Un utilisateur connecté ne peut jamais se faire passer pour un autre en envoyant un userId arbitraire
+    let verifiedUserId: string | undefined = undefined;
+
+    if (req.user) {
+      // Utilisateur authentifié via Supabase Auth Bearer Token
+      if (unverifiedUserId && unverifiedUserId !== req.user.id) {
+        console.warn(`[Security Alert] User ${req.user.id} attempted to spoof userId ${unverifiedUserId}`);
+        res.status(403).json({
+          success: false,
+          errorMessage: 'Refus de sécurité : Vous ne pouvez pas passer de commande au nom d\'un autre utilisateur.'
+        });
+        return;
+      }
+      verifiedUserId = req.user.id;
+    } else {
+      // Requête anonyme : aucun userId prétendu dans le body n'est accepté
+      verifiedUserId = undefined;
+    }
 
     // Si la commande vient d'être générée lors du checkout, on la persiste d'abord
     if (orderData && orderData.id) {
       await storage.saveOrder({
         id: orderData.id,
         trackingCode: orderData.trackingCode || `AWP-${Math.floor(10000 + Math.random() * 90000)}`,
-        userId: userId || orderData.customer?.id,
+        userId: verifiedUserId || undefined,
         customerName: orderData.customer?.fullName || orderData.customerName || 'Client SinoSenegal',
         customerPhone: orderData.customer?.phone || orderData.customerPhone || '',
         customerEmail: orderData.customer?.email || orderData.customerEmail || '',
@@ -63,7 +85,7 @@ paymentsRouter.post('/create', async (req: Request, res: Response): Promise<void
 
     const result = await paymentService.createPaymentForOrder({
       orderId: targetOrderId,
-      userId,
+      userId: verifiedUserId,
       clientIp,
       userAgent,
       returnUrl,
@@ -172,7 +194,7 @@ paymentsRouter.post('/webhooks/geniuspay', async (req: Request, res: Response): 
  * 5. GET /api/admin/payments
  * Journal des paiements pour l'administration
  */
-paymentsRouter.get('/admin/list', async (_req: Request, res: Response): Promise<void> => {
+paymentsRouter.get('/admin/list', requireAdmin, async (_req: Request, res: Response): Promise<void> => {
   try {
     const payments = await paymentService.getAdminPayments();
     res.json({

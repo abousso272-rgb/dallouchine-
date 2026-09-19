@@ -105,10 +105,13 @@ export const ClientDashboardPage: React.FC = () => {
       {/* 2. CARTES STATISTIQUES LIQUID GLASS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Stat 1 */}
-        <div className="rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between">
+        <div
+          onClick={() => navigate('/suivi')}
+          className="rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-orange-200 transition-all flex flex-col justify-between cursor-pointer group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Commandes en cours</span>
-            <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF4500] flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-500 group-hover:text-slate-900 transition-colors">Commandes en cours</span>
+            <div className="w-10 h-10 rounded-xl bg-orange-50 group-hover:bg-[#FF4500] group-hover:text-white text-[#FF4500] flex items-center justify-center transition-colors">
               <Package className="w-5 h-5" />
             </div>
           </div>
@@ -126,10 +129,13 @@ export const ClientDashboardPage: React.FC = () => {
         </div>
 
         {/* Stat 2 */}
-        <div className="rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between">
+        <div
+          onClick={() => navigate('/groupages')}
+          className="rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-orange-200 transition-all flex flex-col justify-between cursor-pointer group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Groupages rejoints</span>
-            <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF4500] flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-500 group-hover:text-slate-900 transition-colors">Groupages rejoints</span>
+            <div className="w-10 h-10 rounded-xl bg-orange-50 group-hover:bg-[#FF4500] group-hover:text-white text-[#FF4500] flex items-center justify-center transition-colors">
               <Ship className="w-5 h-5" />
             </div>
           </div>
@@ -140,10 +146,13 @@ export const ClientDashboardPage: React.FC = () => {
         </div>
 
         {/* Stat 3 */}
-        <div className="rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between">
+        <div
+          onClick={() => navigate('/devis-documents')}
+          className="rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-orange-200 transition-all flex flex-col justify-between cursor-pointer group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Devis en attente</span>
-            <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF4500] flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-500 group-hover:text-slate-900 transition-colors">Devis en attente</span>
+            <div className="w-10 h-10 rounded-xl bg-orange-50 group-hover:bg-[#FF4500] group-hover:text-white text-[#FF4500] flex items-center justify-center transition-colors">
               <FileText className="w-5 h-5" />
             </div>
           </div>
@@ -157,10 +166,13 @@ export const ClientDashboardPage: React.FC = () => {
         </div>
 
         {/* Stat 4 */}
-        <div className="rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between">
+        <div
+          onClick={() => navigate('/paiements')}
+          className="rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-emerald-200 transition-all flex flex-col justify-between cursor-pointer group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Acomptes &amp; Séquestre</span>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-500 group-hover:text-slate-900 transition-colors">Acomptes &amp; Séquestre</span>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 flex items-center justify-center transition-colors">
               <Lock className="w-5 h-5" />
             </div>
           </div>

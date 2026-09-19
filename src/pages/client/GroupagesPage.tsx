@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const GroupagesPage: React.FC = () => {
-  const { navigate, addToCart, products } = useApp();
+  const { navigate, currentUser, groupages, groupagesLoading, reserveGroupage } = useApp();
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,20 +19,28 @@ export const GroupagesPage: React.FC = () => {
     price: string;
     deposit: string;
     unitName: string;
+    minOrder: number;
+    maxOrder: number;
+    available: number;
   }>({
-    id: 'grp-moto',
-    title: 'Moto Électrique Urbaine 2000W',
+    id: '',
+    title: '',
     subtitle: 'Unité réservée au tarif usine de gros',
-    priceNum: 480000,
-    price: '480 000 FCFA',
-    deposit: '144 000 FCFA',
-    unitName: 'Moto Électrique Urbaine 2000W'
+    priceNum: 0,
+    price: '0 FCFA',
+    deposit: '0 FCFA',
+    unitName: '',
+    minOrder: 1,
+    maxOrder: 100,
+    available: 100
   });
 
   const [modalQty, setModalQty] = useState(1);
   const [phone, setPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'wave' | 'om' | 'bank'>('wave');
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [isReserving, setIsReserving] = useState(false);
 
   const openModal = (
     id: string,
@@ -40,8 +48,15 @@ export const GroupagesPage: React.FC = () => {
     priceNum: number,
     price: string,
     deposit: string,
-    subtitle = 'Unité réservée au tarif usine de gros'
+    subtitle = 'Unité réservée au tarif usine de gros',
+    minOrder = 1,
+    maxOrder = 100,
+    available = 100
   ) => {
+    if (!currentUser.isLoggedIn) {
+      navigate('/login');
+      return;
+    }
     setModalItem({
       id,
       title,
@@ -49,159 +64,111 @@ export const GroupagesPage: React.FC = () => {
       priceNum,
       price,
       deposit,
-      unitName: title
+      unitName: title,
+      minOrder: minOrder || 1,
+      maxOrder: maxOrder || 100,
+      available: available ?? 100
     });
-    setModalQty(1);
+    setModalQty(minOrder || 1);
     setBookingSuccess(false);
+    setModalError(null);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setBookingSuccess(false);
+    setModalError(null);
   };
 
-  const handleConfirmReservation = (e: React.FormEvent) => {
+  const handleConfirmReservation = async (e: React.FormEvent) => {
     e.preventDefault();
-    const productMatch = products.find(p => p.id === 'prod-moto') || products[0];
-    addToCart(
-      {
-        ...productMatch,
-        name: `Réservation Groupage : ${modalItem.title} (${modalQty} unité${modalQty > 1 ? 's' : ''})`,
-        priceXOF: modalItem.priceNum * 0.3 // 30% acompte
-      },
-      modalQty,
-      true,
-      modalItem.id
-    );
+    if (!currentUser.isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    if (modalQty < modalItem.minOrder) {
+      setModalError(`La quantité minimale par commande est de ${modalItem.minOrder} unité(s).`);
+      return;
+    }
+    if (modalQty > modalItem.available) {
+      setModalError(`Quantité disponible dépassée (${modalItem.available} unités restantes).`);
+      return;
+    }
 
-    setBookingSuccess(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      navigate('/cart');
-    }, 1200);
+    setIsReserving(true);
+    setModalError(null);
+    const key = `modal_res_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const res = await reserveGroupage(modalItem.id, modalQty, key);
+    setIsReserving(false);
+
+    if (res.success) {
+      setBookingSuccess(true);
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setBookingSuccess(false);
+        navigate('/account');
+      }, 1500);
+    } else {
+      setModalError(res.error || 'Erreur lors de la réservation');
+    }
   };
 
-  // Groupage Items
-  const cardsData = [
-    {
-      id: 'grp-smartphone',
-      category: 'electronics',
-      categoryLabel: 'Électronique',
-      status: 'almost',
-      title: 'Smartphone Android 5G Pro',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuAUbcI9nfQosel4v6Imzu-EUHbFe1n6KAZu6RiHf4DuF-uTMgSvesUGoOtmkiMR2IBNE2nHI_Iiu-WrfF3O4fbPT1V_ioKB5iollS_uMWUJwsFmeroq_VuKErW5D7qGG4XvULsk-wFnCHKFen3IngY_UYWwn0sWroO2BWthkL7-bS6KNA52xJCEicnmXPLf2_AJTovKym1ZG8od6XDD3Dfb6P_G1KX-gVme5Ei_2pwODFBWUhuxqwdfoA',
-      priceXOF: 48000,
-      oldPriceXOF: 68000,
-      discount: '-29%',
-      moq: 100,
-      reserved: 72,
-      remaining: 28,
-      progress: 72,
-      deadline: '15 Juin',
-      note: 'Fret maritime inclus'
-    },
-    {
-      id: 'grp-sweatshirt',
-      category: 'fashion',
-      categoryLabel: 'Mode & Textile',
-      status: 'almost',
-      title: 'Sweatshirt Oversize Coton 360g',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCI5lVpRRYXK7mX7ftMLW6O0ZeCrbXt6W2ahi-pWzJyP1addlse0eMxy2FL7hYwhTpjUKNa-_ucl2ifRGzxi5CmuGuuTmuCulhJKtTq3d8nMgn9fa5r4kPhERju5kQrVvGDO-du9CsaHjdVBKbkC55TJGVQuCZfO4AxtqlI9lhXc-qBhEDgcxIpaYlacAOc0q8i84lsL2QTZIR-pNomXcI0lJU4_5s4nniaqgg1UZG1OrWKQWpR46mj1Q',
-      priceXOF: 12500,
-      oldPriceXOF: 19000,
-      discount: '-34%',
-      moq: 200,
-      reserved: 150,
-      remaining: 50,
-      progress: 75,
-      deadline: '20 Juin',
-      note: 'Cartons sous blister'
-    },
-    {
-      id: 'grp-airfryer',
-      category: 'home',
-      categoryLabel: 'Maison & Cuisine',
-      status: 'almost',
-      title: 'Air Fryer XL Tactile 5.5L',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuDj9ApeAYc4noD2K9NY2B_ydecyxBsMKQ6QbhpxjhQuZwKXcRKXYex0wWdFGcDf-LGT7eOLF54xYaxJy9cQ936fBfiOK-UHVnVlg4T023aMOjHUp8C2hFfOx44i5QTC7zHKCNF8Cn7QSnim1q_q2iIpiI8ZZ7e4yK6Kfk6wqBSd1F5zWVUWg4i0MeSLaoeTVlevM0xvcN_C-Z6kEM061fKHnZTJDd7fzkqvtLWo9FUUj1BVNNLVuhxWKw',
-      priceXOF: 28000,
-      oldPriceXOF: 42000,
-      discount: '-33%',
-      moq: 50,
-      reserved: 38,
-      remaining: 12,
-      progress: 76,
-      deadline: '18 Juin',
-      note: 'Garantie 1 an usine'
-    },
-    {
-      id: 'grp-machine',
-      category: 'machinery',
-      categoryLabel: 'Équipements B2B',
-      status: 'open',
-      title: 'Découpe Laser Métal Compacte',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuA5iKFpfwscfBE-lJ6HMQq8NyieAA81SY6rzo8RV5091CJQZyENyGHcPgU_-l01VZA1ZOyi_ZDTCOFRYEasCqp12dqq9xOVgUFqWHQUr9aQES0cMRVqGufwlxvnL-jtSMo_Oxu36gIsD0ffP5JLykhXmCl4Jg2dQLpJ6knupxcFlXWYJMTisYdv-vD50BRHCc-JkXQzbU6ZfLA32hDsD83yShLa0SY65x85p_d2Fiq7VmA8qeWCnWMHmQ',
-      priceXOF: 1250000,
-      oldPriceXOF: 1800000,
-      discount: '-30%',
-      moq: 10,
-      reserved: 6,
-      remaining: 4,
-      progress: 60,
-      deadline: '25 Juin',
-      note: 'Caisse bois renforcée'
-    },
-    {
-      id: 'grp-solar-panels',
-      category: 'machinery',
-      categoryLabel: 'Énergie Solaire',
-      status: 'almost',
-      title: 'Panneau Solaire Mono 450W',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCkpm5AZV33z2PZ3VbNxqXzm8eRSfZyJpAeHJFLS_ezHBXuWSNC6rPrBccPt9MkGV_NxajbaNPUdeSQDGXjngsGsBvebwC0z0iTA0XaKLhpGHVFx5oSXnFkrm2jGT8aOjqBKlF1gB5b4EsSZDen8_xivyy3fA09IwDndpUsZHr8UxeOY4bdFhFLoCOIl75x_oR5N9oQgKm0Z8o3gKgG5K7Y205XCvTD9Mu_9Pq_Fn5Rxx_TPihUK6URbA',
-      priceXOF: 75000,
-      oldPriceXOF: 105000,
-      discount: '-28%',
-      moq: 60,
-      reserved: 48,
-      remaining: 12,
-      progress: 80,
-      deadline: '12 Juin',
-      note: 'Certifié Tier 1'
-    },
-    {
-      id: 'grp-projector-solar',
-      category: 'machinery',
-      categoryLabel: 'Éclairage & Solaire',
-      status: 'last',
-      title: 'Projecteur LED Solaire 100W IP66',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuAK3y4p1Zp9mNabqjg4k1aTDeSh_8Iu1K0ZWXHRpKOoXpW-ZaqgtIWhm_Eyl9lE3N1GSBw8KieLtat3rjGPIJhUedVEy0TfYohH7JLTKFnsyZlOJaep9FR4sFsHjYynLaf5n7javyxWCbh_NROqkwz5QKkExWLgrUKr2dqfJANk7_rccHGlLL-ciOYZAR5F6p2bCwvkl5bNnxgoAGTNXkYT_6DjOUzgVrlZa2ooJ1cg_9QQcQ_RtVZJew',
-      priceXOF: 18500,
-      oldPriceXOF: 26000,
-      discount: '-29%',
-      moq: 40,
-      reserved: 32,
-      remaining: 8,
-      progress: 80,
-      deadline: '16 Juin',
-      note: 'Batterie LiFePO4'
+  // Groupage Items from live Supabase groupages
+  const cardsData = groupages.map(g => {
+    const target = g.targetUnits || g.targetQuantity || 20;
+    const reserved = g.currentUnits || g.reservedQuantity || 0;
+    const remaining = g.availableQuantity ?? Math.max(0, target - reserved);
+    const progress = Math.min(100, Math.round((reserved / (target || 1)) * 100));
+    const minOrder = g.minOrderPerUser || 1;
+    const maxOrder = g.maxOrderPerUser || 100;
+
+    let catId = 'electronics';
+    const catLower = (g.product?.category || '').toLowerCase();
+    if (catLower.includes('auto') || catLower.includes('moto') || catLower.includes('véhicule')) {
+      catId = 'auto';
+    } else if (catLower.includes('maison') || catLower.includes('cuisine') || catLower.includes('solaire')) {
+      catId = 'home';
+    } else if (catLower.includes('mode') || catLower.includes('textile')) {
+      catId = 'fashion';
+    } else if (catLower.includes('machine') || catLower.includes('équipement')) {
+      catId = 'machinery';
     }
-  ];
+
+    return {
+      id: g.id,
+      code: g.code,
+      category: catId,
+      categoryLabel: g.product?.category || 'Sourcing Direct',
+      status: g.status === 'almost_full' ? 'almost' : g.status,
+      rawStatus: g.status,
+      title: g.title,
+      image: g.image || g.product?.images?.[0] || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800',
+      priceXOF: g.unitPriceXOF,
+      oldPriceXOF: g.originalPriceXOF,
+      discount: `-${g.savingsPercent}%`,
+      moq: target,
+      reserved,
+      remaining,
+      progress,
+      deadline: g.closingDate,
+      note: g.logisticsRoute,
+      minOrder,
+      maxOrder,
+      isFull: g.status === 'full' || remaining <= 0,
+      isClosed: g.status !== 'open' && g.status !== 'almost_full'
+    };
+  });
 
   // Filtering
   const filteredCards = cardsData.filter(card => {
     const matchesCat = selectedCategory === 'all' || card.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || card.status === selectedStatus;
+    const matchesStatus = selectedStatus === 'all' || card.status === selectedStatus || card.rawStatus === selectedStatus;
     const matchesQuery =
       !searchQuery ||
       card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.categoryLabel.toLowerCase().includes(searchQuery.toLowerCase());
+      card.categoryLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      card.code.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCat && matchesStatus && matchesQuery;
   });
 
@@ -273,6 +240,13 @@ export const GroupagesPage: React.FC = () => {
               </div>
             ) : (
               <form className="space-y-4" onSubmit={handleConfirmReservation}>
+                {modalError && (
+                  <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+                    <span className="material-symbols-outlined text-rose-600 text-[18px]">error</span>
+                    <span>{modalError}</span>
+                  </div>
+                )}
+
                 <div>
                   <label className="block font-label-md text-label-md text-on-surface mb-1.5 font-bold">
                     Quantité souhaitée
@@ -280,14 +254,14 @@ export const GroupagesPage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <input
                       className="w-24 h-12 px-3 rounded-xl bg-surface-container-high text-on-surface font-headline-sm text-center outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container"
-                      max={10}
-                      min={1}
+                      max={modalItem.available}
+                      min={modalItem.minOrder}
                       type="number"
                       value={modalQty}
-                      onChange={e => setModalQty(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={e => setModalQty(Math.max(modalItem.minOrder, parseInt(e.target.value) || modalItem.minOrder))}
                     />
                     <span className="font-body-sm text-body-sm text-on-surface-variant">
-                      Unité(s) décomptée(s) du MOQ restant
+                      Min: {modalItem.minOrder} • Max dispo: {modalItem.available} unités
                     </span>
                   </div>
                 </div>
@@ -348,10 +322,11 @@ export const GroupagesPage: React.FC = () => {
 
                 <div className="flex gap-2">
                   <button
-                    className="w-full h-12 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-lg hover:bg-secondary-container transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    disabled={isReserving}
+                    className="w-full h-12 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-lg hover:bg-secondary-container transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     type="submit"
                   >
-                    <span>Confirmer ma réservation</span>
+                    <span>{isReserving ? 'Validation transactionnelle...' : 'Confirmer ma réservation'}</span>
                     <span className="material-symbols-outlined text-[18px]">lock</span>
                   </button>
                 </div>
@@ -835,18 +810,28 @@ export const GroupagesPage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() =>
+                  disabled={card.isFull || card.isClosed}
+                  onClick={() => {
+                    if (card.isFull || card.isClosed) return;
                     openModal(
                       card.id,
                       card.title,
                       card.priceXOF,
                       `${card.priceXOF.toLocaleString('fr-FR')} FCFA`,
-                      `${Math.round(card.priceXOF * 0.3).toLocaleString('fr-FR')} FCFA`
-                    )
-                  }
-                  className="w-full h-11 rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary text-on-surface font-label-md text-label-md font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      `${Math.round(card.priceXOF * 0.3).toLocaleString('fr-FR')} FCFA`,
+                      undefined,
+                      card.minOrder,
+                      card.maxOrder,
+                      card.remaining
+                    );
+                  }}
+                  className={`w-full h-11 rounded-full font-label-md text-label-md font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    card.isFull || card.isClosed
+                      ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                      : 'bg-surface-container hover:bg-primary-container hover:text-on-primary text-on-surface'
+                  }`}
                 >
-                  <span>Rejoindre le groupage</span>
+                  <span>{card.isFull ? 'Complet' : card.isClosed ? 'Fermé' : 'Rejoindre le groupage'}</span>
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                 </button>
               </div>

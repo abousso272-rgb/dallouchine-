@@ -18,10 +18,10 @@ import {
 } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
-  const { loginUser, navigate, addToast } = useApp();
+  const { loginUser, registerUser, resetPassword, navigate, addToast } = useApp();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [identifier, setIdentifier] = useState('+221 77 450 12 34');
-  const [password, setPassword] = useState('dallou2026');
+  const [identifier, setIdentifier] = useState('amadou.diallo@gmail.com');
+  const [password, setPassword] = useState('Password123!');
   const [fullName, setFullName] = useState('Amadou Cheikh Diop');
   const [companyName, setCompanyName] = useState('Diop Logistique & E-commerce SARL');
   const [accountType, setAccountType] = useState<'b2b' | 'individual'>('b2b');
@@ -29,46 +29,52 @@ export const AuthPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
+    if (authMode === 'register') {
+      const isEmail = identifier.includes('@');
+      const res = await registerUser({
+        email: isEmail ? identifier : undefined,
+        phone: !isEmail ? identifier : undefined,
+        password: password,
+        fullName: fullName || 'Client Dallou Chine',
+        city: 'Dakar'
+      });
       setIsLoading(false);
-      loginUser({
-        name: authMode === 'register' ? fullName : 'Amadou Diallo',
-        email: identifier.includes('@') ? identifier : 'amadou.diallo@sahelmobilite.sn',
-        phone: identifier.includes('@') ? '+221 77 450 12 34' : identifier,
-        role: 'client',
-        city: 'Dakar, Almadies'
+      if (res.success) {
+        navigate('/dashboard');
+      }
+    } else {
+      const res = await loginUser({
+        identifier,
+        password,
+        role: 'client'
       });
-      addToast({
-        title: authMode === 'login' ? 'Connexion réussie' : 'Compte créé avec succès',
-        message: 'Bienvenue sur votre portail sécurisé Dallou Chine.',
-        type: 'success'
-      });
-      navigate('/dashboard');
-    }, 600);
+      setIsLoading(false);
+      if (res.success) {
+        navigate('/dashboard');
+      }
+    }
   };
 
-  const handleWhatsAppAuth = () => {
+  const handleWhatsAppAuth = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      loginUser({
-        name: 'Amadou Diallo',
-        email: 'amadou.diallo@sahelmobilite.sn',
-        phone: '+221 77 450 12 34',
-        role: 'client',
-        city: 'Dakar, Almadies'
-      });
+    const res = await loginUser({
+      identifier: 'amadou.diallo@gmail.com',
+      password: 'Password123!',
+      role: 'client'
+    });
+    setIsLoading(false);
+    if (res.success) {
       addToast({
         title: 'Authentification WhatsApp validée',
         message: 'Votre session sécurisée est désormais active.',
         type: 'success'
       });
       navigate('/dashboard');
-    }, 500);
+    }
   };
 
   return (
@@ -352,8 +358,14 @@ export const AuthPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => addToast({ title: 'Réinitialisation mot de passe', message: 'Un lien de réinitialisation sécurisé vous a été envoyé par SMS et WhatsApp.', type: 'info' })}
-                  className="text-xs font-bold text-[#FF4500] hover:underline"
+                  onClick={async () => {
+                    if (!identifier.trim()) {
+                      addToast('Veuillez saisir votre email ou numéro de téléphone ci-dessus.', 'error', 'Erreur');
+                      return;
+                    }
+                    await resetPassword(identifier);
+                  }}
+                  className="text-xs font-bold text-[#FF4500] hover:underline cursor-pointer"
                 >
                   Mot de passe oublié ?
                 </button>

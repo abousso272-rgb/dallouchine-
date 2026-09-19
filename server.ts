@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { paymentsRouter } from './server/api/paymentsRouter';
+import { authRouter } from './server/api/authRouter';
 import { config, logServerConfig } from './server/config';
 
 dotenv.config();
@@ -42,6 +43,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 // 2. API Routes
+app.use('/api/auth', authRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api', paymentsRouter); // Supporte aussi /api/webhooks/geniuspay
 

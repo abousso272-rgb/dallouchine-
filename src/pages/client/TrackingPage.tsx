@@ -38,7 +38,7 @@ interface Milestone {
 }
 
 export const TrackingPage: React.FC = () => {
-  const { currentPath, addToast } = useApp();
+  const { currentPath, addToast, navigate } = useApp();
   const [trackingInput, setTrackingInput] = useState('CMD-2026-0048');
   const [activeCode, setActiveCode] = useState('CMD-2026-0048');
   const [isSearching, setIsSearching] = useState(false);
@@ -690,6 +690,15 @@ export const TrackingPage: React.FC = () => {
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-slate-400 group-hover:text-[#FF4500] transition-colors" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/devis-documents')}
+                className="pt-2 text-xs font-bold text-[#FF4500] hover:text-[#E03D00] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>Accéder au Centre de Documents Complet</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

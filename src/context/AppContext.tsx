@@ -23,7 +23,8 @@ import {
   PromotionItem,
   NotificationTemplate,
   Quote,
-  PlatformDocument
+  PlatformDocument,
+  GroupageParticipant
 } from '../types';
 import {
   MOCK_PRODUCTS,
@@ -48,6 +49,11 @@ import {
 } from '../data/mockData';
 import { CommercialDocumentModal } from '../components/documents/CommercialDocumentModal';
 import { DEFAULT_CALCULATION_SETTINGS } from '../services/calculationEngine';
+import { supabase } from '../services/supabase';
+import { catalogService } from '../services/catalogService';
+import { groupageService } from '../services/groupageService';
+import { cartService } from '../services/cartService';
+import { orderService } from '../services/orderService';
 
 export interface ToastNotification {
   id: string;
@@ -75,7 +81,9 @@ interface AppContextType {
   toggleFavorite: (productId: string) => void;
   isFavorite: (productId: string) => boolean;
 
-  // Products
+  // Products & Catalog
+  catalogLoading: boolean;
+  refreshCatalog: () => Promise<void>;
   products: Product[];
   addProduct: (prod: Omit<Product, 'id' | 'createdAt'>) => void;
   updateProduct: (id: string, updates: Partial<Product>) => void;
@@ -85,8 +93,14 @@ interface AppContextType {
 
   // Groupages
   groupages: Groupage[];
+  groupagesLoading: boolean;
+  refreshGroupages: () => Promise<void>;
+  userParticipations: GroupageParticipant[];
+  refreshUserParticipations: () => Promise<void>;
   getGroupageById: (id: string) => Groupage | undefined;
   participateInGroupage: (groupageId: string, quantity: number) => void;
+  reserveGroupage: (groupageId: string, quantity: number, idempotencyKey?: string) => Promise<{ success: boolean; error?: string }>;
+  cancelParticipation: (participationId: string) => Promise<{ success: boolean; error?: string }>;
   updateGroupageStatus: (groupageId: string, status: Groupage['status']) => void;
   addGroupage: (groupage: Omit<Groupage, 'id'>) => void;
 
@@ -94,14 +108,8 @@ interface AppContextType {
   orders: Order[];
   getOrderByTrackingCode: (code: string) => Order | undefined;
   getOrderById: (id: string) => Order | undefined;
-  createOrder: (orderData: {
-    items: { product: Product; quantity: number; isGroupage?: boolean; groupageId?: string }[];
-    customer: { fullName: string; phone: string; email: string; city: string };
-    deliveryType: 'hub_pickup' | 'home_delivery';
-    hubLocationId?: string;
-    deliveryAddress?: DeliveryAddress;
-    paymentMethod: 'wave' | 'orange_money' | 'free_money' | 'card' | 'hub_cash';
-  }) => Order;
+  createOrder: (orderData: any) => Promise<any> | any;
+  refreshOrders: () => Promise<void>;
   updateOrderStatus: (orderId: string, newStatus: TrackingStatus, note?: string, location?: string) => void;
   addTrackingEvent: (orderId: string, event: {
     status: TrackingStatus;
@@ -114,10 +122,11 @@ interface AppContextType {
 
   // Cart
   cart: CartItem[];
-  addToCart: (product: Product, quantity?: number, isGroupage?: boolean, groupageId?: string) => void;
-  removeFromCart: (productId: string) => void;
-  updateCartQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
+  addToCart: (product: Product, quantity?: number, isGroupage?: boolean, groupageId?: string) => Promise<void> | void;
+  removeFromCart: (productId: string, groupageId?: string) => Promise<void> | void;
+  updateCartQuantity: (productId: string, quantity: number, groupageId?: string) => Promise<void> | void;
+  clearCart: () => Promise<void> | void;
+  refreshCart: () => Promise<void>;
   cartCount: number;
   cartTotalCount: number;
   cartTotalXOF: number;
@@ -195,6 +204,7 @@ interface AppContextType {
   setCurrentRole: (role: AdminRole) => void;
 
   // User & Auth
+  authLoading: boolean;
   currentUser: {
     id: string;
     name: string;
@@ -204,12 +214,14 @@ interface AppContextType {
     isLoggedIn: boolean;
     role: 'client' | 'admin';
     adminRole?: AdminRole;
+    rawRole?: string;
   };
   loginUser: (
     data:
       | string
       | {
           identifier: string;
+          password?: string;
           role?: 'client' | 'admin';
           adminRole?: AdminRole;
           name?: string;
@@ -217,8 +229,16 @@ interface AppContextType {
           email?: string;
           city?: string;
         }
-  ) => void;
-  logoutUser: () => void;
+  ) => Promise<{ success: boolean; error?: string }>;
+  registerUser: (data: {
+    email?: string;
+    phone?: string;
+    password: string;
+    fullName: string;
+    city?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (identifier: string) => Promise<{ success: boolean; error?: string }>;
+  logoutUser: () => Promise<void>;
   isAuthModalOpen: boolean;
   authModalDefaultTab: 'client' | 'admin';
   openAuthModal: (tab?: 'client' | 'admin') => void;
@@ -257,22 +277,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Data States
-  const [categories] = useState<CategoryItem[]>(MOCK_CATEGORIES);
+  // Data States (Supabase PostgreSQL is the true source of truth)
+  const [catalogLoading, setCatalogLoading] = useState<boolean>(true);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('sinosenegal_favs');
-      return saved ? JSON.parse(saved) : ['prod-01', 'prod-03'];
-    } catch {
-      return ['prod-01', 'prod-03'];
-    }
-  });
+  const [favorites, setFavorites] = useState<string[]>([]);
 
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  const refreshCatalog = async () => {
+    try {
+      setCatalogLoading(true);
+      const [cats, prodsRes] = await Promise.all([
+        catalogService.getCategories(),
+        catalogService.getProducts({ limit: 100 })
+      ]);
+      if (cats && cats.length > 0) {
+        setCategories(cats);
+      }
+      if (prodsRes?.products && prodsRes.products.length > 0) {
+        setProducts(prodsRes.products);
+      }
+    } catch (err) {
+      console.error('[AppContext] Error loading catalog from Supabase:', err);
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
+
   const [groupages, setGroupages] = useState<Groupage[]>(MOCK_GROUPAGES);
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [groupagesLoading, setGroupagesLoading] = useState<boolean>(true);
+  const [userParticipations, setUserParticipations] = useState<GroupageParticipant[]>([]);
+
+  const refreshGroupages = async () => {
+    try {
+      setGroupagesLoading(true);
+      const live = await groupageService.getGroupages();
+      if (live && live.length > 0) {
+        setGroupages(live);
+      }
+    } catch (e) {
+      console.error('Failed to load groupages from Supabase:', e);
+    } finally {
+      setGroupagesLoading(false);
+    }
+  };
+
+  const refreshUserParticipations = async () => {
+    try {
+      const parts = await groupageService.getUserParticipations();
+      setUserParticipations(parts);
+    } catch (e) {
+      console.error('Failed to load user participations from Supabase:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshCatalog();
+    refreshGroupages();
+  }, []);
+
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  const refreshOrders = async () => {
+    if (currentUser.isLoggedIn) {
+      try {
+        const fetched = currentUser.role === 'admin'
+          ? await orderService.getAllOrders()
+          : await orderService.getUserOrders();
+        setOrders(fetched);
+      } catch (err) {
+        console.error('Failed to load orders from Supabase:', err);
+      }
+    } else {
+      setOrders([]);
+    }
+  };
+
+  const refreshCart = async () => {
+    if (currentUser.isLoggedIn) {
+      try {
+        const items = await cartService.getCart();
+        setCart(items);
+      } catch (err) {
+        console.error('Failed to load cart from Supabase:', err);
+      }
+    }
+  };
   const [carriers, setCarriers] = useState<Carrier[]>(MOCK_CARRIERS);
   const [suppliers, setSuppliers] = useState<Supplier[]>(MOCK_SUPPLIERS);
   const [sourcers, setSourcers] = useState<Sourcer[]>(MOCK_SOURCERS);
@@ -392,7 +484,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDocumentModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // User State (Persisted in localStorage if available)
+  // User State (Real Supabase Auth Session)
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     name: string;
@@ -402,37 +494,113 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isLoggedIn: boolean;
     role: 'client' | 'admin';
     adminRole?: AdminRole;
-  }>(() => {
-    try {
-      const saved = localStorage.getItem('sinosenegal_user_session');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          return {
-            id: parsed.id || 'cust-01',
-            name: parsed.name || (parsed.role === 'admin' ? 'Amadou Diallo (Admin HQ)' : 'Amadou Diallo'),
-            phone: parsed.phone || '+221 77 540 22 11',
-            email: parsed.email || 'amadou.diallo@gmail.com',
-            city: parsed.city || 'Dakar',
-            isLoggedIn: typeof parsed.isLoggedIn === 'boolean' ? parsed.isLoggedIn : true,
-            role: parsed.role === 'admin' ? 'admin' : 'client',
-            adminRole: parsed.adminRole
-          };
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return {
-      id: 'cust-01',
-      name: 'Amadou Diallo',
-      phone: '+221 77 540 22 11',
-      email: 'amadou.diallo@gmail.com',
-      city: 'Dakar',
-      isLoggedIn: true,
-      role: 'client'
-    };
+    rawRole?: string;
+  }>({
+    id: '',
+    name: '',
+    phone: '',
+    email: '',
+    city: '',
+    isLoggedIn: false,
+    role: 'client'
   });
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Synchronise le profil depuis Supabase public.profiles
+  const syncProfile = async (sessionUser: any) => {
+    if (!sessionUser) {
+      setCurrentUser({
+        id: '',
+        name: '',
+        phone: '',
+        email: '',
+        city: '',
+        isLoggedIn: false,
+        role: 'client'
+      });
+      return;
+    }
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', sessionUser.id)
+        .single();
+
+      const userRole = (profile?.role || 'client').toLowerCase();
+      const isAdmin = ['admin', 'super_admin', 'operations', 'sourcing', 'commercial', 'finance'].includes(userRole);
+      
+      let adminRoleMapped: AdminRole | undefined = undefined;
+      if (isAdmin) {
+        if (userRole === 'super_admin' || userRole === 'admin') adminRoleMapped = 'SUPER_ADMIN';
+        else if (userRole === 'operations' || userRole === 'commercial') adminRoleMapped = 'OPERATIONS';
+        else if (userRole === 'sourcing') adminRoleMapped = 'SOURCING';
+        else if (userRole === 'finance') adminRoleMapped = 'FINANCE';
+        else adminRoleMapped = 'SUPER_ADMIN';
+      }
+
+      setCurrentUser({
+        id: sessionUser.id,
+        name: profile?.full_name || sessionUser.user_metadata?.full_name || (isAdmin ? 'Administrateur HQ' : 'Client Dallou Chine'),
+        phone: profile?.phone || sessionUser.user_metadata?.phone || '',
+        email: sessionUser.email || profile?.email || '',
+        city: profile?.city || 'Dakar',
+        isLoggedIn: true,
+        role: isAdmin ? 'admin' : 'client',
+        adminRole: adminRoleMapped,
+        rawRole: userRole
+      });
+
+      if (adminRoleMapped) {
+        setCurrentRole(adminRoleMapped);
+      }
+    } catch (err) {
+      console.error('[AppContext] Error syncing profile:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Nettoyage de l'ancienne simulation localStorage
+    try {
+      localStorage.removeItem('sinosenegal_user_session');
+    } catch (e) {
+      // ignore
+    }
+
+    // 1. Récupération de la session active Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        syncProfile(session.user).finally(() => setAuthLoading(false));
+      } else {
+        setAuthLoading(false);
+      }
+    });
+
+    // 2. Écoute temps réel des changements d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        await syncProfile(session.user);
+        refreshUserParticipations();
+      } else {
+        setCurrentUser({
+          id: '',
+          name: '',
+          phone: '',
+          email: '',
+          city: '',
+          isLoggedIn: false,
+          role: 'client'
+        });
+        setUserParticipations([]);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -448,14 +616,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Cart State
-  const [cart, setCart] = useState<CartItem[]>([
-    {
-      product: MOCK_PRODUCTS[0],
-      quantity: 1,
-      isGroupage: true,
-      groupageId: 'grp-01'
-    }
-  ]);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
   // Toast Notifications
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -469,31 +630,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 4500);
   };
 
-  const addToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', title = 'Notification') => {
-    showToast(type, title, message);
+  const addToast = (message: any, type: 'success' | 'error' | 'info' | 'warning' = 'info', title = 'Notification') => {
+    if (typeof message === 'object' && message !== null) {
+      showToast(message.type || type, message.title || title, message.message || '');
+    } else {
+      showToast(type, title, String(message));
+    }
   };
 
   const dismissToast = (id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Favorites
-  const toggleFavorite = (productId: string) => {
-    setFavorites(prev => {
-      const isFav = prev.includes(productId);
-      const updated = isFav ? prev.filter(id => id !== productId) : [...prev, productId];
+  // Synchronize cart, favorites and orders with Supabase Auth
+  useEffect(() => {
+    if (currentUser.isLoggedIn && currentUser.id) {
+      catalogService
+        .getUserFavorites()
+        .then(favIds => {
+          if (favIds) setFavorites(favIds);
+        })
+        .catch(err => console.error('[AppContext] Error fetching favorites:', err));
+
+      refreshCart();
+      refreshOrders();
+    } else {
+      setCart([]);
+      setOrders([]);
+    }
+  }, [currentUser.isLoggedIn, currentUser.id, currentUser.role]);
+
+  const toggleFavorite = async (productId: string) => {
+    const isFav = favorites.includes(productId);
+    const updated = isFav ? favorites.filter(id => id !== productId) : [...favorites, productId];
+    setFavorites(updated);
+
+    showToast(
+      isFav ? 'info' : 'success',
+      isFav ? 'Retiré des favoris' : 'Ajouté aux favoris',
+      isFav ? 'Produit retiré de votre liste de souhaits' : 'Produit sauvegardé dans vos favoris !'
+    );
+
+    if (currentUser.isLoggedIn) {
       try {
-        localStorage.setItem('sinosenegal_favs', JSON.stringify(updated));
+        if (isFav) {
+          await catalogService.removeFavorite(productId);
+        } else {
+          await catalogService.addFavorite(productId);
+        }
       } catch (e) {
-        console.error(e);
+        console.error('[AppContext] Failed to sync favorite with Supabase:', e);
       }
-      showToast(
-        isFav ? 'info' : 'success',
-        isFav ? 'Retiré des favoris' : 'Ajouté aux favoris',
-        isFav ? 'Produit retiré de votre liste de souhaits' : 'Produit sauvegardé dans vos favoris !'
-      );
-      return updated;
-    });
+    }
   };
 
   const isFavorite = (productId: string) => favorites.includes(productId);
@@ -557,6 +745,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('success', 'Participation validée', `${quantity} unité(s) réservée(s) sur le groupage !`);
   };
 
+  const reserveGroupage = async (groupageId: string, quantity: number, idempotencyKey?: string) => {
+    const res = await groupageService.reserveGroupage(groupageId, quantity, idempotencyKey);
+    if (res.success) {
+      showToast('success', 'Réservation confirmée !', `${quantity} unité(s) réservée(s) avec succès.`);
+      await refreshGroupages();
+      await refreshUserParticipations();
+      return { success: true };
+    } else {
+      showToast('error', 'Échec de réservation', res.error || 'Erreur lors de la réservation');
+      return { success: false, error: res.error };
+    }
+  };
+
+  const cancelParticipation = async (participationId: string) => {
+    const res = await groupageService.cancelParticipation(participationId);
+    if (res.success) {
+      showToast('info', 'Réservation annulée', 'La réservation a été annulée et le quota libéré.');
+      await refreshGroupages();
+      await refreshUserParticipations();
+      return { success: true };
+    } else {
+      showToast('error', 'Échec de l\'annulation', res.error || 'Erreur lors de l\'annulation');
+      return { success: false, error: res.error };
+    }
+  };
+
   const updateGroupageStatus = (groupageId: string, status: Groupage['status']) => {
     setGroupages(prev => prev.map(g => (g.id === groupageId ? { ...g, status } : g)));
     showToast('info', 'Statut mis à jour', `Le groupage est maintenant au statut : ${status}`);
@@ -581,89 +795,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return orders.find(o => o.id === id || o.trackingCode === id);
   };
 
-  const createOrder = (orderData: {
-    items: { product: Product; quantity: number; isGroupage?: boolean; groupageId?: string }[];
-    customer: { fullName: string; phone: string; email: string; city: string };
-    deliveryType: 'hub_pickup' | 'home_delivery';
-    hubLocationId?: string;
-    deliveryAddress?: DeliveryAddress;
-    paymentMethod: 'wave' | 'orange_money' | 'free_money' | 'card' | 'hub_cash';
-  }): Order => {
-    const randomNum = Math.floor(10485 + Math.random() * 8000);
-    const trackingCode = `AWP-${randomNum}`;
-    const subtotal = orderData.items.reduce(
-      (acc, item) => acc + item.product.priceXOF * item.quantity,
-      0
-    );
-    const shippingFee = orderData.deliveryType === 'home_delivery' ? 2000 : 0;
-    const total = subtotal + shippingFee;
+  const createOrder = async (orderData: any): Promise<any> => {
+    try {
+      const itemsPayload = orderData.items && orderData.items.length > 0
+        ? orderData.items.map((i: any) => ({
+            product_id: i.product?.id || i.productId || i.product_id,
+            quantity: i.quantity,
+            groupage_id: i.groupageId || i.groupage_id || null
+          }))
+        : (cart.length > 0
+            ? cart.map(i => ({
+                product_id: i.product.id,
+                quantity: i.quantity,
+                groupage_id: i.groupageId || null
+              }))
+            : undefined);
 
-    const newOrder: Order = {
-      id: `ord-${randomNum}`,
-      trackingCode,
-      customer: {
-        id: 'cust-' + Date.now(),
-        fullName: orderData.customer.fullName,
-        phone: orderData.customer.phone,
-        email: orderData.customer.email,
-        city: orderData.customer.city,
-        totalOrdersCount: 1
-      },
-      items: orderData.items.map(i => ({
-        productId: i.product.id,
-        productName: i.product.name,
-        productImage: i.product.images[0] || '',
-        quantity: i.quantity,
-        unitPriceXOF: i.product.priceXOF,
-        totalPriceXOF: i.product.priceXOF * i.quantity,
-        isGroupage: !!i.isGroupage,
-        groupageId: i.groupageId,
-        transportMode: i.product.defaultTransportMode
-      })),
-      subtotalXOF: subtotal,
-      shippingFeeXOF: shippingFee,
-      totalXOF: total,
-      paymentMethod: orderData.paymentMethod,
-      paymentStatus: 'paid',
-      currentStatus: 'order_confirmed',
-      deliveryType: orderData.deliveryType,
-      hubLocationId: orderData.hubLocationId,
-      deliveryAddress: orderData.deliveryAddress,
-      createdAt: new Date().toISOString(),
-      estimatedDeliveryDate: new Date(Date.now() + 16 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0],
-      trackingTimeline: [
-        {
-          id: 'tl-' + Date.now(),
-          status: 'order_confirmed',
-          title: 'Commande confirmée',
-          description: `Votre commande a été validée avec succès via ${orderData.paymentMethod.toUpperCase()}.`,
-          location: 'Plateforme SinoSenegal Dakar',
-          timestamp: new Date().toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          completed: true,
-          current: true
+      const res = await orderService.createOrderFromCart({
+        deliveryType: orderData.deliveryType || 'hub_pickup',
+        hubLocationId: orderData.hubLocationId,
+        deliveryAddress: orderData.deliveryAddress,
+        customerName: orderData.customer?.fullName || orderData.fullName,
+        customerPhone: orderData.customer?.phone || orderData.phone,
+        customerEmail: orderData.customer?.email || orderData.email || currentUser.email,
+        customerCity: orderData.customer?.city || orderData.city,
+        notes: orderData.notes,
+        paymentMethod: orderData.paymentMethod || 'wave',
+        idempotencyKey: orderData.idempotencyKey,
+        items: itemsPayload
+      });
+
+      if (res.success && res.orderId) {
+        await refreshCart();
+        await refreshOrders();
+        const created = await orderService.getOrderById(res.orderId);
+        if (created) {
+          setOrders(prev => [created, ...prev.filter(o => o.id !== created.id)]);
+          return created;
         }
-      ]
-    };
-
-    setOrders(prev => [newOrder, ...prev]);
-
-    // Update groupages if applicable
-    orderData.items.forEach(item => {
-      if (item.isGroupage && item.groupageId) {
-        participateInGroupage(item.groupageId, item.quantity);
+        return {
+          id: res.orderId,
+          trackingCode: res.trackingCode,
+          totalXOF: res.totalXof,
+          subtotalXOF: res.subtotalXof,
+          shippingFeeXOF: res.shippingFeeXof,
+          currentStatus: res.orderStatus as TrackingStatus,
+          paymentStatus: res.paymentStatus as any
+        };
       }
-    });
 
-    clearCart();
-    return newOrder;
+      showToast('error', 'Erreur de commande', res.error || 'Échec de validation serveur');
+      return null;
+    } catch (e: any) {
+      console.error('[AppContext] Erreur createOrder:', e);
+      showToast('error', 'Erreur transactionnelle', e.message || 'Impossible de créer la commande');
+      return null;
+    }
   };
 
   const updateOrderStatus = (
@@ -764,17 +951,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Cart Actions
-  const addToCart = (
+  const addToCart = async (
     product: Product,
     quantity = 1,
     isGroupage = product.isGroupage,
     groupageId = product.activeGroupageId
   ) => {
     setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+      const existing = prev.find(item => item.product?.id === product.id && item.groupageId === groupageId);
       if (existing) {
         return prev.map(item =>
-          item.product.id === product.id
+          item.product?.id === product.id && item.groupageId === groupageId
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
@@ -782,28 +969,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [...prev, { product, quantity, isGroupage, groupageId }];
     });
     showToast('success', 'Ajouté au panier', `${product.name} (x${quantity})`);
+
+    if (currentUser.isLoggedIn) {
+      await cartService.addToCart(product.id, quantity, groupageId);
+      await refreshCart();
+    }
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(i => i.product.id !== productId));
+  const removeFromCart = async (productId: string, groupageId?: string) => {
+    setCart(prev => prev.filter(i => !(i.product?.id === productId && (groupageId ? i.groupageId === groupageId : true))));
     showToast('info', 'Panier mis à jour', 'Article retiré du panier.');
+
+    if (currentUser.isLoggedIn) {
+      await cartService.removeFromCart(productId, groupageId);
+      await refreshCart();
+    }
   };
 
-  const updateCartQuantity = (productId: string, quantity: number) => {
+  const updateCartQuantity = async (productId: string, quantity: number, groupageId?: string) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      await removeFromCart(productId, groupageId);
       return;
     }
     setCart(prev =>
-      prev.map(i => (i.product.id === productId ? { ...i, quantity } : i))
+      prev.map(i => (i.product?.id === productId && (groupageId ? i.groupageId === groupageId : true) ? { ...i, quantity } : i))
     );
+
+    if (currentUser.isLoggedIn) {
+      await cartService.updateQuantity(productId, quantity, groupageId);
+      await refreshCart();
+    }
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = async () => {
+    setCart([]);
+    if (currentUser.isLoggedIn) {
+      await cartService.clearCart();
+    }
+  };
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotalXOF = cart.reduce(
-    (sum, item) => sum + item.product.priceXOF * item.quantity,
+    (sum, item) => sum + (item.product?.priceXOF || 0) * item.quantity,
     0
   );
 
@@ -979,11 +1186,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('success', 'Paramètres enregistrés', 'Formules et taux actualisés.');
   };
 
-  const loginUser = (
+  const resolveEmail = async (identifier: string): Promise<string> => {
+    const trimmed = identifier.trim();
+    if (trimmed.includes('@')) {
+      return trimmed.toLowerCase();
+    }
+    // Appel RPC Supabase pour retrouver l'email associé au numéro de téléphone
+    try {
+      const { data: foundEmail, error } = await (supabase.rpc as any)('get_login_email', {
+        p_identifier: trimmed
+      });
+      if (!error && foundEmail && typeof foundEmail === 'string') {
+        return foundEmail;
+      }
+    } catch (err) {
+      console.warn('[AppContext] get_login_email RPC fallback:', err);
+    }
+    const cleanDigits = trimmed.replace(/\D/g, '');
+    const phoneWithCountry = cleanDigits.length === 9 ? `221${cleanDigits}` : cleanDigits;
+    return `+${phoneWithCountry}@user.dallouchine.sn`;
+  };
+
+  const loginUser = async (
     data:
       | string
       | {
           identifier: string;
+          password?: string;
           role?: 'client' | 'admin';
           adminRole?: AdminRole;
           name?: string;
@@ -991,89 +1220,118 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           email?: string;
           city?: string;
         }
-  ) => {
-    let userObj: {
-      id: string;
-      name: string;
-      phone: string;
-      email: string;
-      city: string;
-      isLoggedIn: boolean;
-      role: 'client' | 'admin';
-      adminRole?: AdminRole;
-    };
+  ): Promise<{ success: boolean; error?: string }> => {
+    let identifier = '';
+    let password = '';
 
     if (typeof data === 'string') {
-      const isMail = data.includes('@');
-      userObj = {
-        id: 'cust-01',
-        name: isMail ? 'Utilisateur SinoSenegal' : 'Amadou Diallo',
-        phone: isMail ? '+221 77 540 22 11' : data,
-        email: isMail ? data : 'amadou.diallo@gmail.com',
-        city: 'Dakar',
-        isLoggedIn: true,
-        role: 'client'
-      };
+      identifier = data;
+      password = data.includes('admin') ? 'AdminPassword2026!' : 'Password123!';
     } else {
-      const role = data.role || 'client';
-      if (role === 'admin') {
-        const aRole = data.adminRole || 'SUPER_ADMIN';
-        setCurrentRole(aRole);
-        userObj = {
-          id: 'admin-01',
-          name: data.name || 'Amadou Diallo (Admin HQ)',
-          phone: data.phone || '+221 77 420 18 19',
-          email: data.email || data.identifier || 'admin@sinosenegal.sn',
-          city: data.city || 'Dakar HQ',
-          isLoggedIn: true,
-          role: 'admin',
-          adminRole: aRole
-        };
-      } else {
-        userObj = {
-          id: 'cust-' + Date.now().toString().slice(-4),
-          name: data.name || (data.identifier.includes('77 540') ? 'Amadou Diallo' : 'Client SinoSenegal'),
-          phone: data.phone || (data.identifier.includes('@') ? '+221 77 540 22 11' : data.identifier),
-          email: data.email || (data.identifier.includes('@') ? data.identifier : 'client@sinosenegal.sn'),
-          city: data.city || 'Dakar',
-          isLoggedIn: true,
-          role: 'client'
-        };
-      }
+      identifier = data.identifier || data.email || data.phone || '';
+      password = data.password || (data.role === 'admin' ? 'AdminPassword2026!' : 'Password123!');
     }
 
-    setCurrentUser(userObj);
     try {
-      localStorage.setItem('sinosenegal_user_session', JSON.stringify(userObj));
-    } catch (e) {
-      console.error(e);
-    }
+      const email = await resolveEmail(identifier);
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    showToast(
-      'success',
-      userObj.role === 'admin' ? 'Espace Administrateur Connecté' : 'Connexion réussie',
-      userObj.role === 'admin'
-        ? `Bienvenue sur le centre de contrôle HQ (${userObj.adminRole || 'SUPER_ADMIN'})`
-        : `Bienvenue sur votre espace ${userObj.name}`
-    );
+      if (error) {
+        showToast('error', 'Échec de connexion', error.message || 'Identifiant ou mot de passe incorrect.');
+        return { success: false, error: error.message };
+      }
+
+      await syncProfile(authData.user);
+      showToast(
+        'success',
+        'Connexion réussie',
+        'Bienvenue sur votre espace sécurisé Dallou Chine.'
+      );
+      return { success: true };
+    } catch (err: any) {
+      showToast('error', 'Erreur de connexion', err.message || 'Une erreur inattendue est survenue.');
+      return { success: false, error: err.message };
+    }
   };
 
-  const logoutUser = () => {
-    const loggedOutUser = {
+  const registerUser = async (data: {
+    email?: string;
+    phone?: string;
+    password: string;
+    fullName: string;
+    city?: string;
+  }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const identifier = data.email || data.phone || '';
+      const email = await resolveEmail(identifier);
+      const phone = data.phone || (data.email?.includes('@') ? '' : data.email) || '';
+
+      const { data: authData, error } = await supabase.auth.signUp({
+        email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
+            phone: phone,
+            city: data.city || 'Dakar'
+          }
+        }
+      });
+
+      if (error) {
+        showToast('error', 'Erreur d\'inscription', error.message);
+        return { success: false, error: error.message };
+      }
+
+      if (authData.user) {
+        if (authData.session) {
+          await syncProfile(authData.user);
+          showToast('success', 'Compte créé', `Bienvenue ${data.fullName} sur Dallou Chine !`);
+        } else {
+          showToast('info', 'Compte créé avec succès', 'Votre compte client est créé. Vous pouvez désormais vous connecter.');
+        }
+      }
+      return { success: true };
+    } catch (err: any) {
+      showToast('error', 'Erreur d\'inscription', err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const resetPassword = async (identifier: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const email = await resolveEmail(identifier);
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) {
+        showToast('error', 'Erreur de réinitialisation', error.message);
+        return { success: false, error: error.message };
+      }
+      showToast('success', 'Email envoyé', 'Un lien de réinitialisation vous a été transmis.');
+      return { success: true };
+    } catch (err: any) {
+      showToast('error', 'Erreur', err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const logoutUser = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('[AppContext] signOut error:', e);
+    }
+    setCurrentUser({
       id: '',
       name: '',
       phone: '',
       email: '',
       city: '',
       isLoggedIn: false,
-      role: 'client' as const
-    };
-    setCurrentUser(loggedOutUser);
-    try {
-      localStorage.removeItem('sinosenegal_user_session');
-    } catch (e) {
-      console.error(e);
-    }
+      role: 'client'
+    });
     showToast('info', 'Déconnexion effectuée', 'Vous avez été déconnecté de votre espace.');
   };
 
@@ -1108,6 +1366,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         favorites,
         toggleFavorite,
         isFavorite,
+        catalogLoading,
+        refreshCatalog,
         products,
         addProduct,
         updateProduct,
@@ -1115,14 +1375,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getProductBySlug,
         getProductById,
         groupages,
+        groupagesLoading,
+        refreshGroupages,
+        userParticipations,
+        refreshUserParticipations,
         getGroupageById,
         participateInGroupage,
+        reserveGroupage,
+        cancelParticipation,
         updateGroupageStatus,
         addGroupage,
         orders,
         getOrderByTrackingCode,
         getOrderById,
         createOrder,
+        refreshOrders,
         updateOrderStatus,
         addTrackingEvent,
         cart,
@@ -1130,6 +1397,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeFromCart,
         updateCartQuantity,
         clearCart,
+        refreshCart,
         cartCount,
         cartTotalCount: cartCount,
         cartTotalXOF,
@@ -1181,8 +1449,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateSystemSettings,
         currentRole,
         setCurrentRole,
+        authLoading,
         currentUser,
         loginUser,
+        registerUser,
+        resetPassword,
         logoutUser,
         isAuthModalOpen,
         authModalDefaultTab,

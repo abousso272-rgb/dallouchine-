@@ -37,63 +37,93 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
   subtitle,
   redirectTo
 }) => {
-  const { loginUser, navigate, setCurrentRole } = useApp();
+  const { loginUser, registerUser, resetPassword, navigate } = useApp();
 
   const [activeTab, setActiveTab] = useState<'client' | 'admin'>(defaultTab);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Client form state
-  const [clientIdentifier, setClientIdentifier] = useState('+221 77 540 22 11');
-  const [clientPassword, setClientPassword] = useState('pass123');
+  const [clientIdentifier, setClientIdentifier] = useState('amadou.diallo@gmail.com');
+  const [clientPassword, setClientPassword] = useState('Password123!');
   const [clientName, setClientName] = useState('Amadou Diallo');
   const [clientCity, setClientCity] = useState('Dakar');
   const [rememberMe, setRememberMe] = useState(true);
 
   // Admin form state
   const [adminEmail, setAdminEmail] = useState('admin@sinosenegal.sn');
-  const [adminPassword, setAdminPassword] = useState('admin2026');
-  const [selectedRole, setSelectedRole] = useState<AdminRole>('SUPER_ADMIN');
+  const [adminPassword, setAdminPassword] = useState('AdminPassword2026!');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
 
-  // Handle Client Login / Register
-  const handleClientSubmit = (e: React.FormEvent) => {
+  // Handle Client Login / Register via Supabase Auth
+  const handleClientSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setInfoMsg('');
 
     if (!clientIdentifier.trim()) {
-      setErrorMsg('Veuillez renseigner votre numéro de téléphone Wave/OM ou votre email.');
+      setErrorMsg('Veuillez renseigner votre email ou votre numéro de téléphone.');
+      return;
+    }
+    if (!clientPassword.trim()) {
+      setErrorMsg('Veuillez saisir votre mot de passe.');
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      loginUser({
-        identifier: clientIdentifier,
-        role: 'client',
-        name: isRegisterMode ? (clientName || 'Nouveau Client') : (clientIdentifier.includes('77 540') ? 'Amadou Diallo' : 'Client SinoSenegal'),
-        phone: clientIdentifier.startsWith('+') || /^\d+$/.test(clientIdentifier.replace(/[\s-]/g, '')) ? clientIdentifier : '+221 77 540 22 11',
-        email: clientIdentifier.includes('@') ? clientIdentifier : 'client@sinosenegal.sn',
+
+    if (isRegisterMode) {
+      const isEmail = clientIdentifier.includes('@');
+      const res = await registerUser({
+        email: isEmail ? clientIdentifier : undefined,
+        phone: !isEmail ? clientIdentifier : undefined,
+        password: clientPassword,
+        fullName: clientName || 'Nouveau Client',
         city: clientCity
       });
-
       setIsLoading(false);
-      if (onSuccess) {
-        onSuccess();
-      } else if (redirectTo) {
-        navigate(redirectTo);
+
+      if (res.success) {
+        if (onSuccess) {
+          onSuccess();
+        } else if (redirectTo) {
+          navigate(redirectTo);
+        } else {
+          navigate('/account');
+        }
       } else {
-        navigate('/account');
+        setErrorMsg(res.error || 'Erreur lors de l\'inscription.');
       }
-    }, 400);
+    } else {
+      const res = await loginUser({
+        identifier: clientIdentifier,
+        password: clientPassword,
+        role: 'client'
+      });
+      setIsLoading(false);
+
+      if (res.success) {
+        if (onSuccess) {
+          onSuccess();
+        } else if (redirectTo) {
+          navigate(redirectTo);
+        } else {
+          navigate('/account');
+        }
+      } else {
+        setErrorMsg(res.error || 'Identifiant ou mot de passe incorrect.');
+      }
+    }
   };
 
-  // Handle Admin Login
-  const handleAdminSubmit = (e: React.FormEvent) => {
+  // Handle Admin Login via Supabase Auth
+  const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setInfoMsg('');
 
     if (!adminEmail.trim() || !adminPassword.trim()) {
       setErrorMsg('Identifiant et mot de passe administrateur requis.');
@@ -101,19 +131,14 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setCurrentRole(selectedRole);
-      loginUser({
-        identifier: adminEmail,
-        role: 'admin',
-        adminRole: selectedRole,
-        name: 'Amadou Diallo (Admin HQ)',
-        phone: '+221 77 420 18 19',
-        email: adminEmail,
-        city: 'Dakar HQ'
-      });
+    const res = await loginUser({
+      identifier: adminEmail,
+      password: adminPassword,
+      role: 'admin'
+    });
+    setIsLoading(false);
 
-      setIsLoading(false);
+    if (res.success) {
       if (onSuccess) {
         onSuccess();
       } else if (redirectTo) {
@@ -121,53 +146,70 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
       } else {
         navigate('/admin');
       }
-    }, 400);
+    } else {
+      setErrorMsg(res.error || 'Accès refusé. Vérifiez vos identifiants administrateur.');
+    }
   };
 
-  // Quick 1-Click Demo Logins
-  const handleQuickDemoClient = () => {
-    setClientIdentifier('+221 77 540 22 11');
-    setClientPassword('pass123');
-    setClientName('Amadou Diallo');
-    setClientCity('Dakar');
+  // Handle Forgot Password via Supabase Auth
+  const handleForgotPassword = async () => {
+    setErrorMsg('');
+    setInfoMsg('');
+    if (!clientIdentifier.trim()) {
+      setErrorMsg('Veuillez d\'abord saisir votre email ou numéro ci-dessus.');
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
-      loginUser({
-        identifier: '+221 77 540 22 11',
-        role: 'client',
-        name: 'Amadou Diallo',
-        phone: '+221 77 540 22 11',
-        email: 'amadou.diallo@gmail.com',
-        city: 'Dakar'
-      });
-      setIsLoading(false);
+    const res = await resetPassword(clientIdentifier);
+    setIsLoading(false);
+    if (res.success) {
+      setInfoMsg('Un lien de réinitialisation sécurisé a été généré via Supabase Auth.');
+    } else {
+      setErrorMsg(res.error || 'Échec de l\'envoi de réinitialisation.');
+    }
+  };
+
+  // Quick 1-Click Demo Logins (Connected to real Supabase test accounts)
+  const handleQuickDemoClient = async () => {
+    setClientIdentifier('amadou.diallo@gmail.com');
+    setClientPassword('Password123!');
+    setIsLoading(true);
+    setErrorMsg('');
+    setInfoMsg('');
+    const res = await loginUser({
+      identifier: 'amadou.diallo@gmail.com',
+      password: 'Password123!',
+      role: 'client'
+    });
+    setIsLoading(false);
+    if (res.success) {
       if (onSuccess) onSuccess();
       else if (redirectTo) navigate(redirectTo);
       else navigate('/account');
-    }, 250);
+    } else {
+      setErrorMsg(res.error || 'Échec de connexion rapide client.');
+    }
   };
 
-  const handleQuickDemoAdmin = (role: AdminRole = 'SUPER_ADMIN') => {
+  const handleQuickDemoAdmin = async () => {
     setAdminEmail('admin@sinosenegal.sn');
-    setAdminPassword('admin2026');
-    setSelectedRole(role);
+    setAdminPassword('AdminPassword2026!');
     setIsLoading(true);
-    setTimeout(() => {
-      setCurrentRole(role);
-      loginUser({
-        identifier: 'admin@sinosenegal.sn',
-        role: 'admin',
-        adminRole: role,
-        name: 'Amadou Diallo (HQ)',
-        phone: '+221 77 420 18 19',
-        email: 'admin@sinosenegal.sn',
-        city: 'Dakar HQ'
-      });
-      setIsLoading(false);
+    setErrorMsg('');
+    setInfoMsg('');
+    const res = await loginUser({
+      identifier: 'admin@sinosenegal.sn',
+      password: 'AdminPassword2026!',
+      role: 'admin'
+    });
+    setIsLoading(false);
+    if (res.success) {
       if (onSuccess) onSuccess();
       else if (redirectTo) navigate(redirectTo);
       else navigate('/admin');
-    }, 250);
+    } else {
+      setErrorMsg(res.error || 'Échec de connexion rapide administrateur.');
+    }
   };
 
   return (
@@ -231,6 +273,14 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
           <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2.5 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* Info Notification */}
+        {infoMsg && (
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2.5 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            <span>{infoMsg}</span>
           </div>
         )}
 
@@ -324,8 +374,8 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
                 {!isRegisterMode && (
                   <button
                     type="button"
-                    onClick={() => alert('Un code de réinitialisation temporaire a été envoyé par SMS à votre numéro.')}
-                    className="text-[11px] text-slate-400 hover:text-[#FF4500]"
+                    onClick={handleForgotPassword}
+                    className="text-[11px] text-slate-400 hover:text-[#FF4500] cursor-pointer"
                   >
                     Mot de passe oublié ?
                   </button>
@@ -463,23 +513,15 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
               </div>
             </div>
 
-            {/* Role Target Selector */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Rôle & Profil d'Accès Opérationnel
-              </label>
-              <select
-                value={selectedRole}
-                onChange={e => setSelectedRole(e.target.value as AdminRole)}
-                className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 font-bold focus:outline-hidden focus:border-[#FF4500] shadow-xs"
-              >
-                <option value="SUPER_ADMIN">👑 Super Admin HQ (Accès Total & Pilotage Général)</option>
-                <option value="OPERATIONS">📦 Opérations & Groupages (Lots, Quotas & Commandes)</option>
-                <option value="SOURCING">🇨🇳 Sourcing Chine (Prix usines 1688 & Fournisseurs)</option>
-                <option value="LOGISTICS">✈️ Logistique & Hubs (Fret Aérien/Maritime & Scanners)</option>
-                <option value="FINANCE">💰 Finance & Marges (Rentabilité, Douane & Devises)</option>
-                <option value="CUSTOMER_SUPPORT">🎧 Support Client (Suivi AWP & Alertes)</option>
-              </select>
+            {/* Role Verification Notice (Infalsifiable) */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+              <div className="flex items-center gap-2 font-bold text-slate-800">
+                <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Rôle certifié par Supabase Auth &amp; PostgreSQL</span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Les privilèges administratifs (Super Admin, Opérations, Sourcing, Fret, Finance) sont vérifiés de manière infalsifiable côté serveur. Aucune élévation client n'est autorisée.
+              </p>
             </div>
 
             {/* Submit Button */}
@@ -503,7 +545,7 @@ export const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({
             <div className="pt-3 border-t border-slate-200/80">
               <button
                 type="button"
-                onClick={() => handleQuickDemoAdmin('SUPER_ADMIN')}
+                onClick={() => handleQuickDemoAdmin()}
                 className="w-full py-2.5 px-4 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-[#0B192C] border border-orange-400/40 text-xs font-black transition-all flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#FF4500]" />

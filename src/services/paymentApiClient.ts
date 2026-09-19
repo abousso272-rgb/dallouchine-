@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 export interface ClientPaymentResponse {
   success: boolean;
   checkoutUrl?: string;
@@ -47,12 +49,18 @@ export class PaymentApiClient {
     cancelUrl?: string;
   }): Promise<ClientPaymentResponse> {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/api/payments/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers,
         body: JSON.stringify(params)
       });
 
@@ -105,7 +113,15 @@ export class PaymentApiClient {
    */
   static async getAdminPayments(): Promise<{ success: boolean; payments: any[] }> {
     try {
-      const response = await fetch('/api/payments/admin/list');
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json'
+      };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch('/api/payments/admin/list', { headers });
       if (response.ok) {
         return await response.json();
       }

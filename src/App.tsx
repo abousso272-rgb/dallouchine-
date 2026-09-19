@@ -7,6 +7,8 @@ import { AdminLayout } from './components/layout/AdminLayout';
 import { ToastContainer } from './components/common/ToastContainer';
 import { ClientAIAssistant } from './components/common/ClientAIAssistant';
 import { AuthModal } from './components/auth/AuthModal';
+import { UnifiedAuthForm } from './components/auth/UnifiedAuthForm';
+import { ShieldAlert, Lock } from 'lucide-react';
 
 // Client Pages
 import { HomePage } from './pages/client/HomePage';
@@ -23,11 +25,15 @@ import { TransitPage } from './pages/client/TransitPage';
 import { AboutPage } from './pages/client/AboutPage';
 import { CartPage } from './pages/client/CartPage';
 import { CheckoutPage } from './pages/client/CheckoutPage';
+import { OrderSuccessPage } from './pages/client/OrderSuccessPage';
 import { AccountPage } from './pages/client/AccountPage';
 import { ClientDashboardPage } from './pages/client/ClientDashboardPage';
 import { AuthPage } from './pages/client/AuthPage';
 import { PaymentStatusPage } from './pages/client/PaymentStatusPage';
 import { PaymentHostedSimulatorPage } from './pages/client/PaymentHostedSimulatorPage';
+import { PaymentsPage } from './pages/client/PaymentsPage';
+import { DocumentsPage } from './pages/client/DocumentsPage';
+import { AutoMobilityPage } from './pages/client/AutoMobilityPage';
 
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
@@ -53,10 +59,48 @@ import { AdminAIAssistantPage } from './pages/admin/AdminAIAssistantPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 
 const AppRouter: React.FC = () => {
-  const { currentPath, isAuthModalOpen, closeAuthModal, authModalDefaultTab } = useApp();
+  const { currentPath, isAuthModalOpen, closeAuthModal, authModalDefaultTab, currentUser, authLoading } = useApp();
 
   // ADMIN ROUTING
   if (currentPath.startsWith('/admin')) {
+    // 1. Attente de la validation du token Supabase Auth
+    if (authLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-[#0B192C] text-white">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-4 border-[#FF4500] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-bold text-slate-400">Vérification de sécurité Supabase...</span>
+          </div>
+        </div>
+      );
+    }
+
+    // 2. Protection stricte : rôle administrateur certifié requis
+    if (!currentUser.isLoggedIn || currentUser.role !== 'admin') {
+      return (
+        <div className="min-h-screen flex flex-col bg-[#0B192C] text-white selection:bg-[#FF4500] selection:text-white">
+          <Navbar />
+          <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 flex flex-col items-center justify-center">
+            <div className="w-full max-w-xl space-y-6">
+              <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-center space-y-1.5">
+                <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-rose-300">
+                  <ShieldAlert className="w-4 h-4" />
+                  <span>Zone d'Administration Restreinte</span>
+                </div>
+                <p className="text-xs text-slate-300">
+                  {currentUser.isLoggedIn
+                    ? `Votre compte (${currentUser.email}) possède le profil "${currentUser.role}". L'accès au panneau opérationnel HQ est réservé aux administrateurs autorisés.`
+                    : 'Veuillez vous authentifier avec votre compte superviseur pour accéder à cette zone.'}
+                </p>
+              </div>
+              <UnifiedAuthForm defaultTab="admin" redirectTo={currentPath} />
+            </div>
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
     let adminContent: React.ReactNode = <AdminDashboardPage />;
 
     if (currentPath === '/admin/products') {
@@ -121,11 +165,16 @@ const AppRouter: React.FC = () => {
   let clientContent: React.ReactNode = <HomePage />;
 
   if (
+    currentPath === '/auto-mobilite' ||
+    currentPath.startsWith('/auto-mobilite?') ||
+    currentPath === '/vehicules' ||
+    currentPath === '/auto'
+  ) {
+    clientContent = <AutoMobilityPage />;
+  } else if (
     currentPath === '/products' ||
     currentPath.startsWith('/products?') ||
-    currentPath === '/produits' ||
-    currentPath === '/auto-mobilite' ||
-    currentPath.startsWith('/auto-mobilite?')
+    currentPath === '/produits'
   ) {
     clientContent = <CatalogPage />;
   } else if (currentPath.startsWith('/products/') || currentPath.startsWith('/product/')) {
@@ -185,6 +234,8 @@ const AppRouter: React.FC = () => {
     clientContent = <CartPage />;
   } else if (currentPath === '/checkout' || currentPath === '/validation-commande') {
     clientContent = <CheckoutPage />;
+  } else if (currentPath.startsWith('/order-success') || currentPath.startsWith('/commande-succes')) {
+    clientContent = <OrderSuccessPage />;
   } else if (
     currentPath.startsWith('/payment/success') ||
     currentPath.startsWith('/payment/status') ||
@@ -205,8 +256,58 @@ const AppRouter: React.FC = () => {
     currentPath === '/register'
   ) {
     clientContent = <AuthPage />;
+  } else if (
+    currentPath === '/paiements' ||
+    currentPath.startsWith('/paiements?') ||
+    currentPath === '/transactions' ||
+    currentPath.startsWith('/transactions?') ||
+    currentPath === '/finances'
+  ) {
+    clientContent = <PaymentsPage />;
+  } else if (
+    currentPath === '/devis-documents' ||
+    currentPath.startsWith('/devis-documents?') ||
+    currentPath === '/documents' ||
+    currentPath.startsWith('/documents?') ||
+    currentPath === '/certificats'
+  ) {
+    clientContent = <DocumentsPage />;
   } else if (currentPath === '/account' || currentPath.startsWith('/account?')) {
     clientContent = <AccountPage />;
+  }
+
+  // Protection des routes privées client : authentification requise
+  const isPrivateClientRoute = 
+    currentPath === '/account' ||
+    currentPath.startsWith('/account?') ||
+    currentPath === '/dashboard' ||
+    currentPath.startsWith('/dashboard?') ||
+    currentPath === '/mon-espace' ||
+    currentPath.startsWith('/mon-espace?') ||
+    currentPath === '/tableau-de-bord' ||
+    currentPath === '/paiements' ||
+    currentPath.startsWith('/paiements?') ||
+    currentPath === '/transactions' ||
+    currentPath.startsWith('/transactions?') ||
+    currentPath === '/devis-documents' ||
+    currentPath.startsWith('/devis-documents?') ||
+    currentPath === '/documents';
+
+  if (isPrivateClientRoute && !authLoading && !currentUser.isLoggedIn) {
+    clientContent = (
+      <div className="w-full max-w-xl mx-auto py-8 space-y-6 animate-in fade-in">
+        <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-center space-y-1.5">
+          <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-800">
+            <Lock className="w-4 h-4 text-amber-600" />
+            <span>Connexion Requise</span>
+          </div>
+          <p className="text-xs text-slate-600">
+            Veuillez vous connecter à votre compte client pour accéder à vos expéditions, vos factures et vos documents.
+          </p>
+        </div>
+        <UnifiedAuthForm defaultTab="client" redirectTo={currentPath} />
+      </div>
+    );
   }
 
   return (

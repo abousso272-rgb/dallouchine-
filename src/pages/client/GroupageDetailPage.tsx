@@ -1,52 +1,135 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { groupageService } from '../../services/groupageService';
+import { Groupage } from '../../types';
 
-export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
-  const { navigate, addToCart, products } = useApp();
+export const GroupageDetailPage: React.FC<{ id?: string }> = ({ id }) => {
+  const { navigate, currentUser, groupages, reserveGroupage, getGroupageById } = useApp();
 
-  // Quantity for calculation (Max 8 available)
+  const [groupage, setGroupage] = useState<Groupage | null>(() => (id ? getGroupageById(id) || null : null));
+  const [loading, setLoading] = useState<boolean>(!groupage);
+  const [reserving, setReserving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const [currentQty, setCurrentQty] = useState(1);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [showNotification, setShowNotification] = useState(false);
 
-  const UNIT_PRICE = 480000;
+  useEffect(() => {
+    let isMounted = true;
+    const fetchGroupage = async () => {
+      if (id) {
+        const live = await groupageService.getGroupageById(id);
+        if (isMounted && live) {
+          setGroupage(live);
+          setCurrentQty(live.minOrderPerUser || 1);
+          setLoading(false);
+          return;
+        }
+      }
+      if (isMounted) {
+        if (groupages.length > 0) {
+          const fallback = groupages[0];
+          setGroupage(fallback);
+          setCurrentQty(fallback.minOrderPerUser || 1);
+        }
+        setLoading(false);
+      }
+    };
+    fetchGroupage();
+    return () => {
+      isMounted = false;
+    };
+  }, [id, groupages]);
+
+  const UNIT_PRICE = groupage?.unitPriceXOF || 480000;
+  const ORIGINAL_PRICE = groupage?.originalPriceXOF || Math.round(UNIT_PRICE * 1.35);
   const DEPOSIT_RATE = 0.30;
   const BALANCE_RATE = 0.70;
-  const ESTIMATED_SHIPPING_PER_UNIT = 115000;
-  const MAX_AVAILABLE = 8;
-  const MIN_AVAILABLE = 1;
+  const ESTIMATED_SHIPPING_PER_UNIT = groupage?.transportMode === 'air' ? 25000 : 85000;
+
+  const targetUnits = groupage?.targetUnits || groupage?.targetQuantity || 20;
+  const currentUnits = groupage?.currentUnits || groupage?.reservedQuantity || 0;
+  const availableUnits = groupage?.availableQuantity ?? Math.max(0, targetUnits - currentUnits);
+  const progressPercent = Math.min(100, Math.round((currentUnits / (targetUnits || 1)) * 100));
+
+  const MIN_AVAILABLE = groupage?.minOrderPerUser || 1;
+  const MAX_AVAILABLE = Math.max(MIN_AVAILABLE, Math.min(groupage?.maxOrderPerUser || 100, availableUnits));
+
+  const isFull = groupage?.status === 'full' || availableUnits <= 0;
+  const isClosed = groupage?.status !== 'open' && groupage?.status !== 'almost_full';
 
   const subtotal = currentQty * UNIT_PRICE;
   const deposit = subtotal * DEPOSIT_RATE;
   const balance = subtotal * BALANCE_RATE;
   const shipping = currentQty * ESTIMATED_SHIPPING_PER_UNIT;
+  const savingsPercent = groupage?.savingsPercent || Math.round(((ORIGINAL_PRICE - UNIT_PRICE) / ORIGINAL_PRICE) * 100);
 
   const formatFCFA = (num: number) => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
   };
 
-  const handleJoinGroupage = () => {
-    const motoProduct = products.find(p => p.id === 'prod-moto') || products[0];
-    addToCart(
-      {
-        ...motoProduct,
-        name: `Réservation Groupage : Moto Électrique 2000W (${currentQty} unité${currentQty > 1 ? 's' : ''})`,
-        priceXOF: deposit
-      },
-      currentQty,
-      true,
-      'grp-moto'
-    );
-    setShowNotification(true);
-    setTimeout(() => {
-      setShowNotification(false);
-      navigate('/checkout');
-    }, 1200);
+  const handleJoinGroupage = async () => {
+    if (!currentUser.isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    if (!groupage) return;
+
+    if (isFull || isClosed) {
+      setErrorMessage('Ce groupage n\'accepte plus de nouvelles réservations.');
+      return;
+    }
+
+    if (currentQty > availableUnits) {
+      setErrorMessage(`Quantité demandée supérieure au disponible (${availableUnits} unités restantes).`);
+      return;
+    }
+
+    if (currentQty < MIN_AVAILABLE) {
+      setErrorMessage(`Quantité minimale de commande : ${MIN_AVAILABLE} unité(s).`);
+      return;
+    }
+
+    setReserving(true);
+    setErrorMessage(null);
+    const key = `res_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const res = await reserveGroupage(groupage.id, currentQty, key);
+    setReserving(false);
+
+    if (res.success) {
+      setShowNotification(true);
+      const live = await groupageService.getGroupageById(groupage.id);
+      if (live) {
+        setGroupage(live);
+      }
+      setTimeout(() => {
+        setShowNotification(false);
+      }, 3500);
+    } else {
+      setErrorMessage(res.error || 'Erreur lors de la réservation');
+    }
   };
 
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
   };
+
+  if (loading && !groupage) {
+    return (
+      <div className="max-w-7xl mx-auto w-full px-4 py-16 flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-bold text-slate-600">Chargement de la campagne de groupage...</p>
+      </div>
+    );
+  }
+
+  const title = groupage?.title || 'Campagne de Groupage Usine';
+  const code = groupage?.code || 'GRP-000';
+  const image = groupage?.image || groupage?.product?.images?.[0] || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800';
+  const closingDate = groupage?.closingDate || '15 jours';
+  const logisticsRoute = groupage?.logisticsRoute || 'Port Ningbo-Zhoushan 🇨🇳 → Port Autonome de Dakar 🇸🇳';
+  const description = groupage?.description || groupage?.product?.shortDescription || 'Groupage sécurisé pour livraison groupée au Port Autonome de Dakar.';
 
   return (
     <div className="flex flex-col w-full">
@@ -55,9 +138,9 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
         <div className="fixed top-24 right-4 sm:right-8 z-50 bg-[#141c24] text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-orange-500/30 animate-in fade-in slide-in-from-top-4 duration-300">
           <span className="material-symbols-outlined text-[#ff8a00] text-2xl">check_circle</span>
           <div>
-            <div className="font-bold text-sm">Réservation confirmée !</div>
+            <div className="font-bold text-sm">Réservation confirmée sur Supabase !</div>
             <div className="text-xs text-slate-300">
-              Acompte de {formatFCFA(deposit)} ({currentQty} unité{currentQty > 1 ? 's' : ''})
+              {currentQty} unité{currentQty > 1 ? 's' : ''} réservée{currentQty > 1 ? 's' : ''} (Acompte 30% : {formatFCFA(deposit)})
             </div>
           </div>
         </div>
@@ -86,15 +169,8 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
             Groupages
           </button>
           <span className="material-symbols-outlined text-[14px] text-outline-variant">chevron_right</span>
-          <button
-            onClick={() => navigate('/products?cat=Auto%20%26%20Mobilit%C3%A9')}
-            className="hover:text-primary transition-colors cursor-pointer"
-          >
-            Auto & Mobilité
-          </button>
-          <span className="material-symbols-outlined text-[14px] text-outline-variant">chevron_right</span>
           <span className="text-on-surface font-bold bg-surface-container-high px-2.5 py-0.5 rounded-full">
-            #GRP-2026-MOTO
+            #{code}
           </span>
         </nav>
 
@@ -108,40 +184,46 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
               <div className="relative w-full aspect-[16/11] rounded-2xl overflow-hidden bg-surface-container shadow-sm mb-4 group">
                 <img
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                  alt="Moto électrique 2000W haute autonomie conteneur Dakar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlQqylgoGw2WXN3dA57e5MsqhuwQnXZfr5y_qz6GcxxAar95GZk8_wUhLyroMi8_8YTaNfdQrGv-g2-rl952OPHwEVkN5y_IHBYtaCfCOuB2sdHCnl-Cw5bxTXMx6ekmenml_xG_n5XvjWBvGtt2FlDTJaaisEoNVcwrtNxi6yC_ojrPX7-x4smQ93uysmEVjPwoee7ECi2IV_eMx2LJJf2qsdskmWSyadLMXlET3XXk7dCTMK5dNvjg"
+                  alt={title}
+                  src={image}
                 />
 
                 {/* Badges overlay */}
                 <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-tertiary-container/95 text-on-tertiary text-label-sm font-label-sm uppercase tracking-wider backdrop-blur-md shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-on-tertiary animate-ping" />
-                    En cours — Dernières places
+                  <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-label-sm text-label-sm uppercase tracking-wider backdrop-blur-md shadow-sm ${
+                    isFull
+                      ? 'bg-rose-500/90 text-white'
+                      : groupage?.status === 'almost_full'
+                      ? 'bg-tertiary-container/95 text-on-tertiary'
+                      : 'bg-emerald-600/90 text-white'
+                  }`}>
+                    {!isFull && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
+                    {isFull ? 'Complet — Clôturé' : groupage?.status === 'almost_full' ? 'En cours — Presque complet' : 'Campagne Ouverte'}
                   </span>
                   <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-sm font-label-sm">
                     <span className="material-symbols-outlined text-[14px] text-primary-container">
                       verified
                     </span>
-                    Audit SGS Usine Chine
+                    Contrôle Qualité Usine
                   </span>
                 </div>
 
                 <div className="absolute bottom-4 left-4 right-4 bg-surface-container-lowest/90 backdrop-blur-md p-3 rounded-xl flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-2.5">
                     <span className="material-symbols-outlined text-primary-container text-[22px]">
-                      directions_boat
+                      {groupage?.transportMode === 'air' ? 'flight_takeoff' : 'directions_boat'}
                     </span>
                     <div className="flex flex-col">
                       <span className="font-label-sm text-label-sm font-bold text-on-surface">
-                        Conteneur 40HC Dédié Dakar
+                        {groupage?.transportMode === 'air' ? 'Fret Aérien Express Dakar' : 'Conteneur Consolidé Maritime'}
                       </span>
-                      <span className="font-body-sm text-body-sm text-on-surface-variant">
-                        Port Ningbo-Zhoushan 🇨🇳 → PAD Sénégal 🇸🇳
+                      <span className="font-body-sm text-body-sm text-on-surface-variant truncate max-w-[240px]">
+                        {logisticsRoute}
                       </span>
                     </div>
                   </div>
                   <span className="font-label-sm text-label-sm bg-surface-container-high px-2.5 py-1 rounded-full text-on-surface font-semibold">
-                    Fret direct
+                    {groupage?.transportMode === 'air' ? 'Aérien' : 'Maritime'}
                   </span>
                 </div>
               </div>
@@ -150,31 +232,31 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <div className="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center text-center shadow-xs border border-slate-100">
                   <span className="material-symbols-outlined text-primary mb-1 text-[20px]">
-                    electric_bolt
+                    inventory_2
                   </span>
-                  <span className="font-label-sm text-label-sm text-on-surface-variant">Puissance</span>
+                  <span className="font-label-sm text-label-sm text-on-surface-variant">Seuil MOQ</span>
                   <span className="font-headline-sm text-headline-sm font-bold text-on-surface">
-                    2000W Brushless
+                    {targetUnits} pcs
                   </span>
                 </div>
                 <div className="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center text-center shadow-xs border border-slate-100">
                   <span className="material-symbols-outlined text-primary mb-1 text-[20px]">
-                    battery_charging_full
+                    group
                   </span>
                   <span className="font-label-sm text-label-sm text-on-surface-variant">
-                    Batterie Amovible
+                    Participants
                   </span>
                   <span className="font-headline-sm text-headline-sm font-bold text-on-surface">
-                    72V 35Ah LFP
+                    {groupage?.participantsCount || 0}
                   </span>
                 </div>
                 <div className="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center text-center shadow-xs border border-slate-100">
                   <span className="material-symbols-outlined text-primary mb-1 text-[20px]">
-                    speed
+                    event_available
                   </span>
-                  <span className="font-label-sm text-label-sm text-on-surface-variant">Autonomie</span>
+                  <span className="font-label-sm text-label-sm text-on-surface-variant">Clôture</span>
                   <span className="font-headline-sm text-headline-sm font-bold text-on-surface">
-                    85 - 100 km
+                    {closingDate}
                   </span>
                 </div>
               </div>
@@ -188,16 +270,16 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                     Achat groupé interentreprises & particuliers
                   </span>
                   <span className="font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-full font-bold">
-                    Économie de 26%
+                    Économie de {savingsPercent}%
                   </span>
                 </div>
 
                 <h1 className="font-headline-xl text-headline-xl text-on-surface mb-3 leading-tight">
-                  Groupage Spécial : Moto électrique 2000W haute autonomie
+                  {title}
                 </h1>
 
                 <p className="font-body-md text-body-md text-on-surface-variant mb-6">
-                  Groupage sécurisé pour livraison groupée au Port Autonome de Dakar. Véhicule homologué, batterie interchangeable Lithium Phosphate haute résistance à la chaleur sahélienne.
+                  {description}
                 </p>
 
                 {/* Comparatif Tarification Négociée */}
@@ -208,7 +290,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                     </span>
                     <div className="flex items-baseline gap-2">
                       <span className="font-price-xl text-price-xl font-bold text-primary">
-                        480 000
+                        {UNIT_PRICE.toLocaleString('fr-FR')}
                       </span>
                       <span className="font-label-lg text-label-lg font-bold text-primary">
                         FCFA <span className="text-body-sm font-normal text-on-surface-variant">/ unité</span>
@@ -220,7 +302,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                       Prix catalogue solo
                     </span>
                     <span className="font-headline-md text-headline-md line-through text-outline">
-                      650 000 FCFA
+                      {ORIGINAL_PRICE.toLocaleString('fr-FR')} FCFA
                     </span>
                   </div>
                 </div>
@@ -230,22 +312,28 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                   <div className="flex justify-between items-end mb-2">
                     <div>
                       <span className="font-headline-md text-headline-md font-bold text-on-surface">
-                        42 <span className="text-headline-sm font-normal text-on-surface-variant">/ 50 réservées</span>
+                        {currentUnits} <span className="text-headline-sm font-normal text-on-surface-variant">/ {targetUnits} réservées</span>
                       </span>
                       <span className="ml-2 font-label-md text-label-md font-bold text-primary-container">
-                        (84% du MOQ atteint)
+                        ({progressPercent}% du lot)
                       </span>
                     </div>
-                    <span className="font-label-sm text-label-sm text-tertiary font-bold bg-tertiary-fixed px-2.5 py-0.5 rounded-full">
-                      Plus que 8 unités disponibles
+                    <span className={`font-label-sm text-label-sm font-bold px-2.5 py-0.5 rounded-full ${
+                      isFull ? 'bg-rose-100 text-rose-800' : 'bg-tertiary-fixed text-tertiary'
+                    }`}>
+                      {isFull ? 'Complet (0 disponible)' : `Plus que ${availableUnits} unité${availableUnits > 1 ? 's disponibles' : ' disponible'}`}
                     </span>
                   </div>
 
                   {/* Multi-segment gauge */}
                   <div className="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden flex">
                     <div
-                      className="h-full bg-gradient-to-r from-primary via-primary-container to-secondary-container rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: '84%' }}
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                        isFull
+                          ? 'bg-rose-500'
+                          : 'bg-gradient-to-r from-primary via-primary-container to-secondary-container'
+                      }`}
+                      style={{ width: `${progressPercent}%` }}
                     />
                   </div>
 
@@ -255,10 +343,10 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                       <span className="material-symbols-outlined text-primary text-[20px]">timer</span>
                       <div className="flex flex-col">
                         <span className="font-label-sm text-label-sm text-on-surface-variant">
-                          Clôture souscriptions :
+                          Date limite de clôture :
                         </span>
                         <span className="font-label-lg text-label-lg font-bold text-on-surface">
-                          Dans 4 jours (28 Juin 2026)
+                          {closingDate}
                         </span>
                       </div>
                     </div>
@@ -268,10 +356,10 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                       </span>
                       <div className="flex flex-col">
                         <span className="font-label-sm text-label-sm text-on-surface-variant">
-                          ETA estimée Dakar :
+                          Livraison estimée Dakar :
                         </span>
                         <span className="font-label-lg text-label-lg font-bold text-on-surface">
-                          ~15 Août 2026
+                          {groupage?.estimatedArrivalDate ? new Date(groupage.estimatedArrivalDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'Sous 30 jours'}
                         </span>
                       </div>
                     </div>
@@ -285,7 +373,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                   verified_user
                 </span>
                 <span>
-                  Garantie Dallou Chine : Remboursement automatique 100% sous 24h si le seuil minimum n'est pas consolidé.
+                  {groupage?.guaranteeNote || 'Garantie Dallou Chine : Remboursement automatique 100% sous 24h si le seuil minimum n\'est pas consolidé.'}
                 </span>
               </div>
             </div>
@@ -309,9 +397,16 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                   </h2>
                 </div>
                 <span className="font-label-sm text-label-sm bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">
-                  Calcul en direct FCFA
+                  Calcul direct Supabase FCFA
                 </span>
               </div>
+
+              {errorMessage && (
+                <div className="p-4 mb-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+                  <span className="material-symbols-outlined text-rose-600">error</span>
+                  <span>{errorMessage}</span>
+                </div>
+              )}
 
               {/* Sélecteur Quantité Interactive */}
               <div className="bg-surface-container-low p-4 sm:p-5 rounded-2xl mb-5 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -320,14 +415,16 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                     Nombre d'unités à commander
                   </label>
                   <span className="font-body-sm text-body-sm text-on-surface-variant">
-                    Maximum 8 unités disponibles sur ce conteneur
+                    {isFull
+                      ? 'Aucune unité restante sur ce lot'
+                      : `Minimum : ${MIN_AVAILABLE} • Disponible : ${availableUnits} unité${availableUnits > 1 ? 's' : ''}`}
                   </span>
                 </div>
 
                 <div className="flex items-center bg-surface-container-lowest rounded-full shadow-xs p-1">
                   <button
                     aria-label="Diminuer la quantité"
-                    disabled={currentQty <= MIN_AVAILABLE}
+                    disabled={currentQty <= MIN_AVAILABLE || isFull || isClosed}
                     onClick={() => setCurrentQty(Math.max(MIN_AVAILABLE, currentQty - 1))}
                     className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
                     type="button"
@@ -339,7 +436,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                   </span>
                   <button
                     aria-label="Augmenter la quantité"
-                    disabled={currentQty >= MAX_AVAILABLE}
+                    disabled={currentQty >= MAX_AVAILABLE || isFull || isClosed}
                     onClick={() => setCurrentQty(Math.min(MAX_AVAILABLE, currentQty + 1))}
                     className="w-10 h-10 rounded-full flex items-center justify-center bg-primary-container text-on-primary hover:bg-secondary-container transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
                     type="button"
@@ -385,7 +482,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                       account_balance_wallet
                     </span>
                     <span className="font-body-md text-body-md text-on-surface-variant">
-                      Solde usine à confirmation du MOQ (70%)
+                      Solde usine à confirmation du lot (70%)
                     </span>
                   </div>
                   <span className="font-headline-sm text-headline-sm font-semibold text-on-surface">
@@ -397,7 +494,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[18px]">local_shipping</span>
                     <span className="font-body-md text-body-md">
-                      Fret maritime groupé & manutention portuaire (estimé)
+                      Fret groupé & manutention portuaire (estimé)
                     </span>
                   </div>
                   <span className="font-headline-sm text-headline-sm text-on-surface">
@@ -410,11 +507,26 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
             <div>
               {/* Bouton CTA principal */}
               <button
+                disabled={reserving || isFull || isClosed}
                 onClick={handleJoinGroupage}
-                className="w-full h-14 rounded-full bg-primary-container hover:bg-secondary-container text-on-primary font-headline-md text-headline-md font-bold shadow-lg shadow-primary-container/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.99] mb-3 cursor-pointer"
+                className={`w-full h-14 rounded-full text-on-primary font-headline-md text-headline-md font-bold shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.99] mb-3 cursor-pointer ${
+                  isFull || isClosed
+                    ? 'bg-slate-400 opacity-60 cursor-not-allowed shadow-none'
+                    : 'bg-primary-container hover:bg-secondary-container shadow-primary-container/30'
+                }`}
                 type="button"
               >
-                <span>Rejoindre ce groupage maintenant</span>
+                <span>
+                  {reserving
+                    ? 'Validation transactionnelle...'
+                    : isFull
+                    ? 'Groupage Complet'
+                    : isClosed
+                    ? 'Campagne Fermée'
+                    : !currentUser.isLoggedIn
+                    ? 'Se connecter pour participer'
+                    : `Réserver ${currentQty} unité${currentQty > 1 ? 's' : ''} maintenant`}
+                </span>
                 <span className="material-symbols-outlined text-[22px]">arrow_forward</span>
               </button>
               <p className="font-label-sm text-label-sm text-center text-on-surface-variant">
@@ -422,6 +534,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = () => {
               </p>
             </div>
           </section>
+
 
           {/* PANNEAU INFORMATIF : CARACTÉRISTIQUES DU CONTENEUR & CONTRÔLE QUALITÉ (5 colonnes) */}
           <section className="lg:col-span-5 bg-surface-container-lowest/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">

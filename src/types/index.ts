@@ -66,6 +66,35 @@ export interface ProductCustomization {
   description: string;
 }
 
+export interface ProductAutoSpecs {
+  vehicleType?: string;
+  brand?: string;
+  model?: string;
+  modelYear?: number;
+  batteryCapacityKwh?: number;
+  rangeKm?: number;
+  motorPowerKw?: number;
+  motorPowerHp?: number;
+  chargingTime?: string;
+  topSpeedKmh?: number;
+  weightKg?: number;
+  dimensions?: string;
+  certification?: string;
+}
+
+export interface PublicGroupageInfo {
+  id: string;
+  code: string;
+  title: string;
+  targetQuantity: number;
+  reservedQuantity: number;
+  unitPriceXOF: number;
+  deadline?: string;
+  estimatedDepartureDate?: string;
+  transportMode?: string;
+  status: string;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -90,14 +119,16 @@ export interface Product {
   productPriceXOF?: number; // Prix spécifique marchandise sortie usine
   estimatedLogisticsXOF?: number; // Coût logistique estimatif fret + douane
   previousPriceXOF?: number;
+  compareAtPriceXOF?: number | null;
+  currency?: string;
   isGroupage: boolean;
   activeGroupageId?: string;
-  supplierId: string;
+  supplierId?: string;
   sourcerId?: string;
   defaultTransportMode: TransportMode;
   estimatedDeliveryDays: string;
   stockStatus: 'in_stock' | 'groupage_only' | 'on_demand' | 'low_stock';
-  targetMarginPercent: number;
+  targetMarginPercent?: number;
   rating: number;
   reviewsCount: number;
   tags: string[];
@@ -105,6 +136,18 @@ export interface Product {
   customization?: ProductCustomization;
   variants?: ProductVariant[];
   createdAt: string;
+
+  // Supabase Catalog Additions
+  sku?: string;
+  categoryId?: string | null;
+  stockQuantity?: number;
+  reservedQuantity?: number;
+  availableQuantity?: number;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  isAutoMobility?: boolean;
+  autoSpecs?: ProductAutoSpecs | null;
+  publicGroupage?: PublicGroupageInfo | null;
 }
 
 export interface Groupage {
@@ -134,6 +177,31 @@ export interface Groupage {
   logisticsRoute: string; // e.g. "Yiwu Hub -> Dakar Port/Airport"
   guaranteeNote: string;
   keyBenefits: string[];
+
+  // Supabase Groupage complementary fields
+  targetQuantity?: number;
+  reservedQuantity?: number;
+  availableQuantity?: number;
+  deadline?: string;
+  supplierMoq?: number;
+  description?: string;
+  image?: string;
+}
+
+export type ParticipantStatus = 'reserved' | 'confirmed' | 'cancelled' | 'converted_to_order';
+
+export interface GroupageParticipant {
+  id: string;
+  groupageId: string;
+  groupage?: Groupage;
+  userId: string;
+  quantity: number;
+  unitPriceXOF: number;
+  totalXOF: number;
+  status: ParticipantStatus;
+  idempotencyKey?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Customer {

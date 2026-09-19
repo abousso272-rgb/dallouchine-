@@ -1,23 +1,23 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
 import { SearchBar } from '../../components/common/SearchBar';
+import { catalogService } from '../../services/catalogService';
+import { Product } from '../../types';
 import {
   SlidersHorizontal,
   X,
   Plane,
   Ship,
   Flame,
-  CheckCircle2,
-  ArrowUpDown,
-  Layers,
-  Sparkles,
-  LayoutGrid,
-  ListFilter
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  AlertCircle
 } from 'lucide-react';
 
 export const CatalogPage: React.FC = () => {
-  const { products, categories, searchQuery, setSearchQuery, currentPath } = useApp();
+  const { categories, searchQuery, setSearchQuery, currentPath } = useApp();
 
   // Filter States
   const [selectedCategory, setSelectedCategory] = useState<string>(() => {
@@ -27,73 +27,99 @@ export const CatalogPage: React.FC = () => {
     }
     return 'all';
   });
-  const [selectedTransport, setSelectedTransport] = useState<string>('all'); // all | air | sea
+  const [selectedTransport, setSelectedTransport] = useState<'all' | 'air' | 'sea'>('all');
   const [onlyGroupages, setOnlyGroupages] = useState<boolean>(false);
-  const [maxPrice, setMaxPrice] = useState<number>(1500000);
-  const [sortBy, setSortBy] = useState<string>('popular');
+  const [maxPrice, setMaxPrice] = useState<number>(10000000);
+  const [sortBy, setSortBy] = useState<'popular' | 'price_asc' | 'price_desc' | 'rating' | 'newest'>('popular');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
 
+  // Server Pagination & State
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const PAGE_SIZE = 12;
+
   // Sync category when path changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentPath === '/auto-mobilite') {
       setSelectedCategory('Auto');
+      setCurrentPage(1);
     } else if (currentPath.includes('category=')) {
       setSelectedCategory(decodeURIComponent(currentPath.split('category=')[1]?.split('&')[0] || 'all'));
+      setCurrentPage(1);
     }
   }, [currentPath]);
 
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    return products
-      .filter(p => {
-        // Search term
-        if (searchQuery.trim()) {
-          const q = (searchQuery || '').toLowerCase();
-          const matchesName = (p?.name || '').toLowerCase().includes(q);
-          const matchesCat = (p?.category || '').toLowerCase().includes(q);
-          const matchesTags = (p?.tags || []).some(t => (t || '').toLowerCase().includes(q));
-          if (!matchesName && !matchesCat && !matchesTags) return false;
-        }
+  // Fetch products from Supabase via catalogService
+  const fetchProducts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setErrorMsg(null);
 
-        // Category
-        if (selectedCategory !== 'all') {
-          if (!(p?.category || '').toLowerCase().includes((selectedCategory || '').toLowerCase())) {
-            return false;
-          }
-        }
-
-        // Transport
-        if (selectedTransport !== 'all') {
-          if (p.defaultTransportMode !== selectedTransport) return false;
-        }
-
-        // Only groupages
-        if (onlyGroupages && !p.isGroupage) {
-          return false;
-        }
-
-        // Price
-        if (p.priceXOF > maxPrice) {
-          return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'price_asc') return a.priceXOF - b.priceXOF;
-        if (sortBy === 'price_desc') return b.priceXOF - a.priceXOF;
-        if (sortBy === 'rating') return b.rating - a.rating;
-        if (sortBy === 'newest') return (b.id > a.id ? 1 : -1);
-        return b.moq * 5 - a.moq * 5; // default popular
+      const res = await catalogService.getProducts({
+        categorySlug: selectedCategory !== 'all' ? selectedCategory : undefined,
+        search: searchQuery.trim() || undefined,
+        transportMode: selectedTransport,
+        isGroupageOnly: onlyGroupages,
+        maxPrice: maxPrice,
+        sortBy: sortBy,
+        page: currentPage,
+        limit: PAGE_SIZE
       });
-  }, [products, searchQuery, selectedCategory, selectedTransport, onlyGroupages, maxPrice, sortBy]);
+
+      setProductsList(res.products);
+      setTotalCount(res.total);
+      setTotalPages(res.totalPages || 1);
+    } catch (err: any) {
+      console.error('[CatalogPage] Failed to fetch products:', err);
+      setErrorMsg('Impossible de charger les produits. Veuillez vérifier votre connexion.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedCategory, searchQuery, selectedTransport, onlyGroupages, maxPrice, sortBy, currentPage]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Reset page to 1 when filters change
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    setCurrentPage(1);
+  };
+
+  const handleTransportChange = (mode: 'all' | 'air' | 'sea') => {
+    setSelectedTransport(prev => (prev === mode ? 'all' : mode));
+    setCurrentPage(1);
+  };
+
+  const handleGroupageToggle = (checked: boolean) => {
+    setOnlyGroupages(checked);
+    setCurrentPage(1);
+  };
+
+  const handlePriceChange = (price: number) => {
+    setMaxPrice(price);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (newSort: 'popular' | 'price_asc' | 'price_desc' | 'rating' | 'newest') => {
+    setSortBy(newSort);
+    setCurrentPage(1);
+  };
 
   const resetFilters = () => {
     setSelectedCategory('all');
     setSelectedTransport('all');
     setOnlyGroupages(false);
-    setMaxPrice(300000);
+    setMaxPrice(10000000);
     setSearchQuery('');
+    setSortBy('popular');
+    setCurrentPage(1);
   };
 
   return (
@@ -106,7 +132,7 @@ export const CatalogPage: React.FC = () => {
               Catalogue Produits SinoSenegal
             </span>
             <h1 className="text-2xl sm:text-4xl font-black text-[#0B192C] tracking-tight">
-              Explorer tous les articles ({filteredProducts.length})
+              Explorer tous les articles ({totalCount})
             </h1>
             <p className="text-xs sm:text-sm text-slate-600">
               Achetez à l'unité ou profitez des remises groupées sur des centaines de références.
@@ -128,18 +154,19 @@ export const CatalogPage: React.FC = () => {
             className="flex-1 bg-white glass-panel text-[#0B192C] font-bold text-xs py-3 px-4 rounded-2xl border border-slate-200 flex items-center justify-center gap-2 shadow-xs"
           >
             <SlidersHorizontal className="w-4 h-4 text-[#FF4500]" />
-            <span>Filtres ({onlyGroupages ? '1 actif' : 'Personnaliser'})</span>
+            <span>Filtres ({onlyGroupages || selectedCategory !== 'all' ? 'Actifs' : 'Personnaliser'})</span>
           </button>
 
           <select
             value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
+            onChange={e => handleSortChange(e.target.value as any)}
             className="bg-white text-xs font-bold text-[#0B192C] border border-slate-200 rounded-2xl px-4 py-3 outline-hidden"
           >
             <option value="popular">Popularité</option>
             <option value="rating">Meilleures notes ★</option>
             <option value="price_asc">Prix croissant</option>
             <option value="price_desc">Prix décroissant</option>
+            <option value="newest">Nouveautés</option>
           </select>
         </div>
 
@@ -165,9 +192,10 @@ export const CatalogPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={resetFilters}
-                  className="text-xs font-bold text-slate-500 hover:text-[#FF4500]"
+                  className="text-xs font-bold text-slate-500 hover:text-[#FF4500] flex items-center gap-1 cursor-pointer"
                 >
-                  Réinitialiser
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Réinitialiser</span>
                 </button>
                 {isMobileFilterOpen && (
                   <button
@@ -187,7 +215,7 @@ export const CatalogPage: React.FC = () => {
               </span>
               <div className="space-y-1">
                 <button
-                  onClick={() => setSelectedCategory('all')}
+                  onClick={() => handleCategoryChange('all')}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
                     selectedCategory === 'all'
                       ? 'bg-[#0B192C] text-white'
@@ -195,14 +223,15 @@ export const CatalogPage: React.FC = () => {
                   }`}
                 >
                   <span>Toutes les catégories</span>
-                  <span className="font-mono-numeric text-[11px] opacity-80">{products.length}</span>
+                  <span className="font-mono-numeric text-[11px] opacity-80">{totalCount}</span>
                 </button>
 
                 {categories.map(cat => (
                   <button
                     key={cat.id}
-                    onClick={() => setSelectedCategory((cat.name || '').split('&')[0].trim())}
+                    onClick={() => handleCategoryChange(cat.slug || (cat.name || '').split('&')[0].trim())}
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
+                      (selectedCategory || '').toLowerCase() === (cat.slug || '').toLowerCase() ||
                       (selectedCategory || '').toLowerCase().includes(((cat?.name || '').split('&')[0] || '').trim().toLowerCase())
                         ? 'bg-[#0B192C] text-white'
                         : 'text-slate-700 hover:bg-slate-100'
@@ -224,7 +253,7 @@ export const CatalogPage: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={onlyGroupages}
-                  onChange={e => setOnlyGroupages(e.target.checked)}
+                  onChange={e => handleGroupageToggle(e.target.checked)}
                   className="w-4 h-4 text-[#FF4500] rounded-md accent-[#FF4500]"
                 />
                 <div className="text-xs">
@@ -244,7 +273,7 @@ export const CatalogPage: React.FC = () => {
               </span>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => setSelectedTransport(selectedTransport === 'air' ? 'all' : 'air')}
+                  onClick={() => handleTransportChange('air')}
                   className={`p-2.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 ${
                     selectedTransport === 'air'
                       ? 'bg-[#0B192C] text-white border-[#0B192C]'
@@ -256,7 +285,7 @@ export const CatalogPage: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => setSelectedTransport(selectedTransport === 'sea' ? 'all' : 'sea')}
+                  onClick={() => handleTransportChange('sea')}
                   className={`p-2.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 ${
                     selectedTransport === 'sea'
                       ? 'bg-[#0B192C] text-white border-[#0B192C]'
@@ -280,10 +309,10 @@ export const CatalogPage: React.FC = () => {
               <input
                 type="range"
                 min="5000"
-                max="300000"
-                step="5000"
+                max="10000000"
+                step="50000"
                 value={maxPrice}
-                onChange={e => setMaxPrice(Number(e.target.value))}
+                onChange={e => handlePriceChange(Number(e.target.value))}
                 className="w-full accent-[#FF4500]"
               />
             </div>
@@ -293,7 +322,7 @@ export const CatalogPage: React.FC = () => {
                 onClick={() => setIsMobileFilterOpen(false)}
                 className="w-full bg-[#0B192C] text-white font-bold text-xs py-3 rounded-2xl shadow-md hover:bg-[#FF4500] transition-colors"
               >
-                Appliquer les filtres ({filteredProducts.length} résultats)
+                Appliquer les filtres ({totalCount} résultats)
               </button>
             )}
           </div>
@@ -304,14 +333,14 @@ export const CatalogPage: React.FC = () => {
           {/* Top Desktop Controls */}
           <div className="hidden lg:flex items-center justify-between glass-panel bg-white/70 px-4 py-3 rounded-2xl border border-slate-200">
             <span className="text-xs font-bold text-slate-600 font-mono-numeric">
-              Affichage de <strong>{filteredProducts.length}</strong> produits trouvés
+              Affichage de <strong>{productsList.length}</strong> sur <strong>{totalCount}</strong> produits
             </span>
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500 font-medium">Trier par :</span>
               <select
                 value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
+                onChange={e => handleSortChange(e.target.value as any)}
                 className="bg-white text-xs font-bold text-[#0B192C] border border-slate-200 rounded-xl px-3 py-1.5 outline-hidden cursor-pointer"
               >
                 <option value="popular">Popularité & Commandes</option>
@@ -323,14 +352,99 @@ export const CatalogPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Grid Products (2 cols mobile, 3 cols desktop) */}
-          {filteredProducts.length > 0 ? (
+          {/* Loading Skeleton State */}
+          {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-              {filteredProducts.map(prod => (
-                <ProductCard key={prod.id} product={prod} />
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="glass-panel rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-slate-200/80 bg-white/80 animate-pulse space-y-3"
+                >
+                  <div className="w-full aspect-square bg-slate-200 rounded-xl sm:rounded-2xl" />
+                  <div className="h-4 bg-slate-200 rounded-md w-1/3" />
+                  <div className="h-4 bg-slate-200 rounded-md w-3/4" />
+                  <div className="h-6 bg-slate-200 rounded-md w-1/2" />
+                </div>
               ))}
             </div>
+          ) : errorMsg ? (
+            /* Error State */
+            <div className="glass-panel bg-white/80 rounded-3xl p-12 text-center space-y-4 border border-rose-200">
+              <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-[#0B192C]">Erreur de chargement</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">{errorMsg}</p>
+              </div>
+              <button
+                onClick={fetchProducts}
+                className="bg-[#0B192C] text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-xs hover:bg-[#FF4500] transition-colors"
+              >
+                Réessayer
+              </button>
+            </div>
+          ) : productsList.length > 0 ? (
+            /* Grid Products (2 cols mobile, 3 cols desktop) */
+            <div className="space-y-8">
+              <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                {productsList.map(prod => (
+                  <ProductCard key={prod.id} product={prod} />
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-200">
+                  <button
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all ${
+                      currentPage <= 1
+                        ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
+                        : 'bg-white text-[#0B192C] border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Précédent</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {[...Array(totalPages)].map((_, idx) => {
+                      const pageNum = idx + 1;
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-colors ${
+                            currentPage === pageNum
+                              ? 'bg-[#0B192C] text-white shadow-xs'
+                              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all ${
+                      currentPage >= totalPages
+                        ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
+                        : 'bg-white text-[#0B192C] border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>Suivant</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
+            /* Empty State */
             <div className="glass-panel bg-white/80 rounded-3xl p-12 text-center space-y-4 border border-slate-200">
               <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl">
                 🔍
@@ -338,7 +452,7 @@ export const CatalogPage: React.FC = () => {
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-[#0B192C]">Aucun produit trouvé</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Aucun article ne correspond à vos critères de recherche. Essayez d'ajuster vos filtres.
+                  Aucun article ne correspond à vos critères de recherche dans le catalogue.
                 </p>
               </div>
               <button
@@ -354,3 +468,4 @@ export const CatalogPage: React.FC = () => {
     </div>
   );
 };
+

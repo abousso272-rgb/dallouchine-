@@ -19,7 +19,8 @@ import {
   LogOut,
   ChevronDown,
   Command,
-  ArrowRight
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -71,12 +72,13 @@ export const Navbar: React.FC = () => {
 
   const navLinks: { label: string; path: string; badge?: string }[] = [
     { label: 'Accueil', path: '/' },
-    { label: 'Marketplace', path: '/products' },
+    { label: 'Produits', path: '/products' },
+    { label: 'Auto & Mobilité', path: '/auto-mobilite' },
     { label: 'Groupages', path: '/groupages' },
     { label: 'Sourcing', path: '/sourcing' },
     { label: 'B2B', path: '/b2b' },
-    { label: 'Comment ça marche', path: '/#comment-ca-marche' },
-    { label: 'À propos', path: '/about' }
+    { label: 'Suivi', path: '/suivi' },
+    { label: 'Devis & Documents', path: '/devis-documents' }
   ];
 
   return (
@@ -261,12 +263,45 @@ export const Navbar: React.FC = () => {
                       <button
                         onClick={() => {
                           setIsUserDropdownOpen(false);
-                          navigate('/account');
+                          navigate('/dashboard');
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
                       >
                         <User className="w-4 h-4 text-[#0B192C]" />
-                        <span>Mon Espace Client</span>
+                        <span>Tableau de Bord</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          navigate('/suivi');
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                      >
+                        <Package className="w-4 h-4 text-[#FF4500]" />
+                        <span>Suivi de Cargaison</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          navigate('/paiements');
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                        <span>Paiements & Séquestre</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          navigate('/devis-documents');
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                      >
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <span>Centre de Documents</span>
                       </button>
 
                       <button
@@ -274,7 +309,7 @@ export const Navbar: React.FC = () => {
                           setIsUserDropdownOpen(false);
                           navigate('/admin');
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#FF4500] bg-orange-50/50 hover:bg-orange-50 flex items-center gap-2"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#FF4500] bg-orange-50/50 hover:bg-orange-50 flex items-center gap-2 cursor-pointer"
                       >
                         <ShieldCheck className="w-4 h-4 text-[#FF4500]" />
                         <span>Espace Admin HQ</span>

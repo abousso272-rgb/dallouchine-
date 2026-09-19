@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   ShieldCheck,
@@ -18,9 +18,13 @@ import {
   Info,
   Check,
   ChevronRight,
-  Headphones
+  Headphones,
+  Plane,
+  Clock
 } from 'lucide-react';
 import { WaveLogo, OrangeMoneyLogo } from '../../components/common/PaymentOperatorLogos';
+import { logisticsService, PublicLogisticsResult } from '../../services/logisticsService';
+import type { TransportMode } from '../../types';
 
 export const CheckoutPage: React.FC = () => {
   const { cart, cartTotalXOF, createOrder, navigate, currentUser, addToast } = useApp();
@@ -31,46 +35,87 @@ export const CheckoutPage: React.FC = () => {
   const [company, setCompany] = useState('Diop Logistique & E-commerce SARL');
   const [address, setAddress] = useState('Dakar, Almadies / Ngor');
   const [deliveryMode, setDeliveryMode] = useState<'hub_almadies' | 'last_mile'>('hub_almadies');
+  const [transportMode, setTransportMode] = useState<TransportMode>('air');
   const [paymentMethod, setPaymentMethod] = useState<'wave' | 'orange_money' | 'virement' | 'desk'>('wave');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [logisticsEst, setLogisticsEst] = useState<PublicLogisticsResult | null>(null);
 
   // Financial calculations
-  // If cart is empty, use the reference B2B pre-negotiated items
   const isCustomCart = cart.length > 0;
   const factoryPrice = isCustomCart ? cartTotalXOF : 1016000;
-  const seaFreightEst = 185000;
-  const customsEst = 120000;
-  const lastMileEst = deliveryMode === 'last_mile' ? 25000 : 0;
-  const totalEstimated = factoryPrice + seaFreightEst + customsEst + lastMileEst;
+
+  // Calcul logistique réel via Supabase
+  useEffect(() => {
+    let active = true;
+    async function fetchEstimate() {
+      try {
+        const est = await logisticsService.estimateCartLogistics(
+          transportMode,
+          deliveryMode === 'hub_almadies' ? 'hub_pickup' : 'home_delivery'
+        );
+        if (active) setLogisticsEst(est);
+      } catch (err) {
+        console.warn('[CheckoutPage] Estimation logistique temporaire:', err);
+      }
+    }
+    fetchEstimate();
+    return () => { active = false; };
+  }, [transportMode, deliveryMode, cart]);
+
+  const realShippingFee = logisticsEst?.customer_shipping_fee || (deliveryMode === 'last_mile' ? 2000 : 0);
+  const totalEstimated = factoryPrice + realShippingFee;
   const deposit30 = Math.round(factoryPrice * 0.3);
   const balance70 = factoryPrice - deposit30;
 
-  const handleConfirmOrder = (e: React.FormEvent) => {
+  const handleConfirmOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
+    if (isProcessing) return;
 
-    setTimeout(() => {
-      setIsProcessing(false);
-      const newOrder = createOrder({
+    if (!currentUser.isLoggedIn) {
+      addToast('Veuillez vous connecter pour valider votre commande.', 'warning', 'Connexion requise');
+      navigate('/login?redirect=/checkout');
+      return;
+    }
+
+    if (cart.length === 0) {
+      addToast('Votre panier est vide. Veuillez ajouter des articles depuis le catalogue.', 'warning', 'Panier vide');
+      navigate('/products');
+      return;
+    }
+
+    setIsProcessing(true);
+    const idempotencyKey = `ord_${currentUser.id}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    try {
+      const order = await createOrder({
         fullName,
         phone: phone.startsWith('+221') ? phone : `+221 ${phone}`,
-        email: 'contact@diop-logistique.sn',
+        email: currentUser.email || 'client@dallouchine.sn',
         city: address,
         deliveryType: deliveryMode === 'hub_almadies' ? 'hub_pickup' : 'home_delivery',
-        paymentMethod: paymentMethod === 'desk' ? 'cash_on_delivery' : paymentMethod === 'virement' ? 'bank_transfer' : paymentMethod,
-        depositPaidXOF: deposit30,
-        totalXOF: totalEstimated,
-        status: 'deposit_paid'
+        paymentMethod: paymentMethod === 'desk' ? 'hub_cash' : paymentMethod,
+        idempotencyKey
       });
 
-      addToast({
-        title: 'Acompte enregistré avec succès',
-        message: `Dossier ${newOrder?.trackingCode || 'CMD-2026-0048'} initialisé sous compte séquestre OHADA.`,
-        type: 'success'
-      });
+      if (order && (order.id || order.orderId)) {
+        const orderId = order.id || order.orderId;
+        // Calcul et enregistrement logistique réel côté serveur
+        try {
+          await logisticsService.calculateOrderLogistics(orderId, transportMode, 'estimated');
+        } catch (logErr) {
+          console.warn('[CheckoutPage] Notice logistique calculée:', logErr);
+        }
 
-      navigate(`/tracking?code=${newOrder?.trackingCode || 'CMD-2026-0048'}`);
-    }, 800);
+        addToast(`Dossier ${order.trackingCode || ''} enregistré avec succès sur les serveurs Dallou Chine.`, 'success', 'Commande créée !');
+        navigate(`/order-success/${orderId}`);
+      } else {
+        addToast('Impossible d\'enregistrer la commande. Veuillez vérifier la disponibilité de vos articles.', 'error', 'Erreur de commande');
+      }
+    } catch (err: any) {
+      addToast(err.message || 'Erreur inattendue lors de la commande.', 'error', 'Erreur');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -264,12 +309,68 @@ export const CheckoutPage: React.FC = () => {
                   2
                 </span>
                 <h2 className="text-base sm:text-lg font-black text-[#0B192C]">
-                  Point de réception &amp; coordonnées au Sénégal
+                  Mode de transport international &amp; Réception
                 </h2>
               </div>
               <span className="text-xs font-bold text-[#FF4500] flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Dakar &amp; Régions
+                <CheckCircle2 className="w-3.5 h-3.5" /> Chine → Sénégal
               </span>
+            </div>
+
+            {/* Transport Mode Selector */}
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-slate-700 mb-2">
+                Sélectionnez votre mode d'acheminement international :
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTransportMode('air')}
+                  className={`p-3.5 rounded-2xl border text-left transition-all ${
+                    transportMode === 'air'
+                      ? 'bg-orange-50/50 border-[#FF4500] shadow-sm'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-[#0B192C]">Aérien Cargo</span>
+                    <Plane className={`w-3.5 h-3.5 ${transportMode === 'air' ? 'text-[#FF4500]' : 'text-slate-400'}`} />
+                  </div>
+                  <span className="text-[10px] text-slate-500 block mt-1">12 à 18 jours • 7 500 F/kg</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransportMode('sea')}
+                  className={`p-3.5 rounded-2xl border text-left transition-all ${
+                    transportMode === 'sea'
+                      ? 'bg-orange-50/50 border-[#FF4500] shadow-sm'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-[#0B192C]">Maritime LCL</span>
+                    <Ship className={`w-3.5 h-3.5 ${transportMode === 'sea' ? 'text-[#FF4500]' : 'text-slate-400'}`} />
+                  </div>
+                  <span className="text-[10px] text-slate-500 block mt-1">30 à 45 jours • 185 000 F/m³</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransportMode('express')}
+                  className={`p-3.5 rounded-2xl border text-left transition-all ${
+                    transportMode === 'express'
+                      ? 'bg-orange-50/50 border-[#FF4500] shadow-sm'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-[#0B192C]">Express Prioritaire</span>
+                    <Plane className={`w-3.5 h-3.5 ${transportMode === 'express' ? 'text-[#FF4500]' : 'text-slate-400'}`} />
+                  </div>
+                  <span className="text-[10px] text-slate-500 block mt-1">5 à 8 jours • 13 500 F/kg</span>
+                </button>
+              </div>
             </div>
 
             {/* Radio Card Options */}
@@ -584,15 +685,25 @@ export const CheckoutPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Item B */}
+              {/* Item B: Fret réel calculé */}
               <div className="flex items-start justify-between gap-2 pt-2 border-t border-slate-100">
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-[#0B192C]">Fret maritime groupé LCL</span>
-                  <span className="text-[11px] text-slate-400">Ningbo → Dakar (2.4 CBM calibré)</span>
+                  <span className="text-xs font-bold text-[#0B192C]">
+                    {transportMode === 'air'
+                      ? 'Fret aérien cargo international'
+                      : transportMode === 'sea'
+                      ? 'Fret maritime groupé LCL'
+                      : 'Fret express prioritaire'}
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    {logisticsEst
+                      ? `${logisticsEst.chargeable_weight} ${transportMode === 'sea' ? 'm³' : 'kg'} • ${logisticsEst.estimated_delivery_days || 'Chine → Dakar'}`
+                      : 'Calculé selon poids/volume réels'}
+                  </span>
                 </div>
                 <div className="text-right shrink-0">
                   <span className="text-xs font-black text-[#0B192C] block">
-                    ~{seaFreightEst.toLocaleString('fr-FR')} FCFA
+                    ~{realShippingFee.toLocaleString('fr-FR')} FCFA
                   </span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 text-[9px] font-bold">
                     <Info className="w-2.5 h-2.5" /> ESTIMATIF
@@ -616,11 +727,11 @@ export const CheckoutPage: React.FC = () => {
               <div className="flex items-start justify-between gap-2 pt-2 border-t border-slate-100">
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-[#0B192C]">Formalités douanières PAD</span>
-                  <span className="text-[11px] text-slate-400">Dédouanement Dakar &amp; manutention</span>
+                  <span className="text-[11px] text-slate-400">Dédouanement Dakar &amp; manutention Gaindé</span>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="text-xs font-black text-[#0B192C] block">
-                    ~{customsEst.toLocaleString('fr-FR')} FCFA
+                  <span className="text-xs font-black text-slate-700 block">
+                    Barème officiel
                   </span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[9px] font-medium">
                     À L'ARRIVÉE

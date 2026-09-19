@@ -110,13 +110,18 @@ export const Footer: React.FC = () => {
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/tracking')} className="hover:text-[#FF4500] transition-colors">
-                  Suivi de Colis AWP
+                <button onClick={() => navigate('/suivi')} className="hover:text-[#FF4500] transition-colors">
+                  Suivi de Cargaison en Direct
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/how-it-works')} className="hover:text-[#FF4500] transition-colors">
-                  Comment ça marche ?
+                <button onClick={() => navigate('/paiements')} className="hover:text-[#FF4500] transition-colors">
+                  Paiements & Séquestre OHADA
+                </button>
+              </li>
+              <li>
+                <button onClick={() => navigate('/devis-documents')} className="hover:text-[#FF4500] transition-colors">
+                  Centre de Documents & Certificats
                 </button>
               </li>
               <li className="pt-2 border-t border-white/10">
@@ -148,8 +153,8 @@ export const Footer: React.FC = () => {
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('/products?category=automobile-outillage')} className="hover:text-[#FF4500] transition-colors">
-                  Automobile & Outillage
+                <button onClick={() => navigate('/auto-mobilite')} className="hover:text-[#FF4500] transition-colors">
+                  Auto, Motos & Mobilité Électrique
                 </button>
               </li>
               <li>
