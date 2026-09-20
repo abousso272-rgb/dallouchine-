@@ -5,6 +5,7 @@
 import { supabase } from './supabase';
 import type { CartItem, Product } from '../types';
 import { mapDatabaseProductToProduct } from './catalogService';
+import { isUUID, resolveGroupageId, resolveProductId } from './groupageService';
 
 export interface DbCartItem {
   id: string;
@@ -45,7 +46,7 @@ export const cartService = {
           default_transport_mode,
           is_active,
           is_groupage,
-          product_images (image_url, is_primary, display_order)
+          product_images (image_url, is_primary, sort_order)
         ),
         groupages (
           id,
@@ -71,7 +72,7 @@ export const cartService = {
       .map((row: any) => {
         const p = row.products;
         const images = (p.product_images || [])
-          .sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order || 0) - (b.display_order || 0))
+          .sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.sort_order || 0) - (b.sort_order || 0))
           .map((img: any) => img.image_url);
 
         const mappedProduct = mapDatabaseProductToProduct(p, 'Catalogue', p.product_images, null, row.groupages);
@@ -99,15 +100,23 @@ export const cartService = {
       return { success: false, error: 'AUTHENTICATION_REQUIRED' };
     }
 
+    const cleanProductId = resolveProductId(productId) || productId;
+    const cleanGroupageId = groupageId ? (resolveGroupageId(groupageId) || (isUUID(groupageId) ? groupageId : null)) : null;
+
+    if (!isUUID(cleanProductId)) {
+      console.warn('[cartService] ID produit non-UUID ignoré pour la persistance distante:', productId);
+      return { success: true };
+    }
+
     // Vérifier si l'article existe déjà
     let query = supabase
       .from('cart_items')
       .select('id, quantity')
       .eq('user_id', user.id)
-      .eq('product_id', productId);
+      .eq('product_id', cleanProductId);
 
-    if (groupageId) {
-      query = query.eq('groupage_id', groupageId);
+    if (cleanGroupageId) {
+      query = query.eq('groupage_id', cleanGroupageId);
     } else {
       query = query.is('groupage_id', null);
     }
@@ -131,8 +140,8 @@ export const cartService = {
         .from('cart_items')
         .insert({
           user_id: user.id,
-          product_id: productId,
-          groupage_id: groupageId || null,
+          product_id: cleanProductId,
+          groupage_id: cleanGroupageId,
           quantity
         });
 
@@ -153,14 +162,21 @@ export const cartService = {
       return this.removeFromCart(productId, groupageId);
     }
 
+    const cleanProductId = resolveProductId(productId) || productId;
+    const cleanGroupageId = groupageId ? (resolveGroupageId(groupageId) || (isUUID(groupageId) ? groupageId : null)) : null;
+
+    if (!isUUID(cleanProductId)) {
+      return { success: true };
+    }
+
     let query = supabase
       .from('cart_items')
       .update({ quantity, updated_at: new Date().toISOString() })
       .eq('user_id', user.id)
-      .eq('product_id', productId);
+      .eq('product_id', cleanProductId);
 
-    if (groupageId) {
-      query = query.eq('groupage_id', groupageId);
+    if (cleanGroupageId) {
+      query = query.eq('groupage_id', cleanGroupageId);
     } else {
       query = query.is('groupage_id', null);
     }
@@ -177,14 +193,21 @@ export const cartService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'AUTHENTICATION_REQUIRED' };
 
+    const cleanProductId = resolveProductId(productId) || productId;
+    const cleanGroupageId = groupageId ? (resolveGroupageId(groupageId) || (isUUID(groupageId) ? groupageId : null)) : null;
+
+    if (!isUUID(cleanProductId)) {
+      return { success: true };
+    }
+
     let query = supabase
       .from('cart_items')
       .delete()
       .eq('user_id', user.id)
-      .eq('product_id', productId);
+      .eq('product_id', cleanProductId);
 
-    if (groupageId) {
-      query = query.eq('groupage_id', groupageId);
+    if (cleanGroupageId) {
+      query = query.eq('groupage_id', cleanGroupageId);
     } else {
       query = query.is('groupage_id', null);
     }

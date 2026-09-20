@@ -31,6 +31,47 @@ export interface CancellationResult {
   error?: string;
 }
 
+export const isUUID = (str?: string | null): boolean => {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+};
+
+export const LEGACY_MOCK_GROUPAGE_MAP: Record<string, string> = {
+  'grp-moto': '00000000-0000-0000-0000-000000000001',
+  'grp-scooter-1200': '00000000-0000-0000-0000-000000000001',
+  'grp-01': '00000000-0000-0000-0000-000000000002',
+  'grp-02': '00000000-0000-0000-0000-000000000003',
+  'grp-03': '00000000-0000-0000-0000-000000000001',
+  'grp-04': '00000000-0000-0000-0000-000000000002',
+  'grp-05': '00000000-0000-0000-0000-000000000003',
+  'grp-smartphone': '00000000-0000-0000-0000-000000000002',
+  'grp-airfryer': '00000000-0000-0000-0000-000000000003',
+  'grp-sweatshirt': '00000000-0000-0000-0000-000000000001'
+};
+
+export const LEGACY_MOCK_PRODUCT_MAP: Record<string, string> = {
+  'prod-moto': 'f0000000-0000-0000-0000-000000000001',
+  'prod-01': 'f0000000-0000-0000-0000-000000000002',
+  'prod-02': 'f0000000-0000-0000-0000-000000000006',
+  'prod-03': 'f0000000-0000-0000-0000-000000000003',
+  'prod-04': 'f0000000-0000-0000-0000-000000000007',
+  'prod-05': 'f0000000-0000-0000-0000-000000000008',
+  'p1': 'f0000000-0000-0000-0000-000000000001',
+  'p2': 'f0000000-0000-0000-0000-000000000002'
+};
+
+export const resolveGroupageId = (id?: string | null): string | undefined => {
+  if (!id) return undefined;
+  if (isUUID(id)) return id;
+  return LEGACY_MOCK_GROUPAGE_MAP[id] || undefined;
+};
+
+export const resolveProductId = (id?: string | null): string | undefined => {
+  if (!id) return undefined;
+  if (isUUID(id)) return id;
+  return LEGACY_MOCK_PRODUCT_MAP[id] || undefined;
+};
+
 /**
  * Maps raw database groupage row to unified frontend Groupage interface.
  * Strictly avoids exposing internal margins or supplier costs.
@@ -48,7 +89,12 @@ function mapDatabaseGroupage(raw: any, productInfo?: any): Groupage {
   }
 
   // Fallback image from product if available
-  const productImage = productInfo?.images?.[0] || raw.product?.images?.[0] || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800';
+  const productImages = (productInfo?.product_images || [])
+    .sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.sort_order || 0) - (b.sort_order || 0))
+    .map((img: any) => img.image_url);
+  const productImage = productImages[0] || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800';
+
+  const categoryName = productInfo?.category?.name || productInfo?.category || 'Auto & Mobilité';
 
   return {
     id: raw.id,
@@ -59,11 +105,11 @@ function mapDatabaseGroupage(raw: any, productInfo?: any): Groupage {
       id: productInfo.id,
       slug: productInfo.slug,
       name: productInfo.name,
-      category: productInfo.category,
-      images: productInfo.images || [],
+      category: categoryName,
+      images: productImages.length > 0 ? productImages : [productImage],
       priceXOF: Number(productInfo.price_xof) || unitPriceXOF,
       shortDescription: productInfo.short_description || '',
-      fullDescription: productInfo.full_description || '',
+      fullDescription: productInfo.description || '',
       specifications: {},
       features: [],
       unitWeightKg: 1,
@@ -131,7 +177,9 @@ export const groupageService = {
           start_date, deadline, estimated_departure_date, estimated_arrival_date,
           status, status_note, guarantee_note, created_at,
           product:products (
-            id, slug, name, category, images, price_xof, short_description, full_description
+            id, slug, name, price_xof, short_description, description,
+            category:categories (name),
+            product_images (image_url, is_primary, sort_order)
           )
         `)
         .order('created_at', { ascending: false });
@@ -182,8 +230,8 @@ export const groupageService = {
     if (!idOrCode) return null;
 
     try {
-      // Determine if idOrCode looks like a UUID or a code (e.g. GRP-EV-026)
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrCode);
+      const resolvedId = resolveGroupageId(idOrCode) || idOrCode;
+      const validUUID = isUUID(resolvedId);
 
       let query = supabase
         .from('groupages')
@@ -195,14 +243,17 @@ export const groupageService = {
           start_date, deadline, estimated_departure_date, estimated_arrival_date,
           status, status_note, guarantee_note, created_at,
           product:products (
-            id, slug, name, category, images, price_xof, short_description, full_description
+            id, slug, name, price_xof, short_description, description,
+            category:categories (name),
+            product_images (image_url, is_primary, sort_order)
           )
         `);
 
-      if (isUUID) {
-        query = query.eq('id', idOrCode);
+      if (validUUID) {
+        query = query.eq('id', resolvedId);
       } else {
-        query = query.or(`code.eq.${idOrCode},id.eq.${idOrCode}`);
+        // Query strictly by code to prevent Postgres UUID syntax errors
+        query = query.eq('code', idOrCode);
       }
 
       const { data, error } = await query.maybeSingle();
@@ -231,11 +282,19 @@ export const groupageService = {
     idempotencyKey?: string
   ): Promise<ReservationResult> {
     try {
+      const targetId = resolveGroupageId(groupageId);
+      if (!targetId || !isUUID(targetId)) {
+        return {
+          success: false,
+          error: `Identifiant de groupage invalide (${groupageId}). Veuillez sélectionner un groupage actif.`
+        };
+      }
+
       // Generate a client-side idempotency key if none passed
       const key = idempotencyKey || `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
       const { data, error } = await (supabase as any).rpc('reserve_groupage', {
-        p_groupage_id: groupageId,
+        p_groupage_id: targetId,
         p_quantity: quantity,
         p_idempotency_key: key
       });

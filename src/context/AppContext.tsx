@@ -787,7 +787,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addGroupage = (groupage: Omit<Groupage, 'id'>) => {
     const newGrp: Groupage = {
       ...groupage,
-      id: 'grp-' + Date.now()
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-0000-0000-' + Date.now().toString().padStart(12, '0')
     };
     setGroupages(prev => [newGrp, ...prev]);
     showToast('success', 'Campagne lancée', `Le groupage ${newGrp.code} est désormais actif.`);
@@ -979,8 +979,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('success', 'Ajouté au panier', `${product.name} (x${quantity})`);
 
     if (currentUser.isLoggedIn) {
-      await cartService.addToCart(product.id, quantity, groupageId);
-      await refreshCart();
+      try {
+        const res = await cartService.addToCart(product.id, quantity, groupageId);
+        if (res.success) {
+          await refreshCart();
+        } else {
+          console.warn('[AppContext] addToCart sync skipped:', res.error);
+        }
+      } catch (err) {
+        console.error('[AppContext] addToCart sync error:', err);
+      }
     }
   };
 
@@ -989,8 +997,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('info', 'Panier mis à jour', 'Article retiré du panier.');
 
     if (currentUser.isLoggedIn) {
-      await cartService.removeFromCart(productId, groupageId);
-      await refreshCart();
+      try {
+        const res = await cartService.removeFromCart(productId, groupageId);
+        if (res.success) {
+          await refreshCart();
+        }
+      } catch (err) {
+        console.error('[AppContext] removeFromCart sync error:', err);
+      }
     }
   };
 
@@ -1004,8 +1018,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     if (currentUser.isLoggedIn) {
-      await cartService.updateQuantity(productId, quantity, groupageId);
-      await refreshCart();
+      try {
+        const res = await cartService.updateQuantity(productId, quantity, groupageId);
+        if (res.success) {
+          await refreshCart();
+        }
+      } catch (err) {
+        console.error('[AppContext] updateCartQuantity sync error:', err);
+      }
     }
   };
 

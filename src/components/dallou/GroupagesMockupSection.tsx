@@ -16,11 +16,11 @@ interface MockGroupageCardData {
 }
 
 export const GroupagesMockupSection: React.FC = () => {
-  const { navigate } = useApp();
+  const { navigate, groupages } = useApp();
 
-  const mockCards: MockGroupageCardData[] = [
+  const fallbackCards: MockGroupageCardData[] = [
     {
-      id: 'grp-moto',
+      id: '00000000-0000-0000-0000-000000000001',
       title: 'Moto Électrique Urbaine 72V',
       category: 'Mobilité',
       image: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=600&q=80',
@@ -32,42 +32,62 @@ export const GroupagesMockupSection: React.FC = () => {
       deadline: '28 Octobre 2026'
     },
     {
-      id: 'grp-smartphone',
-      title: 'Smartphone Android 5G',
+      id: '00000000-0000-0000-0000-000000000002',
+      title: 'Mini Vidéoprojecteur Smart HD',
       category: 'Électronique',
-      image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=600&q=80',
-      priceXOF: 48000,
-      moq: 100,
-      reserved: 72,
-      remaining: 28,
-      progressPercent: 72,
-      deadline: '15 Juin 2025'
+      image: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80',
+      priceXOF: 15900,
+      moq: 50,
+      reserved: 37,
+      remaining: 13,
+      progressPercent: 74,
+      deadline: '15 Juin 2026'
     },
     {
-      id: 'grp-airfryer',
-      title: 'Air Fryer Numérique 5L',
+      id: '00000000-0000-0000-0000-000000000003',
+      title: 'Station Solaire 1000W LiFePO4',
       category: 'Maison',
       image: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80',
-      priceXOF: 28000,
-      moq: 50,
-      reserved: 38,
-      remaining: 12,
-      progressPercent: 76,
-      deadline: '18 Juin 2025'
+      priceXOF: 450000,
+      moq: 15,
+      reserved: 11,
+      remaining: 4,
+      progressPercent: 73,
+      deadline: '18 Juin 2026'
     },
     {
-      id: 'grp-sweatshirt',
-      title: 'Sweatshirt Coton Unisexe',
-      category: 'Mode',
-      image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
-      priceXOF: 12500,
-      moq: 200,
-      reserved: 150,
-      remaining: 50,
-      progressPercent: 75,
-      deadline: '20 Juin 2025'
+      id: 'df2abd0d-af81-4b63-bc11-4ac5e8ffaa16',
+      title: 'Scooters Électriques Urbains Pro',
+      category: 'Mobilité',
+      image: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80',
+      priceXOF: 875000,
+      moq: 20,
+      reserved: 14,
+      remaining: 6,
+      progressPercent: 70,
+      deadline: '20 Juin 2026'
     }
   ];
+
+  const cardsToDisplay: MockGroupageCardData[] = groupages && groupages.length > 0
+    ? groupages.slice(0, 4).map(g => {
+        const target = g.targetUnits || g.targetQuantity || 20;
+        const current = g.currentUnits || g.reservedQuantity || 0;
+        const remaining = g.availableQuantity ?? Math.max(0, target - current);
+        return {
+          id: g.id,
+          title: g.title,
+          category: g.product?.category || 'Sourcing Direct',
+          image: g.image || g.product?.images?.[0] || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=600&q=80',
+          priceXOF: g.unitPriceXOF,
+          moq: target,
+          reserved: current,
+          remaining,
+          progressPercent: Math.min(100, Math.round((current / (target || 1)) * 100)),
+          deadline: g.closingDate || 'En cours'
+        };
+      })
+    : fallbackCards;
 
   return (
     <section className="space-y-6 pt-4">
@@ -111,7 +131,7 @@ export const GroupagesMockupSection: React.FC = () => {
         {/* RIGHT COLUMN: 4 CARDS AS IN THE REFERENCE MOCKUP */}
         {/* =================================================================== */}
         <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {mockCards.map(card => (
+          {cardsToDisplay.map(card => (
             <div
               key={card.id}
               className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"

@@ -272,7 +272,7 @@ export const MOCK_PRODUCTS: Product[] = [
     priceXOF: 15900,
     previousPriceXOF: 28500,
     isGroupage: true,
-    activeGroupageId: 'grp-01',
+    activeGroupageId: '00000000-0000-0000-0000-000000000002',
     supplierId: 'sup-01',
     sourcerId: 'src-01',
     defaultTransportMode: 'air',
@@ -316,7 +316,7 @@ export const MOCK_PRODUCTS: Product[] = [
     priceXOF: 12500,
     previousPriceXOF: 22000,
     isGroupage: true,
-    activeGroupageId: 'grp-02',
+    activeGroupageId: '00000000-0000-0000-0000-000000000003',
     supplierId: 'sup-03',
     sourcerId: 'src-01',
     defaultTransportMode: 'air',
@@ -359,7 +359,7 @@ export const MOCK_PRODUCTS: Product[] = [
     priceXOF: 29900,
     previousPriceXOF: 48000,
     isGroupage: true,
-    activeGroupageId: 'grp-03',
+    activeGroupageId: '00000000-0000-0000-0000-000000000001',
     supplierId: 'sup-02',
     sourcerId: 'src-02',
     defaultTransportMode: 'sea',
@@ -445,7 +445,7 @@ export const MOCK_PRODUCTS: Product[] = [
     priceXOF: 145000,
     previousPriceXOF: 215000,
     isGroupage: true,
-    activeGroupageId: 'grp-04',
+    activeGroupageId: '9cfc1113-6d46-4578-8112-d86b0105ba06',
     supplierId: 'sup-04',
     sourcerId: 'src-03',
     defaultTransportMode: 'sea',
@@ -543,7 +543,7 @@ export const MOCK_PRODUCTS: Product[] = [
     priceXOF: 850000,
     previousPriceXOF: 1450000,
     isGroupage: true,
-    activeGroupageId: 'grp-moto',
+    activeGroupageId: '00000000-0000-0000-0000-000000000001',
     supplierId: 'sup-02',
     sourcerId: 'src-02',
     defaultTransportMode: 'sea',
@@ -559,10 +559,10 @@ export const MOCK_PRODUCTS: Product[] = [
 
 export const MOCK_GROUPAGES: Groupage[] = [
   {
-    id: 'grp-moto',
+    id: '00000000-0000-0000-0000-000000000001',
     code: 'GRP-MOTO-01',
     title: 'Groupage #MOTO — Motos Électriques Urbaines 72V 3000W',
-    productId: 'prod-moto',
+    productId: 'f0000000-0000-0000-0000-000000000001',
     unitPriceXOF: 850000,
     productPriceXOF: 520000,
     estimatedLogisticsXOF: 330000,
@@ -590,10 +590,10 @@ export const MOCK_GROUPAGES: Groupage[] = [
     ]
   },
   {
-    id: 'grp-01',
+    id: '00000000-0000-0000-0000-000000000002',
     code: 'GRP-024',
     title: 'Groupage #024 — Mini Vidéoprojecteur Portable Smart HD 1080p',
-    productId: 'prod-01',
+    productId: 'f0000000-0000-0000-0000-000000000002',
     unitPriceXOF: 15900,
     productPriceXOF: 9500,
     estimatedLogisticsXOF: 6400,
@@ -620,10 +620,10 @@ export const MOCK_GROUPAGES: Groupage[] = [
     ]
   },
   {
-    id: 'grp-02',
+    id: '00000000-0000-0000-0000-000000000003',
     code: 'GRP-025',
     title: 'Groupage #025 — Compresseur d\'Air Sans Fil 6000mAh Auto/Moto',
-    productId: 'prod-02',
+    productId: 'f0000000-0000-0000-0000-000000000003',
     unitPriceXOF: 12500,
     productPriceXOF: 7800,
     estimatedLogisticsXOF: 4700,
@@ -650,10 +650,10 @@ export const MOCK_GROUPAGES: Groupage[] = [
     ]
   },
   {
-    id: 'grp-03',
+    id: 'df2abd0d-af81-4b63-bc11-4ac5e8ffaa16',
     code: 'GRP-026',
     title: 'Groupage #026 — Armoire Dressing Modulaire Pliable 6 Niveaux',
-    productId: 'prod-03',
+    productId: 'f0000000-0000-0000-0000-000000000003',
     unitPriceXOF: 29900,
     productPriceXOF: 16500,
     estimatedLogisticsXOF: 13400,
@@ -680,10 +680,10 @@ export const MOCK_GROUPAGES: Groupage[] = [
     ]
   },
   {
-    id: 'grp-04',
+    id: '9cfc1113-6d46-4578-8112-d86b0105ba06',
     code: 'GRP-023',
     title: 'Groupage #023 — Centrale Électrique Portable 600W Solaire LiFePO4',
-    productId: 'prod-05',
+    productId: 'f0000000-0000-0000-0000-000000000006',
     unitPriceXOF: 145000,
     productPriceXOF: 98000,
     estimatedLogisticsXOF: 47000,
@@ -709,10 +709,10 @@ export const MOCK_GROUPAGES: Groupage[] = [
     ]
   },
   {
-    id: 'grp-05',
+    id: '1dba0ff5-aa92-424a-8e25-47d0cc02e144',
     code: 'GRP-022',
     title: 'Groupage #022 — Nettoyeur Haute Pression Sans Fil Batterie 48V',
-    productId: 'prod-04',
+    productId: 'f0000000-0000-0000-0000-000000000007',
     unitPriceXOF: 18900,
     productPriceXOF: 11000,
     estimatedLogisticsXOF: 7900,
@@ -738,10 +738,10 @@ export const MOCK_GROUPAGES: Groupage[] = [
     ]
   },
   {
-    id: 'grp-06',
+    id: '8077874a-180f-458c-9dd6-5b3161c63d30',
     code: 'GRP-021',
     title: 'Groupage #021 — Support Téléphone Voiture MagSafe 15W Induction',
-    productId: 'prod-06',
+    productId: 'f0000000-0000-0000-0000-000000000008',
     unitPriceXOF: 7900,
     productPriceXOF: 4200,
     estimatedLogisticsXOF: 3700,
@@ -767,10 +767,10 @@ export const MOCK_GROUPAGES: Groupage[] = [
     ]
   },
   {
-    id: 'grp-07',
+    id: 'bddd998a-1c90-41d3-905f-158e976853a2',
     code: 'GRP-020',
     title: 'Groupage #020 — Pack 10 Câbles USB-C Charge Rapide Tressés',
-    productId: 'prod-01',
+    productId: 'f0000000-0000-0000-0000-000000000009',
     unitPriceXOF: 4500,
     productPriceXOF: 2500,
     estimatedLogisticsXOF: 2000,
@@ -796,10 +796,10 @@ export const MOCK_GROUPAGES: Groupage[] = [
     ]
   },
   {
-    id: 'grp-08',
+    id: '4fcbf54e-606d-428b-81d4-1e74a2614a75',
     code: 'GRP-027',
     title: 'Groupage #027 — Machine Découpe Laser Fibre Industrielle 20W',
-    productId: 'prod-03',
+    productId: 'f0000000-0000-0000-0000-000000000007',
     unitPriceXOF: 490000,
     productPriceXOF: 360000,
     estimatedLogisticsXOF: 130000,
@@ -849,7 +849,7 @@ export const MOCK_ORDERS: Order[] = [
         unitPriceXOF: 15900,
         totalPriceXOF: 15900,
         isGroupage: true,
-        groupageId: 'grp-01',
+        groupageId: '00000000-0000-0000-0000-000000000002',
         transportMode: 'air'
       }
     ],
@@ -994,7 +994,7 @@ export const MOCK_ORDERS: Order[] = [
         unitPriceXOF: 12500,
         totalPriceXOF: 25000,
         isGroupage: true,
-        groupageId: 'grp-02',
+        groupageId: '00000000-0000-0000-0000-000000000003',
         transportMode: 'air'
       }
     ],
@@ -1081,7 +1081,7 @@ export const MOCK_ORDERS: Order[] = [
         unitPriceXOF: 145000,
         totalPriceXOF: 145000,
         isGroupage: true,
-        groupageId: 'grp-04',
+        groupageId: '9cfc1113-6d46-4578-8112-d86b0105ba06',
         transportMode: 'sea'
       }
     ],

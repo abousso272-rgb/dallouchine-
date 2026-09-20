@@ -172,6 +172,39 @@ export const GroupagesPage: React.FC = () => {
     return matchesCat && matchesStatus && matchesQuery;
   });
 
+  // Dynamically extract top featured groupages with valid IDs
+  const featured1 = groupages.find(g =>
+    g.id === '00000000-0000-0000-0000-000000000001' ||
+    g.code.includes('EV') ||
+    g.title.toLowerCase().includes('scooter') ||
+    g.title.toLowerCase().includes('moto')
+  ) || groupages[0];
+
+  const featured2 = groupages.find(g =>
+    g.id !== featured1?.id && (
+      g.id === '00000000-0000-0000-0000-000000000002' ||
+      g.code.includes('PV') ||
+      g.title.toLowerCase().includes('projecteur') ||
+      g.title.toLowerCase().includes('smart')
+    )
+  ) || groupages[1] || featured1;
+
+  const f1Id = featured1?.id || '00000000-0000-0000-0000-000000000001';
+  const f1Title = featured1?.title || 'Moto Électrique Urbaine 2000W (Batterie LFP)';
+  const f1Price = featured1?.unitPriceXOF || 480000;
+  const f1Target = featured1?.targetUnits || 50;
+  const f1Reserved = featured1?.currentUnits || 42;
+  const f1Remaining = featured1?.availableQuantity ?? Math.max(0, f1Target - f1Reserved);
+  const f1Progress = Math.min(100, Math.round((f1Reserved / (f1Target || 1)) * 100));
+
+  const f2Id = featured2?.id || '00000000-0000-0000-0000-000000000002';
+  const f2Title = featured2?.title || 'Scooter Électrique Smart City 1200W';
+  const f2Price = featured2?.unitPriceXOF || 395000;
+  const f2Target = featured2?.targetUnits || 50;
+  const f2Reserved = featured2?.currentUnits || 38;
+  const f2Remaining = featured2?.availableQuantity ?? Math.max(0, f2Target - f2Reserved);
+  const f2Progress = Math.min(100, Math.round((f2Reserved / (f2Target || 1)) * 100));
+
   return (
     <div className="flex flex-col w-full">
       {/* =================================================================== */}
@@ -506,13 +539,13 @@ export const GroupagesPage: React.FC = () => {
               </div>
 
               <div
-                onClick={() => navigate('/groupages/grp-moto')}
+                onClick={() => navigate(`/groupages/${f1Id}`)}
                 className="relative w-full h-72 rounded-2xl overflow-hidden bg-surface-container-high mb-6 cursor-pointer"
               >
                 <img
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  alt="Moto Électrique Urbaine 2000W"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWU-OKoPk35T1oNgpyanc7VmKy_1v1UuXspXMMQfgL0BUDaLJKabGlkNTS_HBkVu9EOGY-9oLSorfIVrNxx2DZ8KDUR0ggQR8W3RcWInNzlo--WICxPq13jUzsS74mcwSQbEaouK-4W3gluxSl5tTm3zDa5u-P7H9TaHlOiVHhzM2tXyZWURe4_NfC8YEtN-tJOKfRw1sYLPaK4g0AaXdQPJBknWzwuDvFkB_O0fVL_Q4LsEQ-A3uIzQ"
+                  alt={f1Title}
+                  src={featured1?.image || "https://lh3.googleusercontent.com/aida-public/AB6AXuDWU-OKoPk35T1oNgpyanc7VmKy_1v1UuXspXMMQfgL0BUDaLJKabGlkNTS_HBkVu9EOGY-9oLSorfIVrNxx2DZ8KDUR0ggQR8W3RcWInNzlo--WICxPq13jUzsS74mcwSQbEaouK-4W3gluxSl5tTm3zDa5u-P7H9TaHlOiVHhzM2tXyZWURe4_NfC8YEtN-tJOKfRw1sYLPaK4g0AaXdQPJBknWzwuDvFkB_O0fVL_Q4LsEQ-A3uIzQ"}
                 />
                 <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap">
                   <span className="px-2.5 py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface font-label-sm text-label-sm">
@@ -535,10 +568,10 @@ export const GroupagesPage: React.FC = () => {
                 </div>
 
                 <h3
-                  onClick={() => navigate('/groupages/grp-moto')}
+                  onClick={() => navigate(`/groupages/${f1Id}`)}
                   className="font-headline-lg text-headline-lg text-on-surface font-bold mb-3 cursor-pointer hover:text-primary transition-colors"
                 >
-                  Moto Électrique Urbaine 2000W (Batterie LFP)
+                  {f1Title}
                 </h3>
 
                 {/* Price comparison */}
@@ -548,12 +581,12 @@ export const GroupagesPage: React.FC = () => {
                       Prix groupé rendu Dakar
                     </span>
                     <span className="font-price-xl text-price-xl text-primary-container font-extrabold">
-                      480 000 FCFA
+                      {f1Price.toLocaleString('fr-FR')} FCFA
                     </span>
                   </div>
                   <div className="text-right">
                     <span className="font-label-sm text-label-sm text-outline block line-through">
-                      650 000 FCFA
+                      {(Math.round(f1Price * 1.35)).toLocaleString('fr-FR')} FCFA
                     </span>
                     <span className="font-label-md text-label-md text-primary font-bold bg-primary-fixed/40 px-2 py-0.5 rounded-full">
                       -26% Usine
@@ -564,19 +597,19 @@ export const GroupagesPage: React.FC = () => {
                 {/* Progress Bar Gauge */}
                 <div className="space-y-2 mb-6">
                   <div className="flex justify-between items-center font-label-md text-label-md">
-                    <span className="text-on-surface font-bold">Quota conteneur : 42 / 50 réservés</span>
-                    <span className="text-primary-container font-extrabold">84% complet</span>
+                    <span className="text-on-surface font-bold">Quota conteneur : {f1Reserved} / {f1Target} réservés</span>
+                    <span className="text-primary-container font-extrabold">{f1Progress}% complet</span>
                   </div>
                   <div className="w-full h-3 bg-surface-container-high rounded-full overflow-hidden p-0.5">
                     <div
                       className="h-full bg-gradient-to-r from-secondary-container to-primary-container rounded-full transition-all duration-700 shadow-sm"
-                      style={{ width: '84%' }}
+                      style={{ width: `${f1Progress}%` }}
                     />
                   </div>
                   <div className="flex justify-between items-center font-body-sm text-body-sm text-on-surface-variant pt-1">
                     <span className="flex items-center gap-1 text-tertiary font-bold">
                       <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping" />
-                      Plus que 8 unités disponibles
+                      Plus que {f1Remaining} unités disponibles
                     </span>
                     <span>Départ conteneur : 14 Juin</span>
                   </div>
@@ -584,7 +617,7 @@ export const GroupagesPage: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => navigate('/groupages/grp-moto')}
+                    onClick={() => navigate(`/groupages/${f1Id}`)}
                     className="w-full h-12 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface font-label-lg text-label-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>Voir le dossier</span>
@@ -594,11 +627,11 @@ export const GroupagesPage: React.FC = () => {
                   <button
                     onClick={() =>
                       openModal(
-                        'grp-moto',
-                        'Moto Électrique Urbaine 2000W',
-                        480000,
-                        '480 000 FCFA',
-                        '144 000 FCFA'
+                        f1Id,
+                        f1Title,
+                        f1Price,
+                        `${f1Price.toLocaleString('fr-FR')} FCFA`,
+                        `${Math.round(f1Price * 0.3).toLocaleString('fr-FR')} FCFA`
                       )
                     }
                     className="w-full h-12 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md hover:bg-secondary-container hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -624,19 +657,19 @@ export const GroupagesPage: React.FC = () => {
               <div
                 onClick={() =>
                   openModal(
-                    'grp-scooter-1200',
-                    'Scooter Électrique Smart City 1200W',
-                    395000,
-                    '395 000 FCFA',
-                    '118 500 FCFA'
+                    f2Id,
+                    f2Title,
+                    f2Price,
+                    `${f2Price.toLocaleString('fr-FR')} FCFA`,
+                    `${Math.round(f2Price * 0.3).toLocaleString('fr-FR')} FCFA`
                   )
                 }
                 className="relative w-full h-72 rounded-2xl overflow-hidden bg-surface-container-high mb-6 cursor-pointer"
               >
                 <img
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  alt="Scooter Électrique Smart City 1200W"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3U48FLXKElDapqhQKR-dHWZUGu8_lJa4QbOhm2NVE9DUQlyFnLF0gNkiI4_Wk_udRM9yRd0P7UQBEwc6V9T1RvGeXEkX3cD87gZpk0CkIABZWe72zpOzqG2CuH_tPsbNBCaBlxBy0uYhkbdtvNHH99rlmZVMf1d4FF-HTWCOQhOcE4Lc-n0PijDGmIdgn2jkgFlJlQ8d8UVPG6Qyn9Z-8EfuNDotLbb7T1qz3OtXfGDQ6H5JdNW0MAg"
+                  alt={f2Title}
+                  src={featured2?.image || "https://lh3.googleusercontent.com/aida-public/AB6AXuC3U48FLXKElDapqhQKR-dHWZUGu8_lJa4QbOhm2NVE9DUQlyFnLF0gNkiI4_Wk_udRM9yRd0P7UQBEwc6V9T1RvGeXEkX3cD87gZpk0CkIABZWe72zpOzqG2CuH_tPsbNBCaBlxBy0uYhkbdtvNHH99rlmZVMf1d4FF-HTWCOQhOcE4Lc-n0PijDGmIdgn2jkgFlJlQ8d8UVPG6Qyn9Z-8EfuNDotLbb7T1qz3OtXfGDQ6H5JdNW0MAg"}
                 />
                 <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap">
                   <span className="px-2.5 py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface font-label-sm text-label-sm">
@@ -659,7 +692,7 @@ export const GroupagesPage: React.FC = () => {
                 </div>
 
                 <h3 className="font-headline-lg text-headline-lg text-on-surface font-bold mb-3">
-                  Scooter Électrique Smart City 1200W
+                  {f2Title}
                 </h3>
 
                 {/* Price comparison */}
@@ -669,12 +702,12 @@ export const GroupagesPage: React.FC = () => {
                       Prix groupé rendu Dakar
                     </span>
                     <span className="font-price-xl text-price-xl text-primary-container font-extrabold">
-                      395 000 FCFA
+                      {f2Price.toLocaleString('fr-FR')} FCFA
                     </span>
                   </div>
                   <div className="text-right">
                     <span className="font-label-sm text-label-sm text-outline block line-through">
-                      520 000 FCFA
+                      {(Math.round(f2Price * 1.32)).toLocaleString('fr-FR')} FCFA
                     </span>
                     <span className="font-label-md text-label-md text-primary font-bold bg-primary-fixed/40 px-2 py-0.5 rounded-full">
                       -24% Usine
@@ -685,19 +718,19 @@ export const GroupagesPage: React.FC = () => {
                 {/* Progress Bar Gauge */}
                 <div className="space-y-2 mb-6">
                   <div className="flex justify-between items-center font-label-md text-label-md">
-                    <span className="text-on-surface font-bold">Quota conteneur : 38 / 50 réservés</span>
-                    <span className="text-primary-container font-extrabold">76% complet</span>
+                    <span className="text-on-surface font-bold">Quota conteneur : {f2Reserved} / {f2Target} réservés</span>
+                    <span className="text-primary-container font-extrabold">{f2Progress}% complet</span>
                   </div>
                   <div className="w-full h-3 bg-surface-container-high rounded-full overflow-hidden p-0.5">
                     <div
                       className="h-full bg-gradient-to-r from-secondary-container to-primary-container rounded-full transition-all duration-700 shadow-sm"
-                      style={{ width: '76%' }}
+                      style={{ width: `${f2Progress}%` }}
                     />
                   </div>
                   <div className="flex justify-between items-center font-body-sm text-body-sm text-on-surface-variant pt-1">
                     <span className="flex items-center gap-1 text-on-surface font-semibold">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary-container" />
-                      12 unités restantes pour valider l'envoi
+                      {f2Remaining} unités restantes pour valider l'envoi
                     </span>
                     <span>Clôture : 18 Juin</span>
                   </div>
@@ -706,11 +739,11 @@ export const GroupagesPage: React.FC = () => {
                 <button
                   onClick={() =>
                     openModal(
-                      'grp-scooter-1200',
-                      'Scooter Électrique Smart City 1200W',
-                      395000,
-                      '395 000 FCFA',
-                      '118 500 FCFA'
+                      f2Id,
+                      f2Title,
+                      f2Price,
+                      `${f2Price.toLocaleString('fr-FR')} FCFA`,
+                      `${Math.round(f2Price * 0.3).toLocaleString('fr-FR')} FCFA`
                     )
                   }
                   className="w-full h-12 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md hover:bg-secondary-container hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer"
