@@ -22,7 +22,7 @@ import {
   Plane,
   Clock
 } from 'lucide-react';
-import { WaveLogo, OrangeMoneyLogo, VisaMastercardLogo, GeniusPayBadge } from '../../components/common/PaymentOperatorLogos';
+import { WaveLogo, OrangeMoneyLogo, MtnMoneyLogo, VisaMastercardLogo, GeniusPayLogo, GeniusPayBadge } from '../../components/common/PaymentOperatorLogos';
 import { logisticsService, PublicLogisticsResult } from '../../services/logisticsService';
 import { PaymentApiClient } from '../../services/paymentApiClient';
 import type { TransportMode } from '../../types';
@@ -558,9 +558,7 @@ export const CheckoutPage: React.FC = () => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FF4500] to-indigo-600 flex items-center justify-center font-black text-white text-xs shadow-xs">
-                      GP
-                    </div>
+                    <GeniusPayLogo className="w-9 h-9" />
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-black text-[#0B192C]">GeniusPay Checkout</span>
@@ -579,12 +577,15 @@ export const CheckoutPage: React.FC = () => {
                     {paymentMethod === 'geniuspay' && <Check className="w-3 h-3 stroke-[3]" />}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-slate-200/60">
+                <div className="flex flex-wrap items-center gap-3.5 mt-3 pt-3 border-t border-slate-200/60">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
                     <WaveLogo className="w-4 h-4" /> Wave
                   </div>
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
                     <OrangeMoneyLogo className="w-4 h-4" /> Orange Money
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <MtnMoneyLogo className="w-4 h-4" /> MTN MoMo
                   </div>
                   <div className="flex items-center gap-1 text-xs font-bold text-slate-700">
                     <VisaMastercardLogo className="h-4" />
@@ -598,14 +599,17 @@ export const CheckoutPage: React.FC = () => {
                 onClick={() => setPaymentMethod('wave')}
                 className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
                   paymentMethod === 'wave'
-                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10 ring-1 ring-[#FF4500]/20'
                     : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <WaveLogo className="w-5 h-5" />
-                    <span className="text-sm font-black text-[#00A3FF]">Wave Direct</span>
+                  <div className="flex items-center gap-2.5">
+                    <WaveLogo className="w-8 h-8 shadow-xs" />
+                    <div>
+                      <span className="text-sm font-black text-[#008AC5] block leading-tight">Wave Direct</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Sénégal • 0% frais</span>
+                    </div>
                   </div>
                   <div
                     className={`w-4 h-4 rounded-full flex items-center justify-center ${
@@ -616,9 +620,9 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 mt-2">
-                  Redirection immédiate vers l'application Wave Sénégal.
+                  Redirection immédiate vers l'application officielle Wave Sénégal.
                 </p>
-                <span className="mt-2 text-[10px] text-[#FF4500] font-bold">Instantané</span>
+                <span className="mt-2 text-[10px] text-[#008AC5] font-bold">Instantané</span>
               </label>
 
               {/* Orange Money Direct */}
@@ -626,14 +630,17 @@ export const CheckoutPage: React.FC = () => {
                 onClick={() => setPaymentMethod('orange_money')}
                 className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
                   paymentMethod === 'orange_money'
-                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10 ring-1 ring-[#FF4500]/20'
                     : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <OrangeMoneyLogo className="w-5 h-5" />
-                    <span className="text-sm font-black text-[#FF6600]">Orange Money</span>
+                  <div className="flex items-center gap-2.5">
+                    <OrangeMoneyLogo className="w-8 h-8 shadow-xs" />
+                    <div>
+                      <span className="text-sm font-black text-[#FF7900] block leading-tight">Orange Money</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Sénégal • Code #144#</span>
+                    </div>
                   </div>
                   <div
                     className={`w-4 h-4 rounded-full flex items-center justify-center ${
@@ -644,9 +651,9 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 mt-2">
-                  Code marchand &amp; OTP sécurisé Orange Money.
+                  Validation sécurisée via code secret #144# ou notification Maxit.
                 </p>
-                <span className="mt-2 text-[10px] text-slate-500 font-medium">Instantané</span>
+                <span className="mt-2 text-[10px] text-[#FF7900] font-bold">Instantané</span>
               </label>
 
               {/* Carte Bancaire */}
@@ -654,13 +661,13 @@ export const CheckoutPage: React.FC = () => {
                 onClick={() => setPaymentMethod('card')}
                 className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
                   paymentMethod === 'card'
-                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10 ring-1 ring-[#FF4500]/20'
                     : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <VisaMastercardLogo className="h-4" />
+                  <div className="flex items-center gap-2.5">
+                    <VisaMastercardLogo className="h-6" />
                     <span className="text-sm font-black text-[#0B192C]">Carte Bancaire</span>
                   </div>
                   <div
@@ -672,7 +679,7 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 mt-2">
-                  Visa, Mastercard, cartes internationales 3D Secure.
+                  Visa, Mastercard &amp; cartes bancaires internationales avec 3D-Secure.
                 </p>
                 <span className="mt-2 text-[10px] text-slate-500 font-medium">Sécurité 3D-Secure</span>
               </label>

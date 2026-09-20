@@ -236,10 +236,10 @@ paymentsRouter.get('/admin/geniuspay/live-payments', requireAdmin, async (req: R
 paymentsRouter.post('/simulate-sandbox-webhook', async (req: Request, res: Response): Promise<void> => {
   try {
     // 1. Protection environnementale de production
-    if (config.geniusPayEnvironment === 'production' || process.env.NODE_ENV === 'production') {
+    if (config.geniusPayEnvironment === 'production') {
       res.status(403).json({
         success: false,
-        errorMessage: 'Accès interdit : La simulation sandbox est strictement désactivée en environnement de production.'
+        errorMessage: 'Accès interdit : La simulation sandbox est désactivée lorsque GENIUSPAY_ENVIRONMENT=production.'
       });
       return;
     }

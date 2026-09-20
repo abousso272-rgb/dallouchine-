@@ -207,15 +207,34 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = () => {
                   setLoading(true);
                   checkStatus();
                 }}
-                className="bg-[#0B192C] hover:bg-[#1B2A47] text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2"
+                className="bg-[#0B192C] hover:bg-[#1B2A47] text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <RotateCw className="w-4 h-4" />
                 <span>Actualiser le statut</span>
               </button>
 
+              {orderId && (
+                <button
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      await PaymentApiClient.simulateSandboxWebhook(orderId, 'payment_success');
+                      await checkStatus();
+                    } catch (e) {
+                      console.warn(e);
+                      setLoading(false);
+                    }
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Confirmer le paiement (Mode Test)</span>
+                </button>
+              )}
+
               <button
                 onClick={() => navigate(`/tracking?code=${orderCode}`)}
-                className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold px-6 py-3.5 rounded-xl"
+                className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold px-6 py-3.5 rounded-xl cursor-pointer"
               >
                 Aller au suivi colis
               </button>

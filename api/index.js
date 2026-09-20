@@ -15,7 +15,7 @@ var config = {
   geniusPayApiKey: process.env.GENIUSPAY_API_KEY || "pk_sandbox_sample_key_sinosenegal",
   geniusPayApiSecret: process.env.GENIUSPAY_API_SECRET || "sk_sandbox_sample_secret_sinosenegal",
   geniusPayWebhookSecret: process.env.GENIUSPAY_WEBHOOK_SECRET || "whsec_sample_geniuspay_secret_sinosenegal",
-  geniusPayBaseUrl: (process.env.GENIUSPAY_BASE_URL || "http://geniuspay.ci/api/v1/merchant").replace(/\/+$/, ""),
+  geniusPayBaseUrl: (process.env.GENIUSPAY_BASE_URL || "https://geniuspay.ci/api/v1/merchant").replace(/\/+$/, ""),
   geniusPayEnvironment: process.env.GENIUSPAY_ENVIRONMENT || "sandbox",
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "",
@@ -3225,10 +3225,10 @@ paymentsRouter.get("/admin/geniuspay/live-payments", requireAdmin, async (req, r
 });
 paymentsRouter.post("/simulate-sandbox-webhook", async (req, res) => {
   try {
-    if (config.geniusPayEnvironment === "production" || process.env.NODE_ENV === "production") {
+    if (config.geniusPayEnvironment === "production") {
       res.status(403).json({
         success: false,
-        errorMessage: "Acc\xE8s interdit : La simulation sandbox est strictement d\xE9sactiv\xE9e en environnement de production."
+        errorMessage: "Acc\xE8s interdit : La simulation sandbox est d\xE9sactiv\xE9e lorsque GENIUSPAY_ENVIRONMENT=production."
       });
       return;
     }

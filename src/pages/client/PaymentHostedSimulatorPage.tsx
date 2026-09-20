@@ -10,9 +10,16 @@ import {
   CheckCircle2,
   XCircle,
   ArrowLeft,
-  QrCode
+  Info,
+  AlertTriangle
 } from 'lucide-react';
-import { WaveLogo, OrangeMoneyLogo, VisaMastercardLogo, GeniusPayBadge } from '../../components/common/PaymentOperatorLogos';
+import {
+  WaveLogo,
+  OrangeMoneyLogo,
+  VisaMastercardLogo,
+  GeniusPayLogo,
+  GeniusPayBadge
+} from '../../components/common/PaymentOperatorLogos';
 
 export const PaymentHostedSimulatorPage: React.FC = () => {
   const { navigate } = useApp();
@@ -31,12 +38,14 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
     setIsSimulating(true);
     try {
       // Déclenche le webhook côté backend avec signature HMAC réelle
-      await PaymentApiClient.simulateSandboxWebhook(orderId, 'payment_success');
+      const simRes = await PaymentApiClient.simulateSandboxWebhook(orderId, 'payment_success');
+      console.log('[Simulator] Sandbox webhook response:', simRes);
       setTimeout(() => {
         setIsSimulating(false);
         navigate(`/payment/success?orderId=${orderId}&tx=${txId}`);
       }, 1000);
-    } catch {
+    } catch (e) {
+      console.error('[Simulator] Webhook simulation failed:', e);
       setIsSimulating(false);
       navigate(`/payment/success?orderId=${orderId}&tx=${txId}`);
     }
@@ -61,17 +70,16 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900/95 text-slate-100 py-10 px-4 flex items-center justify-center -mx-4 -mt-6">
+    <div className="min-h-screen bg-slate-900 text-slate-100 py-10 px-4 flex items-center justify-center -mx-4 -mt-6">
       <div className="max-w-md w-full bg-slate-800 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
         {/* GeniusPay Hosted Header */}
         <div className="flex items-center justify-between border-b border-slate-700 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-white text-sm">
-              GP
-            </div>
+          <div className="flex items-center gap-3">
+            <GeniusPayLogo className="w-9 h-9" />
             <div>
               <h2 className="text-sm font-black text-white tracking-wide">GeniusPay Checkout</h2>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/60">
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/70 px-2 py-0.5 rounded-full border border-emerald-800/60 inline-flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 Mode Sandbox Sécurisé
               </span>
             </div>
@@ -84,11 +92,22 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Notice Explicative Sandbox Importante */}
+        <div className="p-3.5 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-amber-200 text-xs space-y-1.5">
+          <div className="flex items-center gap-2 font-bold text-amber-300">
+            <Info className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>Mode Test / Environnement Sandbox</span>
+          </div>
+          <p className="text-[11px] text-amber-200/90 leading-relaxed">
+            En mode Sandbox ou avec des clés de test, <strong>aucun SMS ni code USSD réel</strong> n’est envoyé sur votre téléphone physique. Cliquez sur le bouton vert ci-dessous pour <strong>valider immédiatement</strong> la commande de démonstration.
+          </p>
+        </div>
+
         {/* Order Details */}
         <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-4 space-y-2 text-xs">
           <div className="flex justify-between text-slate-400">
             <span>Marchand :</span>
-            <strong className="text-white">SinoSenegal Logistique</strong>
+            <strong className="text-white">Dallou Chine SARL (SinoSenegal)</strong>
           </div>
           <div className="flex justify-between text-slate-400">
             <span>Commande :</span>
@@ -104,6 +123,7 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
         <div className="space-y-2.5">
           <label className="text-xs font-bold text-slate-300 block">Choisissez votre mode de paiement :</label>
 
+          {/* Wave */}
           <div
             onClick={() => setSelectedMethod('wave')}
             className={`p-3.5 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
@@ -113,15 +133,16 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
             }`}
           >
             <div className="flex items-center gap-3">
-              <WaveLogo className="w-8 h-8 shadow-sm" />
+              <WaveLogo className="w-9 h-9 shadow-xs" />
               <div>
-                <strong className="text-xs font-bold block">Wave Digital Finance (Sénégal)</strong>
-                <span className="text-[10px] text-slate-400">Paiement instantané sans frais 1%</span>
+                <strong className="text-xs font-bold block text-[#1DC3FF]">Wave Digital Finance (Sénégal)</strong>
+                <span className="text-[10px] text-slate-400">Paiement instantané sans frais 0%</span>
               </div>
             </div>
             {selectedMethod === 'wave' && <CheckCircle2 className="w-4 h-4 text-blue-400" />}
           </div>
 
+          {/* Orange Money */}
           <div
             onClick={() => setSelectedMethod('orange_money')}
             className={`p-3.5 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
@@ -131,15 +152,16 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
             }`}
           >
             <div className="flex items-center gap-3">
-              <OrangeMoneyLogo className="w-8 h-8 shadow-sm" />
+              <OrangeMoneyLogo className="w-9 h-9 shadow-xs" />
               <div>
-                <strong className="text-xs font-bold block">Orange Money Sénégal (OM)</strong>
+                <strong className="text-xs font-bold block text-[#FF7900]">Orange Money Sénégal (OM)</strong>
                 <span className="text-[10px] text-slate-400">Validation via code secret #144# ou Maxit</span>
               </div>
             </div>
             {selectedMethod === 'orange_money' && <CheckCircle2 className="w-4 h-4 text-orange-400" />}
           </div>
 
+          {/* Carte Bancaire */}
           <div
             onClick={() => setSelectedMethod('card')}
             className={`p-3.5 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
@@ -149,13 +171,13 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-white border border-slate-600">
-                <CreditCard className="w-4 h-4 text-blue-400" />
+              <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-white border border-slate-600 shrink-0">
+                <CreditCard className="w-5 h-5 text-blue-400" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <strong className="text-xs font-bold block">Carte Bancaire Visa / Mastercard</strong>
-                  <VisaMastercardLogo />
+                  <strong className="text-xs font-bold block">Carte Visa / Mastercard</strong>
+                  <VisaMastercardLogo className="h-5" />
                 </div>
                 <span className="text-[10px] text-slate-400">Authentification 3D Secure</span>
               </div>
@@ -186,14 +208,14 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
             <button
               disabled={isSimulating}
               onClick={handlePaySuccess}
-              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               {isSimulating ? (
                 <span>Validation sécurisée...</span>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Confirmer et Payer ({(amount || 0).toLocaleString('fr-FR')} XOF)</span>
+                  <span>Confirmer et Valider ({(amount || 0).toLocaleString('fr-FR')} XOF)</span>
                 </>
               )}
             </button>
@@ -202,7 +224,7 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
               <button
                 disabled={isSimulating}
                 onClick={handlePayFail}
-                className="bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 text-[11px] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5"
+                className="bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 text-[11px] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <XCircle className="w-3.5 h-3.5" />
                 <span>Simuler Échec</span>
@@ -211,7 +233,7 @@ export const PaymentHostedSimulatorPage: React.FC = () => {
               <button
                 disabled={isSimulating}
                 onClick={handleCancel}
-                className="bg-slate-700/60 hover:bg-slate-700 text-slate-300 text-[11px] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5"
+                className="bg-slate-700/60 hover:bg-slate-700 text-slate-300 text-[11px] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Annuler</span>
