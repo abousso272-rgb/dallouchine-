@@ -26,6 +26,7 @@ export class PaymentService {
     userAgent?: string;
     returnUrl?: string;
     cancelUrl?: string;
+    paymentMethod?: string;
   }): Promise<{
     success: boolean;
     checkoutUrl?: string;
@@ -75,8 +76,10 @@ export class PaymentService {
       merchantReference: attemptResult.merchant_reference,
       amount: attemptResult.amount_xof,
       currency: attemptResult.currency || 'XOF',
+      paymentMethod: params.paymentMethod,
+      description: `Commande ${attemptResult.tracking_code} - Dallou Chine`,
       customer: {
-        name: attemptResult.customer_name || 'Client SinoSenegal',
+        name: attemptResult.customer_name || 'Client Dallou Chine',
         email: attemptResult.customer_email || 'client@dallouchine.sn',
         phone: attemptResult.customer_phone || ''
       },
@@ -317,6 +320,41 @@ export class PaymentService {
       createdAt: d.created_at,
       updatedAt: d.updated_at
     }));
+  }
+
+  /**
+   * 5. Consultation du solde marchand GeniusPay (GET /account/balance)
+   */
+  async getGeniusPayBalance() {
+    if (this.provider instanceof GeniusPayProvider) {
+      return await this.provider.getAccountBalance();
+    }
+    return { success: false, error: 'Fournisseur GeniusPay non actif' };
+  }
+
+  /**
+   * 6. Consultation des informations du compte marchand GeniusPay (GET /account)
+   */
+  async getGeniusPayAccount() {
+    if (this.provider instanceof GeniusPayProvider) {
+      return await this.provider.getAccountInfo();
+    }
+    return { success: false, error: 'Fournisseur GeniusPay non actif' };
+  }
+
+  /**
+   * 7. Consultation des transactions en direct sur la passerelle GeniusPay (GET /payments)
+   */
+  async getGeniusPayLiveTransactions(params?: {
+    status?: 'pending' | 'completed' | 'failed';
+    from?: string;
+    to?: string;
+    per_page?: number;
+  }) {
+    if (this.provider instanceof GeniusPayProvider) {
+      return await this.provider.listPayments(params);
+    }
+    return { success: false, data: [] };
   }
 }
 

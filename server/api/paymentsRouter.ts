@@ -18,7 +18,7 @@ export const paymentsRouter = Router();
 paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const orderId = req.body.orderId || req.body.order_id;
-    const { returnUrl, cancelUrl } = req.body;
+    const { returnUrl, cancelUrl, paymentMethod } = req.body;
 
     if (!orderId) {
       res.status(400).json({
@@ -40,7 +40,8 @@ paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response):
       clientIp,
       userAgent,
       returnUrl,
-      cancelUrl
+      cancelUrl,
+      paymentMethod
     });
 
     if (!result.success) {
@@ -171,7 +172,64 @@ paymentsRouter.get('/admin/list', requireAdmin, async (_req: Request, res: Respo
 });
 
 /**
- * 6. POST /api/payments/simulate-sandbox-webhook
+ * 6. GET /api/payments/admin/geniuspay/balance
+ * Solde du compte marchand GeniusPay (GET /account/balance)
+ */
+paymentsRouter.get('/admin/geniuspay/balance', requireAdmin, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await paymentService.getGeniusPayBalance();
+    res.json(result);
+  } catch (error: any) {
+    console.error('[Payments API] Error in /admin/geniuspay/balance:', error.message || error);
+    res.status(500).json({
+      success: false,
+      errorMessage: 'Impossible de récupérer le solde marchand GeniusPay.'
+    });
+  }
+});
+
+/**
+ * 7. GET /api/payments/admin/geniuspay/account
+ * Informations du compte marchand GeniusPay (GET /account)
+ */
+paymentsRouter.get('/admin/geniuspay/account', requireAdmin, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await paymentService.getGeniusPayAccount();
+    res.json(result);
+  } catch (error: any) {
+    console.error('[Payments API] Error in /admin/geniuspay/account:', error.message || error);
+    res.status(500).json({
+      success: false,
+      errorMessage: 'Impossible de récupérer les informations du compte GeniusPay.'
+    });
+  }
+});
+
+/**
+ * 8. GET /api/payments/admin/geniuspay/live-payments
+ * Liste en direct des transactions sur la passerelle GeniusPay (GET /payments)
+ */
+paymentsRouter.get('/admin/geniuspay/live-payments', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { status, from, to, per_page } = req.query;
+    const result = await paymentService.getGeniusPayLiveTransactions({
+      status: status as any,
+      from: from as string,
+      to: to as string,
+      per_page: per_page ? parseInt(per_page as string, 10) : undefined
+    });
+    res.json(result);
+  } catch (error: any) {
+    console.error('[Payments API] Error in /admin/geniuspay/live-payments:', error.message || error);
+    res.status(500).json({
+      success: false,
+      errorMessage: 'Impossible de récupérer la liste des paiements en direct.'
+    });
+  }
+});
+
+/**
+ * 9. POST /api/payments/simulate-sandbox-webhook
  * Simulation strictement réservée à l'environnement de développement / bac à sable.
  * TOTALEMENT DÉSACTIVÉ EN PRODUCTION.
  */
@@ -227,13 +285,37 @@ paymentsRouter.post('/simulate-sandbox-webhook', async (req: Request, res: Respo
         status: 'pending'
       });
     }
-    const payloadStatus = eventType === 'payment_success' ? 'completed' : eventType === 'payment_failed' ? 'failed' : 'cancelled';
 
+    const payloadStatus = eventType === 'payment_success' ? 'completed' : eventType === 'payment_failed' ? 'failed' : 'cancelled';
+    const officialEvent = eventType === 'payment_success' ? 'payment.success' : eventType === 'payment_failed' ? 'payment.failed' : 'payment.cancelled';
+
+    // 3. Payload conforme à la documentation officielle GeniusPay
     const mockPayload = {
-      event: eventType,
+      event: officialEvent,
       id: `evt_sim_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString(),
       created_at: Math.floor(Date.now() / 1000),
       data: {
+        // Objet transaction documenté
+        transaction: {
+          id: txId,
+          reference: merchantReference,
+          merchant_reference: merchantReference,
+          status: payloadStatus,
+          amount: realAmount,
+          currency: 'XOF',
+          customer: {
+            name: order.customer_name,
+            phone: order.customer_phone,
+            email: order.customer_email
+          },
+          metadata: {
+            order_id: order.id,
+            order_code: order.tracking_code,
+            merchant_reference: merchantReference
+          }
+        },
+        // Rétrocompatibilité avec les tests qui lisent directement data.*
         transaction_id: txId,
         reference: merchantReference,
         merchant_reference: merchantReference,
@@ -244,14 +326,19 @@ paymentsRouter.post('/simulate-sandbox-webhook', async (req: Request, res: Respo
           order_id: order.id,
           order_code: order.tracking_code,
           merchant_reference: merchantReference
-        }
+        },
+        merchant: {
+          id: 'uuid-merchant-dallou',
+          name: 'Dallou Chine'
+        },
+        environment: 'sandbox'
       }
     };
 
     const rawString = JSON.stringify(mockPayload);
     const timestamp = Math.floor(Date.now() / 1000).toString();
 
-    // 4. Signature HMAC-SHA256 cryptographique conforme
+    // 4. Signature HMAC-SHA256 cryptographique conforme (supporte la signature officielle directe et avec horodatage)
     const signature = crypto
       .createHmac('sha256', config.geniusPayWebhookSecret)
       .update(`${timestamp}.${rawString}`)
@@ -261,6 +348,7 @@ paymentsRouter.post('/simulate-sandbox-webhook', async (req: Request, res: Respo
     const result = await paymentService.handleWebhook(rawString, {
       'x-geniuspay-signature': signature,
       'x-geniuspay-timestamp': timestamp,
+      'x-geniuspay-event': officialEvent,
       'content-type': 'application/json'
     });
 

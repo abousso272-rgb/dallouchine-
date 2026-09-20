@@ -70,9 +70,11 @@ app.get('*', (req: Request, res: Response, next: NextFunction) => {
 });
 
 const PORT = config.port;
-app.listen(PORT, '0.0.0.0', () => {
-  logServerConfig();
-  console.log(`[SinoSenegal Server] Express server running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    logServerConfig();
+    console.log(`[SinoSenegal Server] Express server running on port ${PORT}`);
+  });
+}
 
 export default app;

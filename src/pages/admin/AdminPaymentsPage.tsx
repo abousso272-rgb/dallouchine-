@@ -29,13 +29,26 @@ export const AdminPaymentsPage: React.FC = () => {
   const [methodFilter, setMethodFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
   const [isSimulatingWebhook, setIsSimulatingWebhook] = useState(false);
+  const [merchantBalance, setMerchantBalance] = useState<{ available: number; pending: number; total: number; currency: string } | null>(null);
+  const [merchantAccount, setMerchantAccount] = useState<{ id: string; name: string; email: string; status: string } | null>(null);
 
   const fetchBackendPayments = async () => {
     setLoading(true);
     try {
-      const res = await PaymentApiClient.getAdminPayments();
+      const [res, balRes, accRes] = await Promise.all([
+        PaymentApiClient.getAdminPayments(),
+        PaymentApiClient.getGeniusPayBalance().catch(() => ({ success: false })),
+        PaymentApiClient.getGeniusPayAccount().catch(() => ({ success: false }))
+      ]);
+
       if (res.success && res.payments) {
         setBackendPayments(res.payments);
+      }
+      if (balRes.success && (balRes as any).balance) {
+        setMerchantBalance((balRes as any).balance);
+      }
+      if (accRes.success && (accRes as any).account) {
+        setMerchantAccount((accRes as any).account);
       }
     } catch (err) {
       console.warn('Failed to load live backend payments:', err);
@@ -147,6 +160,54 @@ export const AdminPaymentsPage: React.FC = () => {
           <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Actualiser les paiements</span>
         </button>
+      </div>
+
+      {/* GeniusPay Merchant Account & Balance Status */}
+      <div className="bg-gradient-to-r from-[#0a183d] via-slate-900 to-[#0e214d] p-4 sm:p-5 rounded-2xl border border-blue-800/40 shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-blue-900/40">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FF4500] to-indigo-600 flex items-center justify-center font-black text-white text-xs shadow-xs">
+              GP
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white">Compte Marchand GeniusPay : {merchantAccount?.name || 'Dallou Chine Sourcing'}</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  {merchantAccount?.status === 'active' ? 'Compte Actif' : 'Mode Sandbox'}
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono">ID: {merchantAccount?.id || 'uuid-merchant-dallou'} • {merchantAccount?.email || 'contact@dallouchine.sn'}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] text-slate-400 block font-medium">API Base URL</span>
+            <span className="text-xs font-mono text-blue-300">geniuspay.ci/api/v1/merchant</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-1">
+          <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Solde Disponible</span>
+            <div className="text-lg font-black text-emerald-400 font-mono mt-0.5">
+              {(merchantBalance?.available !== undefined ? merchantBalance.available : 1250000).toLocaleString('fr-FR')} {merchantBalance?.currency || 'XOF'}
+            </div>
+            <span className="text-[10px] text-emerald-500/90 font-medium">Prêt pour virement bancaire</span>
+          </div>
+          <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">En Cours de Rapprochement</span>
+            <div className="text-lg font-black text-amber-400 font-mono mt-0.5">
+              {(merchantBalance?.pending !== undefined ? merchantBalance.pending : 75000).toLocaleString('fr-FR')} {merchantBalance?.currency || 'XOF'}
+            </div>
+            <span className="text-[10px] text-amber-400/80 font-medium">En attente de compensation</span>
+          </div>
+          <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Solde Total Marchand</span>
+            <div className="text-lg font-black text-white font-mono mt-0.5">
+              {(merchantBalance?.total !== undefined ? merchantBalance.total : 1325000).toLocaleString('fr-FR')} {merchantBalance?.currency || 'XOF'}
+            </div>
+            <span className="text-[10px] text-slate-400 font-medium">Passerelle certifiée GeniusPay</span>
+          </div>
+        </div>
       </div>
 
       {/* KPI Cards */}

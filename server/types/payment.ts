@@ -87,6 +87,8 @@ export interface CreatePaymentSessionParams {
   merchantReference?: string;
   amount: number;
   currency: string;
+  paymentMethod?: string;
+  description?: string;
   customer: {
     name: string;
     email: string;
@@ -117,3 +119,36 @@ export interface ProviderPaymentStatusResult {
   paidAt?: string;
   rawResponse?: any;
 }
+
+export interface GeniusPayAccountInfo {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  createdAt?: string;
+}
+
+export interface GeniusPayAccountBalance {
+  available: number;
+  pending: number;
+  total: number;
+  currency: string;
+}
+
+export interface GeniusPayTransactionItem {
+  id: number | string;
+  reference: string;
+  amount: number;
+  fees?: number;
+  netAmount?: number;
+  status: string;
+  paymentMethod?: string;
+  customer?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  createdAt?: string;
+  completedAt?: string;
+}
+

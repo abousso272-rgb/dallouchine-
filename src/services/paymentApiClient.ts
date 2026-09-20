@@ -47,6 +47,7 @@ export class PaymentApiClient {
     orderData?: any;
     returnUrl?: string;
     cancelUrl?: string;
+    paymentMethod?: string;
   }): Promise<ClientPaymentResponse> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -129,6 +130,56 @@ export class PaymentApiClient {
       console.warn('[PaymentApiClient] Could not load admin payments:', error);
     }
     return { success: false, payments: [] };
+  }
+
+  /**
+   * Récupère le solde marchand GeniusPay (Admin)
+   */
+  static async getGeniusPayBalance(): Promise<{
+    success: boolean;
+    balance?: { available: number; pending: number; total: number; currency: string };
+    error?: string;
+  }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch('/api/payments/admin/geniuspay/balance', { headers });
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn('[PaymentApiClient] Failed to load GeniusPay balance:', error);
+    }
+    return { success: false, error: 'Impossible de récupérer le solde marchand GeniusPay.' };
+  }
+
+  /**
+   * Récupère les détails du compte marchand GeniusPay (Admin)
+   */
+  static async getGeniusPayAccount(): Promise<{
+    success: boolean;
+    account?: { id: string; name: string; email: string; status: string };
+    error?: string;
+  }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch('/api/payments/admin/geniuspay/account', { headers });
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn('[PaymentApiClient] Failed to load GeniusPay account:', error);
+    }
+    return { success: false, error: 'Impossible de récupérer les informations du compte.' };
   }
 
   /**

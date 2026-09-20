@@ -22,7 +22,7 @@ import {
   Plane,
   Clock
 } from 'lucide-react';
-import { WaveLogo, OrangeMoneyLogo } from '../../components/common/PaymentOperatorLogos';
+import { WaveLogo, OrangeMoneyLogo, VisaMastercardLogo, GeniusPayBadge } from '../../components/common/PaymentOperatorLogos';
 import { logisticsService, PublicLogisticsResult } from '../../services/logisticsService';
 import { PaymentApiClient } from '../../services/paymentApiClient';
 import type { TransportMode } from '../../types';
@@ -37,7 +37,7 @@ export const CheckoutPage: React.FC = () => {
   const [address, setAddress] = useState('Dakar, Almadies / Ngor');
   const [deliveryMode, setDeliveryMode] = useState<'hub_almadies' | 'last_mile'>('hub_almadies');
   const [transportMode, setTransportMode] = useState<TransportMode>('air');
-  const [paymentMethod, setPaymentMethod] = useState<'wave' | 'orange_money' | 'virement' | 'desk'>('wave');
+  const [paymentMethod, setPaymentMethod] = useState<'geniuspay' | 'wave' | 'orange_money' | 'card' | 'virement' | 'desk'>('geniuspay');
   const [isProcessing, setIsProcessing] = useState(false);
   const [logisticsEst, setLogisticsEst] = useState<PublicLogisticsResult | null>(null);
 
@@ -94,7 +94,7 @@ export const CheckoutPage: React.FC = () => {
         email: currentUser.email || 'client@dallouchine.sn',
         city: address,
         deliveryType: deliveryMode === 'hub_almadies' ? 'hub_pickup' : 'home_delivery',
-        paymentMethod: paymentMethod === 'desk' ? 'hub_cash' : paymentMethod,
+        paymentMethod: paymentMethod === 'desk' ? 'hub_cash' : (paymentMethod === 'virement' ? 'virement' : 'wave') as any,
         idempotencyKey
       });
 
@@ -110,7 +110,12 @@ export const CheckoutPage: React.FC = () => {
         // Si règlement en ligne sélectionné, redirection vers la session de paiement GeniusPay
         if (paymentMethod !== 'desk' && paymentMethod !== 'virement') {
           try {
-            const payRes = await PaymentApiClient.createPayment({ orderId });
+            // Si paymentMethod === 'geniuspay', on omet paymentMethod pour ouvrir le Checkout hébergé multi-opérateurs
+            const apiMethod = paymentMethod === 'geniuspay' ? undefined : paymentMethod;
+            const payRes = await PaymentApiClient.createPayment({
+              orderId,
+              paymentMethod: apiMethod
+            });
             if (payRes.success && payRes.checkoutUrl) {
               window.location.href = payRes.checkoutUrl;
               return;
@@ -541,8 +546,54 @@ export const CheckoutPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Wave */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {/* GeniusPay Hosted Checkout (Multi-moyens - Recommandé) */}
+              <label
+                onClick={() => setPaymentMethod('geniuspay')}
+                className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all sm:col-span-2 md:col-span-3 ${
+                  paymentMethod === 'geniuspay'
+                    ? 'bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-blue-500/10 border-[#FF4500] shadow-md shadow-orange-500/15 ring-2 ring-[#FF4500]/20'
+                    : 'bg-slate-50/80 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FF4500] to-indigo-600 flex items-center justify-center font-black text-white text-xs shadow-xs">
+                      GP
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-[#0B192C]">GeniusPay Checkout</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          Recommandé
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-500">Page de paiement universelle sécurisée (Wave, Orange Money, MTN, Visa, Mastercard)</span>
+                    </div>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      paymentMethod === 'geniuspay' ? 'bg-[#FF4500] text-white' : 'border border-slate-300'
+                    }`}
+                  >
+                    {paymentMethod === 'geniuspay' && <Check className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-slate-200/60">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <WaveLogo className="w-4 h-4" /> Wave
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <OrangeMoneyLogo className="w-4 h-4" /> Orange Money
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-bold text-slate-700">
+                    <VisaMastercardLogo className="h-4" />
+                  </div>
+                  <span className="ml-auto text-[10px] font-bold text-[#FF4500]">0% commission client</span>
+                </div>
+              </label>
+
+              {/* Wave Direct */}
               <label
                 onClick={() => setPaymentMethod('wave')}
                 className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
@@ -554,7 +605,7 @@ export const CheckoutPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <WaveLogo className="w-5 h-5" />
-                    <span className="text-sm font-black text-[#00A3FF]">Wave</span>
+                    <span className="text-sm font-black text-[#00A3FF]">Wave Direct</span>
                   </div>
                   <div
                     className={`w-4 h-4 rounded-full flex items-center justify-center ${
@@ -565,12 +616,12 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 mt-2">
-                  Paiement QR ou push direct instantané. 0% frais applicables.
+                  Redirection immédiate vers l'application Wave Sénégal.
                 </p>
-                <span className="mt-2 text-[10px] text-[#FF4500] font-bold">Validation immédiate</span>
+                <span className="mt-2 text-[10px] text-[#FF4500] font-bold">Instantané</span>
               </label>
 
-              {/* Orange Money */}
+              {/* Orange Money Direct */}
               <label
                 onClick={() => setPaymentMethod('orange_money')}
                 className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
@@ -593,9 +644,37 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 mt-2">
-                  Code marchand &amp; OTP sécurisé au Sénégal.
+                  Code marchand &amp; OTP sécurisé Orange Money.
                 </p>
-                <span className="mt-2 text-[10px] text-slate-500 font-medium">Validation immédiate</span>
+                <span className="mt-2 text-[10px] text-slate-500 font-medium">Instantané</span>
+              </label>
+
+              {/* Carte Bancaire */}
+              <label
+                onClick={() => setPaymentMethod('card')}
+                className={`cursor-pointer flex flex-col justify-between p-4 rounded-2xl border transition-all ${
+                  paymentMethod === 'card'
+                    ? 'bg-orange-50/30 border-[#FF4500] shadow-md shadow-orange-500/10'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <VisaMastercardLogo className="h-4" />
+                    <span className="text-sm font-black text-[#0B192C]">Carte Bancaire</span>
+                  </div>
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      paymentMethod === 'card' ? 'bg-[#FF4500] text-white' : 'border border-slate-300'
+                    }`}
+                  >
+                    {paymentMethod === 'card' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2">
+                  Visa, Mastercard, cartes internationales 3D Secure.
+                </p>
+                <span className="mt-2 text-[10px] text-slate-500 font-medium">Sécurité 3D-Secure</span>
               </label>
 
               {/* Bank Transfer */}
