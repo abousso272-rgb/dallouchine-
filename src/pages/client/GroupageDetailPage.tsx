@@ -4,7 +4,7 @@ import { groupageService } from '../../services/groupageService';
 import { Groupage } from '../../types';
 
 export const GroupageDetailPage: React.FC<{ id?: string }> = ({ id }) => {
-  const { navigate, currentUser, groupages, reserveGroupage, getGroupageById } = useApp();
+  const { navigate, currentUser, groupages, reserveGroupage, getGroupageById, openAuthModal } = useApp();
 
   const [groupage, setGroupage] = useState<Groupage | null>(() => (id ? getGroupageById(id) || null : null));
   const [loading, setLoading] = useState<boolean>(!groupage);
@@ -71,7 +71,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = ({ id }) => {
 
   const handleJoinGroupage = async () => {
     if (!currentUser.isLoggedIn) {
-      navigate('/login');
+      openAuthModal('client');
       return;
     }
     if (!groupage) return;
@@ -524,7 +524,7 @@ export const GroupageDetailPage: React.FC<{ id?: string }> = ({ id }) => {
                     : isClosed
                     ? 'Campagne Fermée'
                     : !currentUser.isLoggedIn
-                    ? 'Se connecter pour participer'
+                    ? `Réserver ${currentQty} unité${currentQty > 1 ? 's' : ''} (Inscription rapide)`
                     : `Réserver ${currentQty} unité${currentQty > 1 ? 's' : ''} maintenant`}
                 </span>
                 <span className="material-symbols-outlined text-[22px]">arrow_forward</span>

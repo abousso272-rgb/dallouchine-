@@ -34,6 +34,7 @@ import { PaymentHostedSimulatorPage } from './pages/client/PaymentHostedSimulato
 import { PaymentsPage } from './pages/client/PaymentsPage';
 import { DocumentsPage } from './pages/client/DocumentsPage';
 import { AutoMobilityPage } from './pages/client/AutoMobilityPage';
+import { CollaboratorDashboardPage } from './pages/collaborator/CollaboratorDashboardPage';
 
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
@@ -227,9 +228,17 @@ const AppRouter: React.FC = () => {
     currentPath.startsWith('/dashboard?') ||
     currentPath === '/mon-espace' ||
     currentPath.startsWith('/mon-espace?') ||
-    currentPath === '/tableau-de-bord'
+    currentPath === '/tableau-de-bord' ||
+    currentPath === '/client' ||
+    currentPath.startsWith('/client?')
   ) {
     clientContent = <ClientDashboardPage />;
+  } else if (
+    currentPath === '/collaborateur' ||
+    currentPath.startsWith('/collaborateur?') ||
+    currentPath === '/espace-collaborateur'
+  ) {
+    clientContent = <CollaboratorDashboardPage />;
   } else if (currentPath === '/cart' || currentPath === '/panier') {
     clientContent = <CartPage />;
   } else if (currentPath === '/checkout' || currentPath === '/validation-commande') {

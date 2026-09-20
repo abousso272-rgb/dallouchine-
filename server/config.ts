@@ -14,7 +14,7 @@ export const config: ServerConfig = {
   geniusPayApiKey: process.env.GENIUSPAY_API_KEY || 'pk_sandbox_sample_key_sinosenegal',
   geniusPayApiSecret: process.env.GENIUSPAY_API_SECRET || 'sk_sandbox_sample_secret_sinosenegal',
   geniusPayWebhookSecret: process.env.GENIUSPAY_WEBHOOK_SECRET || 'whsec_sample_geniuspay_secret_sinosenegal',
-  geniusPayBaseUrl: (process.env.GENIUSPAY_BASE_URL || 'https://geniuspay.ci/api/v1/merchant').replace(/\/+$/, ''),
+  geniusPayBaseUrl: (process.env.GENIUSPAY_BASE_URL || 'https://geniuspay.ci/api/v1/merchant').replace(/^http:\/\//i, 'https://').replace(/\/+$/, ''),
   geniusPayEnvironment: (process.env.GENIUSPAY_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '',
