@@ -18,7 +18,7 @@ export const paymentsRouter = Router();
 paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const orderId = req.body.orderId || req.body.order_id;
-    const { returnUrl, cancelUrl, paymentMethod } = req.body;
+    let { returnUrl, cancelUrl, paymentMethod } = req.body;
 
     if (!orderId) {
       res.status(400).json({
@@ -27,6 +27,22 @@ paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response):
         errorMessage: 'Identifiant de commande manquant.'
       });
       return;
+    }
+
+    // Détection dynamique et sécurisée de l'origine de l'application
+    const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || 'dallouchine.vercel.app').toString();
+    const rawProto = (req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'https')).toString();
+    const cleanHost = rawHost.split(',')[0].trim();
+    const requestOrigin = cleanHost.startsWith('http') ? cleanHost : `${rawProto}://${cleanHost}`;
+    const safeBase = cleanHost.includes('localhost') 
+      ? (config.appUrl || 'https://dallouchine.vercel.app') 
+      : `https://${cleanHost}`;
+
+    if (!returnUrl || returnUrl.includes('localhost')) {
+      returnUrl = `${safeBase}/payment/success?orderId=${orderId}`;
+    }
+    if (!cancelUrl || cancelUrl.includes('localhost')) {
+      cancelUrl = `${safeBase}/payment/cancelled?orderId=${orderId}`;
     }
 
     const userId = req.user!.id;

@@ -112,9 +112,12 @@ export const CheckoutPage: React.FC = () => {
           try {
             // Si paymentMethod === 'geniuspay', on omet paymentMethod pour ouvrir le Checkout hébergé multi-opérateurs
             const apiMethod = paymentMethod === 'geniuspay' ? undefined : paymentMethod;
+            const origin = window.location.origin;
             const payRes = await PaymentApiClient.createPayment({
               orderId,
-              paymentMethod: apiMethod
+              paymentMethod: apiMethod,
+              returnUrl: `${origin}/payment/success?orderId=${orderId}`,
+              cancelUrl: `${origin}/payment/cancelled?orderId=${orderId}`
             });
             if (payRes.success && payRes.checkoutUrl) {
               window.location.href = payRes.checkoutUrl;

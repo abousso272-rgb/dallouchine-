@@ -59,10 +59,20 @@ export class PaymentApiClient {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
+      const origin = (typeof window !== 'undefined' && window.location?.origin)
+        ? window.location.origin
+        : 'https://dallouchine.vercel.app';
+
+      const payload = {
+        ...params,
+        returnUrl: params.returnUrl || `${origin}/payment/success?orderId=${params.orderId}`,
+        cancelUrl: params.cancelUrl || `${origin}/payment/cancelled?orderId=${params.orderId}`
+      };
+
       const response = await fetch('/api/payments/create', {
         method: 'POST',
         headers,
-        body: JSON.stringify(params)
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();

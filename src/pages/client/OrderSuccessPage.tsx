@@ -33,7 +33,12 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({ orderId: pro
     if (!order?.id) return;
     setIsPaying(true);
     try {
-      const res = await PaymentApiClient.createPayment({ orderId: order.id });
+      const origin = window.location.origin;
+      const res = await PaymentApiClient.createPayment({
+        orderId: order.id,
+        returnUrl: `${origin}/payment/success?orderId=${order.id}`,
+        cancelUrl: `${origin}/payment/cancelled?orderId=${order.id}`
+      });
       if (res.success && res.checkoutUrl) {
         window.location.href = res.checkoutUrl;
       } else {

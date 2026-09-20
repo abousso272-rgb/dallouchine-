@@ -371,7 +371,12 @@ export const AccountPage: React.FC = () => {
                     <button
                       onClick={async () => {
                         const { PaymentApiClient } = await import('../../services/paymentApiClient');
-                        const res = await PaymentApiClient.createPayment({ orderId: order.id });
+                        const origin = window.location.origin;
+                        const res = await PaymentApiClient.createPayment({
+                          orderId: order.id,
+                          returnUrl: `${origin}/payment/success?orderId=${order.id}`,
+                          cancelUrl: `${origin}/payment/cancelled?orderId=${order.id}`
+                        });
                         if (res.success && res.checkoutUrl) {
                           if (res.checkoutUrl.startsWith('/') || res.checkoutUrl.includes(window.location.host)) {
                             const urlObj = new URL(res.checkoutUrl, window.location.origin);

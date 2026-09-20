@@ -18,7 +18,7 @@ export const config: ServerConfig = {
   geniusPayEnvironment: (process.env.GENIUSPAY_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '',
-  appUrl: process.env.APP_URL || 'http://localhost:3000',
+  appUrl: process.env.APP_URL || 'https://dallouchine.vercel.app',
   port: parseInt(process.env.PORT || '3000', 10)
 };
 

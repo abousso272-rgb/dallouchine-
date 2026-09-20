@@ -66,8 +66,19 @@ export class PaymentService {
     });
 
     // 2. Appel de la passerelle GeniusPay avec le montant certifié serveur
-    const returnUrl = params.returnUrl || `${config.appUrl}/payment/success?orderId=${attemptResult.order_id}&paymentId=${attemptResult.payment_id}`;
-    const cancelUrl = params.cancelUrl || `${config.appUrl}/payment/cancelled?orderId=${attemptResult.order_id}`;
+    const defaultAppUrl = (config.appUrl && !config.appUrl.includes('localhost'))
+      ? config.appUrl.replace(/\/+$/, '')
+      : 'https://dallouchine.vercel.app';
+
+    let returnUrl = params.returnUrl;
+    let cancelUrl = params.cancelUrl;
+
+    if (!returnUrl || returnUrl.includes('localhost')) {
+      returnUrl = `${defaultAppUrl}/payment/success?orderId=${attemptResult.order_id}&paymentId=${attemptResult.payment_id}`;
+    }
+    if (!cancelUrl || cancelUrl.includes('localhost')) {
+      cancelUrl = `${defaultAppUrl}/payment/cancelled?orderId=${attemptResult.order_id}`;
+    }
 
     const sessionResult = await this.provider.createPaymentSession({
       orderId: attemptResult.order_id,
@@ -253,6 +264,40 @@ export class PaymentService {
 
     if (error || !data || !data.found) {
       return { found: false };
+    }
+
+    // Auto-synchronisation intelligente avec GeniusPay si le paiement est encore 'pending'
+    if (
+      data.order &&
+      data.order.payment_status !== 'paid' &&
+      (data.payment?.provider_reference || data.payment?.provider_transaction_id)
+    ) {
+      try {
+        const ref = data.payment.provider_reference || data.payment.provider_transaction_id;
+        const provStatus = await this.provider.getPaymentStatus(ref);
+        if (provStatus && provStatus.status === 'paid') {
+          console.log(`[PaymentService] Auto-sync: GeniusPay payment ${ref} is confirmed paid. Syncing order ${data.order.id}...`);
+          await supabase.rpc('process_geniuspay_webhook', {
+            p_event_id: `sync_${ref}_${Date.now()}`,
+            p_event_type: 'payment.success',
+            p_provider_payment_id: provStatus.providerTransactionId || data.payment.provider_transaction_id || ref,
+            p_merchant_reference: ref,
+            p_order_id: data.order.id,
+            p_status: 'paid',
+            p_amount_xof: Number(data.order.total_xof),
+            p_currency: 'XOF',
+            p_payload: provStatus.rawResponse || {},
+            p_signature_verified: true
+          });
+          data.order.payment_status = 'paid';
+          if (data.payment) {
+            data.payment.status = 'paid';
+            data.payment.paid_at = provStatus.paidAt || new Date().toISOString();
+          }
+        }
+      } catch (syncErr: any) {
+        console.warn('[PaymentService] Auto-sync verification note:', syncErr.message || syncErr);
+      }
     }
 
     return {

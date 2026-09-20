@@ -19,7 +19,7 @@ var config = {
   geniusPayEnvironment: process.env.GENIUSPAY_ENVIRONMENT || "sandbox",
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "",
-  appUrl: process.env.APP_URL || "http://localhost:3000",
+  appUrl: process.env.APP_URL || "https://dallouchine.vercel.app",
   port: parseInt(process.env.PORT || "3000", 10)
 };
 
@@ -2814,8 +2814,15 @@ var PaymentService = class {
       merchantReference: attemptResult.merchant_reference,
       amount: attemptResult.amount_xof
     });
-    const returnUrl = params.returnUrl || `${config.appUrl}/payment/success?orderId=${attemptResult.order_id}&paymentId=${attemptResult.payment_id}`;
-    const cancelUrl = params.cancelUrl || `${config.appUrl}/payment/cancelled?orderId=${attemptResult.order_id}`;
+    const defaultAppUrl = config.appUrl && !config.appUrl.includes("localhost") ? config.appUrl.replace(/\/+$/, "") : "https://dallouchine.vercel.app";
+    let returnUrl = params.returnUrl;
+    let cancelUrl = params.cancelUrl;
+    if (!returnUrl || returnUrl.includes("localhost")) {
+      returnUrl = `${defaultAppUrl}/payment/success?orderId=${attemptResult.order_id}&paymentId=${attemptResult.payment_id}`;
+    }
+    if (!cancelUrl || cancelUrl.includes("localhost")) {
+      cancelUrl = `${defaultAppUrl}/payment/cancelled?orderId=${attemptResult.order_id}`;
+    }
     const sessionResult = await this.provider.createPaymentSession({
       orderId: attemptResult.order_id,
       orderCode: attemptResult.tracking_code,
@@ -2969,6 +2976,34 @@ var PaymentService = class {
     if (error || !data || !data.found) {
       return { found: false };
     }
+    if (data.order && data.order.payment_status !== "paid" && (data.payment?.provider_reference || data.payment?.provider_transaction_id)) {
+      try {
+        const ref = data.payment.provider_reference || data.payment.provider_transaction_id;
+        const provStatus = await this.provider.getPaymentStatus(ref);
+        if (provStatus && provStatus.status === "paid") {
+          console.log(`[PaymentService] Auto-sync: GeniusPay payment ${ref} is confirmed paid. Syncing order ${data.order.id}...`);
+          await supabase.rpc("process_geniuspay_webhook", {
+            p_event_id: `sync_${ref}_${Date.now()}`,
+            p_event_type: "payment.success",
+            p_provider_payment_id: provStatus.providerTransactionId || data.payment.provider_transaction_id || ref,
+            p_merchant_reference: ref,
+            p_order_id: data.order.id,
+            p_status: "paid",
+            p_amount_xof: Number(data.order.total_xof),
+            p_currency: "XOF",
+            p_payload: provStatus.rawResponse || {},
+            p_signature_verified: true
+          });
+          data.order.payment_status = "paid";
+          if (data.payment) {
+            data.payment.status = "paid";
+            data.payment.paid_at = provStatus.paidAt || (/* @__PURE__ */ new Date()).toISOString();
+          }
+        }
+      } catch (syncErr) {
+        console.warn("[PaymentService] Auto-sync verification note:", syncErr.message || syncErr);
+      }
+    }
     return {
       found: true,
       payment: data.payment ? {
@@ -3064,7 +3099,7 @@ var paymentsRouter = Router4();
 paymentsRouter.post("/create", requireAuth, async (req, res) => {
   try {
     const orderId = req.body.orderId || req.body.order_id;
-    const { returnUrl, cancelUrl, paymentMethod } = req.body;
+    let { returnUrl, cancelUrl, paymentMethod } = req.body;
     if (!orderId) {
       res.status(400).json({
         success: false,
@@ -3072,6 +3107,17 @@ paymentsRouter.post("/create", requireAuth, async (req, res) => {
         errorMessage: "Identifiant de commande manquant."
       });
       return;
+    }
+    const rawHost = (req.headers["x-forwarded-host"] || req.headers.host || "dallouchine.vercel.app").toString();
+    const rawProto = (req.headers["x-forwarded-proto"] || (req.secure ? "https" : "https")).toString();
+    const cleanHost = rawHost.split(",")[0].trim();
+    const requestOrigin = cleanHost.startsWith("http") ? cleanHost : `${rawProto}://${cleanHost}`;
+    const safeBase = cleanHost.includes("localhost") ? config.appUrl || "https://dallouchine.vercel.app" : `https://${cleanHost}`;
+    if (!returnUrl || returnUrl.includes("localhost")) {
+      returnUrl = `${safeBase}/payment/success?orderId=${orderId}`;
+    }
+    if (!cancelUrl || cancelUrl.includes("localhost")) {
+      cancelUrl = `${safeBase}/payment/cancelled?orderId=${orderId}`;
     }
     const userId = req.user.id;
     const clientIp = req.headers["x-forwarded-for"]?.toString() || req.socket.remoteAddress;
