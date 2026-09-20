@@ -2,18 +2,19 @@ import React from 'react';
 
 /**
  * LOGOS OFFICIELS DES OPÉRATEURS DE PAIEMENT (WAVE, ORANGE MONEY, MTN, VISA, MASTERCARD, GENIUSPAY)
- * Utilise les vecteurs officiels extraits directement de la passerelle GeniusPay
+ * Utilise les CDN officiels de GeniusPay (100% conformes aux chartes graphiques officielles des opérateurs)
  */
 
-export const WaveLogo: React.FC<{ className?: string; size?: number }> = ({ className = "w-7 h-7", size }) => {
+export const WaveLogo: React.FC<{ className?: string; size?: number }> = ({ className = "w-8 h-8", size }) => {
   return (
     <div
-      className={`inline-flex items-center justify-center rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs shrink-0 overflow-hidden ${className}`}
       style={size ? { width: size, height: size } : undefined}
+      title="Wave Mobile Money"
     >
       <img
-        src="/logos/wave.svg"
-        alt="Wave Mobile Money Sénégal"
+        src="https://geniuspay.ci/assets/logo/wave.svg"
+        alt="Wave Sénégal"
         className="w-full h-full object-contain"
         loading="eager"
       />
@@ -21,15 +22,16 @@ export const WaveLogo: React.FC<{ className?: string; size?: number }> = ({ clas
   );
 };
 
-export const OrangeMoneyLogo: React.FC<{ className?: string; size?: number }> = ({ className = "w-7 h-7", size }) => {
+export const OrangeMoneyLogo: React.FC<{ className?: string; size?: number }> = ({ className = "w-8 h-8", size }) => {
   return (
     <div
-      className={`inline-flex items-center justify-center rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs shrink-0 overflow-hidden ${className}`}
       style={size ? { width: size, height: size } : undefined}
+      title="Orange Money Sénégal"
     >
       <img
-        src="/logos/orange.svg"
-        alt="Orange Money Sénégal"
+        src="https://geniuspay.ci/assets/logo/orange.svg"
+        alt="Orange Money"
         className="w-full h-full object-contain"
         loading="eager"
       />
@@ -37,14 +39,15 @@ export const OrangeMoneyLogo: React.FC<{ className?: string; size?: number }> = 
   );
 };
 
-export const MtnMoneyLogo: React.FC<{ className?: string; size?: number }> = ({ className = "w-7 h-7", size }) => {
+export const MtnMoneyLogo: React.FC<{ className?: string; size?: number }> = ({ className = "w-8 h-8", size }) => {
   return (
     <div
-      className={`inline-flex items-center justify-center rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs shrink-0 overflow-hidden ${className}`}
       style={size ? { width: size, height: size } : undefined}
+      title="MTN Mobile Money"
     >
       <img
-        src="/logos/mtn.svg"
+        src="https://geniuspay.ci/assets/logo/mtn.svg"
         alt="MTN Mobile Money"
         className="w-full h-full object-contain"
         loading="eager"
@@ -53,11 +56,11 @@ export const MtnMoneyLogo: React.FC<{ className?: string; size?: number }> = ({ 
   );
 };
 
-export const VisaLogo: React.FC<{ className?: string }> = ({ className = "h-5" }) => {
+export const VisaLogo: React.FC<{ className?: string }> = ({ className = "h-6" }) => {
   return (
     <div className={`inline-flex items-center justify-center px-1.5 py-1 rounded-md bg-white border border-slate-200 shadow-2xs shrink-0 ${className}`}>
       <img
-        src="/logos/visa.svg"
+        src="https://geniuspay.ci/assets/logo/visa.svg"
         alt="Visa"
         className="h-3.5 w-auto object-contain"
         loading="eager"
@@ -66,11 +69,11 @@ export const VisaLogo: React.FC<{ className?: string }> = ({ className = "h-5" }
   );
 };
 
-export const MastercardLogo: React.FC<{ className?: string }> = ({ className = "h-5" }) => {
+export const MastercardLogo: React.FC<{ className?: string }> = ({ className = "h-6" }) => {
   return (
     <div className={`inline-flex items-center justify-center px-1.5 py-1 rounded-md bg-white border border-slate-200 shadow-2xs shrink-0 ${className}`}>
       <img
-        src="/logos/mastercard.svg"
+        src="https://geniuspay.ci/assets/logo/mastercard.svg"
         alt="Mastercard"
         className="h-4 w-auto object-contain"
         loading="eager"
@@ -93,9 +96,10 @@ export const GeniusPayLogo: React.FC<{ className?: string; size?: number }> = ({
     <div
       className={`inline-flex items-center justify-center rounded-xl bg-white p-1 border border-slate-200 shadow-2xs shrink-0 ${className}`}
       style={size ? { width: size, height: size } : undefined}
+      title="GeniusPay"
     >
       <img
-        src="/logos/geniuspay.svg"
+        src="https://geniuspay.ci/assets/logo.svg"
         alt="GeniusPay"
         className="w-full h-full object-contain"
         loading="eager"
@@ -107,7 +111,7 @@ export const GeniusPayLogo: React.FC<{ className?: string; size?: number }> = ({
 export const GeniusPayBadge: React.FC<{ className?: string }> = ({ className = "" }) => {
   return (
     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs font-semibold shadow-xs ${className}`}>
-      <img src="/logos/geniuspay.svg" alt="GeniusPay" className="w-4 h-4 object-contain brightness-0 invert" />
+      <img src="https://geniuspay.ci/assets/logo-white.svg" alt="GeniusPay" className="w-4 h-4 object-contain" />
       <span className="tracking-tight font-bold">GeniusPay Checkout</span>
       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5"></span>
     </div>
