@@ -51,7 +51,7 @@ import { CommercialDocumentModal } from '../components/documents/CommercialDocum
 import { DEFAULT_CALCULATION_SETTINGS } from '../services/calculationEngine';
 import { supabase } from '../services/supabase';
 import { catalogService } from '../services/catalogService';
-import { groupageService } from '../services/groupageService';
+import { groupageService, resolveGroupageId } from '../services/groupageService';
 import { cartService } from '../services/cartService';
 import { orderService } from '../services/orderService';
 
@@ -963,8 +963,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     product: Product,
     quantity = 1,
     isGroupage = product.isGroupage,
-    groupageId = product.activeGroupageId
+    rawGroupageId = isGroupage ? product.activeGroupageId : undefined
   ) => {
+    const groupageId = isGroupage && rawGroupageId ? (resolveGroupageId(rawGroupageId) || rawGroupageId) : undefined;
     setCart(prev => {
       const existing = prev.find(item => item.product?.id === product.id && item.groupageId === groupageId);
       if (existing) {
