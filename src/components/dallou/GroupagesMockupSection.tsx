@@ -128,13 +128,13 @@ export const GroupagesMockupSection: React.FC = () => {
         </div>
 
         {/* =================================================================== */}
-        {/* RIGHT COLUMN: 4 CARDS AS IN THE REFERENCE MOCKUP */}
+        {/* RIGHT COLUMN: 4 CARDS (Strict 2 columns on mobile) */}
         {/* =================================================================== */}
-        <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
           {cardsToDisplay.map(card => (
             <div
               key={card.id}
-              className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
+              className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
             >
               {/* Image Container with Badges */}
               <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
@@ -145,68 +145,62 @@ export const GroupagesMockupSection: React.FC = () => {
                 />
 
                 {/* Category Pill Tag (top-right) */}
-                <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1">
+                <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 px-2 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[8px] sm:text-[10px] font-bold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#FF4500]" />
                   <span>{card.category}</span>
                 </span>
 
                 {/* "Groupage" Badge (bottom-left of image) */}
-                <div className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-[#FF4500] text-white text-[10px] font-black tracking-wider uppercase shadow-xs">
+                <div className="absolute bottom-1.5 left-1.5 sm:bottom-2.5 sm:left-2.5 px-2 py-0.5 rounded-full bg-[#FF4500] text-white text-[8px] sm:text-[10px] font-black tracking-wider uppercase shadow-xs">
                   Groupage
                 </div>
               </div>
 
               {/* Card Body */}
-              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+              <div className="p-2.5 sm:p-4 space-y-2 sm:space-y-3 flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-[#0B192C] truncate" title={card.title}>
+                  <h3 className="text-xs sm:text-sm font-bold text-[#0B192C] truncate" title={card.title}>
                     {card.title}
                   </h3>
 
                   {/* Price */}
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    À partir de{' '}
-                    <strong className="text-sm font-black text-[#FF4500] font-mono-numeric">
-                      {card.priceXOF.toLocaleString('fr-FR')} FCFA
+                  <p className="text-[10px] sm:text-xs text-slate-500 font-medium mt-0.5">
+                    Dès{' '}
+                    <strong className="text-xs sm:text-sm font-black text-[#FF4500] font-mono-numeric">
+                      {card.priceXOF.toLocaleString('fr-FR')} F
                     </strong>
                   </p>
                 </div>
 
                 {/* Progress & Quota Breakdown */}
-                <div className="space-y-1.5 pt-1 text-[11px] text-slate-600">
-                  <div className="flex justify-between font-semibold">
-                    <span>MOQ : {card.moq} unités</span>
-                  </div>
-                  <div className="flex justify-between text-slate-500 text-[10px]">
-                    <span>Réservé : <strong className="text-slate-800">{card.reserved} unités</strong></span>
-                    <span>Restant : <strong className="text-[#FF4500]">{card.remaining} unités</strong></span>
+                <div className="space-y-1 pt-1 text-[10px] sm:text-[11px] text-slate-600">
+                  <div className="flex justify-between text-[10px]">
+                    <span>MOQ : {card.moq} pcs</span>
+                    <span className="text-[#FF4500] font-bold">{card.progressPercent}%</span>
                   </div>
 
                   {/* Progress Bar in Orange */}
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden relative">
+                  <div className="w-full h-1.5 sm:h-2 bg-slate-100 rounded-full overflow-hidden relative">
                     <div
                       className="h-full bg-[#FF4500] rounded-full transition-all duration-700"
                       style={{ width: `${card.progressPercent}%` }}
                     />
                   </div>
-                  <div className="text-right text-[10px] font-bold text-slate-500">
-                    {card.progressPercent}%
-                  </div>
 
-                  {/* Deadline */}
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 pt-0.5">
+                  {/* Deadline (Desktop only for compact height) */}
+                  <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-slate-500 pt-0.5">
                     <Calendar className="w-3 h-3 text-slate-400" />
-                    <span>Date limite : <strong className="text-slate-700">{card.deadline}</strong></span>
+                    <span>Clôture : <strong className="text-slate-700">{card.deadline}</strong></span>
                   </div>
                 </div>
 
                 {/* CTA Button: Rejoindre le groupage -> */}
                 <button
                   onClick={() => navigate(`/groupages/${card.id}`)}
-                  className="w-full py-2.5 rounded-full bg-[#FF4500] hover:bg-[#E03D00] text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+                  className="w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-full bg-[#FF4500] hover:bg-[#E03D00] text-white text-[11px] sm:text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer mt-1"
                 >
-                  <span>Rejoindre le groupage</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Rejoindre</span>
+                  <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
             </div>

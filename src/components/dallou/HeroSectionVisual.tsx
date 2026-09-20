@@ -37,48 +37,51 @@ export const HeroSectionVisual: React.FC = () => {
           </div>
 
           {/* Huge Main Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-black text-[#0B192C] tracking-tight leading-[1.08]">
+          <h1 className="text-3xl sm:text-5xl lg:text-[58px] font-black text-[#0B192C] tracking-tight leading-[1.1] sm:leading-[1.08]">
             Votre passerelle entre<span className="hidden sm:inline"><br /></span>{' '}
             la <span className="text-gradient-brand">Chine et l’Afrique</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-xl">
+          <p className="text-sm sm:text-lg text-slate-600 font-normal leading-relaxed max-w-xl">
             Nous vous aidons à trouver, acheter et faire acheminer vos produits de Chine vers le Sénégal, simplement et en toute transparence.
           </p>
 
-          {/* 3 Call to Action Buttons */}
-          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 pt-2">
+          {/* Call to Action Buttons: Ergonomic on mobile */}
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
             {/* 1. Explorer les produits -> */}
             <button
               onClick={() => navigate('/products')}
-              className="w-full sm:w-auto justify-center px-7 py-3.5 rounded-full bg-[#FF4500] hover:bg-[#E03D00] active:scale-95 text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all flex items-center gap-2.5 cursor-pointer"
+              className="w-full sm:w-auto justify-center px-6 sm:px-7 py-3 sm:py-3.5 rounded-full bg-[#FF4500] hover:bg-[#E03D00] active:scale-95 text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all flex items-center gap-2 cursor-pointer"
             >
               <span>Explorer les produits</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            {/* 2. Demander un devis */}
-            <button
-              onClick={() => navigate('/b2b')}
-              className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-full liquid-glass hover:bg-slate-50 active:scale-95 text-slate-800 font-bold text-sm sm:text-base shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <FileText className="w-4 h-4 text-slate-400" />
-              <span>Demander un devis</span>
-            </button>
+            {/* 2 & 3: 2-column on mobile, inline on desktop */}
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3">
+              {/* Demander un devis */}
+              <button
+                onClick={() => navigate('/b2b')}
+                className="justify-center px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-full liquid-glass hover:bg-slate-50 active:scale-95 text-slate-800 font-bold text-xs sm:text-base shadow-xs transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+                <span className="truncate">Devis B2B</span>
+              </button>
 
-            {/* 3. Parler sur WhatsApp */}
-            <a
-              href="https://wa.me/221774201819?text=Bonjour%20Dallou%20Chine,%20je%20souhaite%20des%20renseignements%20sur%20vos%20services%20de%20transit%20et%20sourcing."
-              target="_blank"
-              rel="noreferrer"
-              className="w-full sm:w-auto justify-center px-5 py-3.5 rounded-full bg-white hover:bg-emerald-50/60 active:scale-95 text-[#10B981] font-bold text-sm sm:text-base border border-emerald-200/80 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <div className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                <MessageCircle className="w-3 h-3 fill-current" />
-              </div>
-              <span>Parler sur WhatsApp</span>
-            </a>
+              {/* Parler sur WhatsApp */}
+              <a
+                href="https://wa.me/221774201819?text=Bonjour%20Dallou%20Chine,%20je%20souhaite%20des%20renseignements%20sur%20vos%20services%20de%20transit%20et%20sourcing."
+                target="_blank"
+                rel="noreferrer"
+                className="justify-center px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-full bg-white hover:bg-emerald-50/60 active:scale-95 text-[#10B981] font-bold text-xs sm:text-base border border-emerald-200/80 shadow-xs transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+              >
+                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <MessageCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
+                </div>
+                <span className="truncate">WhatsApp</span>
+              </a>
+            </div>
           </div>
         </div>
 
@@ -113,9 +116,9 @@ export const HeroSectionVisual: React.FC = () => {
             </div>
 
             {/* Logistics Supervisor Character Overlay (Orange Vest with DC Logo + White Hard Hat) */}
-            <div className="absolute bottom-0 right-0 sm:right-4 w-44 sm:w-60 h-auto pointer-events-none flex flex-col items-center justify-end">
+            <div className="absolute bottom-0 right-0 sm:right-4 w-32 sm:w-60 h-auto pointer-events-none flex flex-col items-center justify-end">
               {/* Cardboard Boxes in foreground */}
-              <div className="absolute -bottom-2 -left-12 hidden sm:flex items-end gap-1 opacity-95">
+              <div className="absolute -bottom-2 -left-8 hidden sm:flex items-end gap-1 opacity-95">
                 <div className="w-14 h-12 bg-amber-700/90 rounded-sm border border-amber-600 shadow-md flex items-center justify-center text-[8px] text-amber-200 font-mono">
                   📦 DC-EXP
                 </div>
@@ -125,7 +128,7 @@ export const HeroSectionVisual: React.FC = () => {
               </div>
 
               {/* Realistic Agent Silhouette with Orange Hi-Viz Vest and DC DALLOU CHINE Badge */}
-              <div className="relative flex flex-col items-center">
+              <div className="relative flex flex-col items-center scale-85 sm:scale-100 origin-bottom-right">
                 {/* White Safety Helmet */}
                 <div className="w-14 h-9 sm:w-18 sm:h-12 bg-slate-100 rounded-t-full shadow-lg border border-slate-300 relative z-10 flex items-center justify-center">
                   <div className="w-full h-1 bg-[#FF4500] absolute bottom-1" />
@@ -135,31 +138,31 @@ export const HeroSectionVisual: React.FC = () => {
                 <div className="w-10 h-7 sm:w-12 sm:h-8 bg-slate-900 -mt-2 rounded-b-md" />
 
                 {/* High-Visibility Orange Safety Vest with Logo */}
-                <div className="w-32 sm:w-44 h-32 sm:h-44 bg-[#FF4500] rounded-t-3xl shadow-2xl relative overflow-hidden flex flex-col items-center justify-start pt-3 border-t-2 border-orange-400">
+                <div className="w-32 sm:w-44 h-28 sm:h-44 bg-[#FF4500] rounded-t-3xl shadow-2xl relative overflow-hidden flex flex-col items-center justify-start pt-2 sm:pt-3 border-t-2 border-orange-400">
                   {/* Silver reflective safety stripes */}
-                  <div className="absolute top-6 left-0 right-0 h-3 bg-slate-200/90 shadow-xs" />
-                  <div className="absolute top-14 left-0 right-0 h-3 bg-slate-200/90 shadow-xs" />
-                  <div className="absolute top-0 bottom-0 left-7 w-2.5 bg-slate-200/90" />
-                  <div className="absolute top-0 bottom-0 right-7 w-2.5 bg-slate-200/90" />
+                  <div className="absolute top-5 sm:top-6 left-0 right-0 h-2.5 sm:h-3 bg-slate-200/90 shadow-xs" />
+                  <div className="absolute top-12 sm:top-14 left-0 right-0 h-2.5 sm:h-3 bg-slate-200/90 shadow-xs" />
+                  <div className="absolute top-0 bottom-0 left-6 sm:left-7 w-2 sm:w-2.5 bg-slate-200/90" />
+                  <div className="absolute top-0 bottom-0 right-6 sm:right-7 w-2 sm:w-2.5 bg-slate-200/90" />
 
                   {/* DC DALLOU CHINE Logo Badge printed on the back */}
-                  <div className="relative z-10 bg-white/95 px-3 py-1.5 rounded-lg shadow-md border border-white flex flex-col items-center mt-3 text-center">
+                  <div className="relative z-10 bg-white/95 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-md border border-white flex flex-col items-center mt-2 sm:mt-3 text-center">
                     <div className="flex items-center gap-1">
                       <div className="w-3.5 h-3.5 rounded bg-[#FF4500] text-white flex items-center justify-center text-[8px] font-black">
                         DC
                       </div>
-                      <span className="text-[10px] sm:text-xs font-black text-[#0B192C] tracking-tighter">
+                      <span className="text-[9px] sm:text-xs font-black text-[#0B192C] tracking-tighter">
                         DALLOU CHINE
                       </span>
                     </div>
-                    <span className="text-[7px] text-[#FF4500] font-bold uppercase tracking-widest -mt-0.5">
+                    <span className="text-[6px] sm:text-[7px] text-[#FF4500] font-bold uppercase tracking-widest -mt-0.5">
                       Logistique & Transit
                     </span>
                   </div>
 
                   {/* Tablet in hand */}
-                  <div className="absolute -left-2 bottom-3 w-16 h-12 bg-slate-800 rounded-md border-2 border-slate-600 shadow-xl rotate-12 flex items-center justify-center">
-                    <div className="w-12 h-9 bg-blue-500/30 rounded flex items-center justify-center text-[7px] text-blue-200 font-mono">
+                  <div className="absolute -left-2 bottom-2 sm:bottom-3 w-14 sm:w-16 h-10 sm:h-12 bg-slate-800 rounded-md border-2 border-slate-600 shadow-xl rotate-12 flex items-center justify-center">
+                    <div className="w-10 sm:w-12 h-7 sm:h-9 bg-blue-500/30 rounded flex items-center justify-center text-[6px] sm:text-[7px] text-blue-200 font-mono">
                       ✓ MANIFESTE
                     </div>
                   </div>
@@ -168,11 +171,11 @@ export const HeroSectionVisual: React.FC = () => {
             </div>
 
             {/* Bottom floating banner badge: Live Status */}
-            <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border border-white flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <div className="text-left">
-                <p className="text-[11px] font-black text-[#0B192C] leading-none">Départs hebdomadaires</p>
-                <p className="text-[9px] text-slate-500 font-semibold mt-0.5">Aérien 5-7j • Maritime 35-45j</p>
+            <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 bg-white/95 backdrop-blur-md px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-lg border border-white flex items-center gap-2 max-w-[200px] sm:max-w-none">
+              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <div className="text-left min-w-0">
+                <p className="text-[10px] sm:text-[11px] font-black text-[#0B192C] leading-none truncate">Départs hebdomadaires</p>
+                <p className="text-[8px] sm:text-[9px] text-slate-500 font-semibold mt-0.5 truncate">Aérien 5-7j • Mer 35-45j</p>
               </div>
             </div>
           </div>

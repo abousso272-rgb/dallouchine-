@@ -59,9 +59,32 @@ export const HowItWorksMockup: React.FC = () => {
         </div>
       </div>
 
-      {/* 6 Steps Horizontal Chain */}
-      <div className="bg-white/80 rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-xs overflow-x-auto no-scrollbar">
-        <div className="flex items-center justify-between min-w-[760px] gap-2">
+      {/* Mobile / Tablet: Responsive 2-column grid (No horizontal overflow) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:hidden gap-2 sm:gap-3 bg-white/80 rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-xs">
+        {steps.map((step) => {
+          const Icon = step.icon;
+          return (
+            <div
+              key={step.num}
+              className="flex flex-col items-center text-center p-2.5 rounded-xl bg-slate-50/70 border border-slate-100/80 relative group"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#FF4500] text-white text-[10px] font-black flex items-center justify-center mb-1 shadow-xs">
+                {step.num}
+              </div>
+              <div className="w-9 h-9 rounded-full bg-white border border-slate-200 text-[#FF4500] flex items-center justify-center mb-1.5 shadow-2xs">
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-bold text-[#0B192C] leading-tight">
+                {step.title}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: Horizontal Chain */}
+      <div className="hidden lg:block bg-white/80 rounded-3xl p-6 border border-slate-100 shadow-xs">
+        <div className="flex items-center justify-between gap-2">
           {steps.map((step, idx) => {
             const Icon = step.icon;
             return (

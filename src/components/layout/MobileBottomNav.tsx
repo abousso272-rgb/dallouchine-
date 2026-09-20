@@ -3,35 +3,52 @@ import { useApp } from '../../context/AppContext';
 import { Home, Compass, Users2, ShoppingBag, User, Flame } from 'lucide-react';
 
 export const MobileBottomNav: React.FC = () => {
-  const { currentPath, navigate, cartCount } = useApp();
+  const { currentPath, navigate, cartCount, currentUser, openAuthModal } = useApp();
+
+  const handleAccountClick = () => {
+    if (!currentUser.isLoggedIn) {
+      openAuthModal('client');
+    } else if (currentUser.role === 'admin') {
+      navigate('/admin');
+    } else if (currentUser.role === 'collaborateur') {
+      navigate('/collaborateur');
+    } else {
+      navigate('/client');
+    }
+  };
 
   const items = [
-    { label: 'Accueil', path: '/', icon: Home },
-    { label: 'Explorer', path: '/products', icon: Compass },
-    { label: 'Groupages', path: '/groupages', icon: Users2, badge: '🔥' },
-    { label: 'Panier', path: '/cart', icon: ShoppingBag, count: cartCount },
-    { label: 'Compte', path: '/account', icon: User }
+    { label: 'Accueil', path: '/', icon: Home, onClick: () => navigate('/') },
+    { label: 'Catalogue', path: '/products', icon: Compass, onClick: () => navigate('/products') },
+    { label: 'Groupages', path: '/groupages', icon: Users2, badge: '🔥', onClick: () => navigate('/groupages') },
+    { label: 'Panier', path: '/cart', icon: ShoppingBag, count: cartCount, onClick: () => navigate('/cart') },
+    { 
+      label: currentUser.isLoggedIn ? (currentUser.name?.split(' ')[0] || 'Compte') : 'Connexion', 
+      path: '/client', 
+      icon: User, 
+      onClick: handleAccountClick 
+    }
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-3 left-3 right-3 z-50 pointer-events-none pb-[env(safe-area-inset-bottom)]">
-      <nav className="pointer-events-auto max-w-md mx-auto glass-mobile-bottom rounded-3xl p-1.5 shadow-2xl border border-white/90 bg-white/90">
+    <div className="lg:hidden fixed bottom-3 left-2.5 right-2.5 z-40 pointer-events-none pb-[env(safe-area-inset-bottom)]">
+      <nav className="pointer-events-auto max-w-md mx-auto rounded-3xl p-1.5 shadow-2xl border border-white/90 bg-white/95 backdrop-blur-md">
         <div className="grid grid-cols-5 gap-1">
           {items.map(item => {
             const Icon = item.icon;
             const isActive =
               item.path === '/'
                 ? currentPath === '/'
-                : currentPath.startsWith(item.path);
+                : currentPath.startsWith(item.path) || (item.path === '/client' && (currentPath === '/account' || currentPath === '/collaborateur' || currentPath === '/admin'));
 
             return (
               <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 ${
+                key={item.label}
+                onClick={item.onClick}
+                className={`relative flex flex-col items-center justify-center py-2 px-0.5 rounded-2xl transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? 'bg-[#0B192C] text-white shadow-md scale-102'
-                    : 'text-slate-600 hover:text-[#0B192C] hover:bg-slate-100/50'
+                    ? 'bg-[#0B192C] text-white shadow-md'
+                    : 'text-slate-600 hover:text-[#0B192C] active:bg-slate-100'
                 }`}
               >
                 <div className="relative">

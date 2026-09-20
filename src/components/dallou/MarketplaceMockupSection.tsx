@@ -152,9 +152,9 @@ export const MarketplaceMockupSection: React.FC = () => {
       </div>
 
       {/* ===================================================================== */}
-      {/* 2. PRODUCTS GRID */}
+      {/* 2. PRODUCTS GRID (Strict 2 columns on mobile) */}
       {/* ===================================================================== */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
         {(filteredProducts.length > 0 ? filteredProducts : products).slice(0, 8).map(prod => (
           <ProductCard key={prod.id} product={prod} />
         ))}

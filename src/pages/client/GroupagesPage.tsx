@@ -528,48 +528,48 @@ export const GroupagesPage: React.FC = () => {
           {/* Featured Big Liquid Glass Panel */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Featured Item 1: Moto Électrique Urbaine 2000W */}
-            <div className="bg-surface-container-lowest/90 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-lg flex flex-col justify-between relative overflow-hidden group hover:shadow-xl transition-all border border-slate-100">
-              <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm font-bold shadow-sm">
+            <div className="bg-surface-container-lowest/90 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-lg flex flex-col justify-between relative overflow-hidden group hover:shadow-xl transition-all border border-slate-100">
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-1.5 sm:gap-2">
+                <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-primary-container text-on-primary text-[10px] sm:text-xs font-bold shadow-sm">
                   GROUPAGE PHARE
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px] text-primary">schedule</span> J-3
+                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-surface-container-highest text-on-surface text-[10px] sm:text-xs font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary">schedule</span> J-3
                 </span>
               </div>
 
               <div
                 onClick={() => navigate(`/groupages/${f1Id}`)}
-                className="relative w-full h-72 rounded-2xl overflow-hidden bg-surface-container-high mb-6 cursor-pointer"
+                className="relative w-full h-44 sm:h-72 rounded-xl sm:rounded-2xl overflow-hidden bg-surface-container-high mb-4 sm:mb-6 cursor-pointer"
               >
                 <img
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   alt={f1Title}
                   src={featured1?.image || "https://lh3.googleusercontent.com/aida-public/AB6AXuDWU-OKoPk35T1oNgpyanc7VmKy_1v1UuXspXMMQfgL0BUDaLJKabGlkNTS_HBkVu9EOGY-9oLSorfIVrNxx2DZ8KDUR0ggQR8W3RcWInNzlo--WICxPq13jUzsS74mcwSQbEaouK-4W3gluxSl5tTm3zDa5u-P7H9TaHlOiVHhzM2tXyZWURe4_NfC8YEtN-tJOKfRw1sYLPaK4g0AaXdQPJBknWzwuDvFkB_O0fVL_Q4LsEQ-A3uIzQ"}
                 />
-                <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap">
-                  <span className="px-2.5 py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface font-label-sm text-label-sm">
+                <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 flex gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface text-[9px] sm:text-xs font-bold">
                     Autonomie 85 km
                   </span>
-                  <span className="px-2.5 py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface font-label-sm text-label-sm">
+                  <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface text-[9px] sm:text-xs font-bold">
                     Batterie LFP Amovible
                   </span>
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-label-sm text-label-sm text-primary-container font-bold uppercase tracking-wide">
+                <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+                  <span className="text-[10px] sm:text-xs text-primary-container font-bold uppercase tracking-wide">
                     Auto & Deux-Roues ⚡
                   </span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">anchor</span> Port de Ningbo
+                  <span className="text-[10px] sm:text-xs text-on-surface-variant flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px] sm:text-[16px]">anchor</span> Port de Ningbo
                   </span>
                 </div>
 
                 <h3
                   onClick={() => navigate(`/groupages/${f1Id}`)}
-                  className="font-headline-lg text-headline-lg text-on-surface font-bold mb-3 cursor-pointer hover:text-primary transition-colors"
+                  className="text-base sm:text-xl text-on-surface font-bold mb-2 sm:mb-3 cursor-pointer hover:text-primary transition-colors line-clamp-1"
                 >
                   {f1Title}
                 </h3>
@@ -644,13 +644,13 @@ export const GroupagesPage: React.FC = () => {
             </div>
 
             {/* Featured Item 2: Scooter Électrique Smart City 1200W */}
-            <div className="bg-surface-container-lowest/90 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-lg flex flex-col justify-between relative overflow-hidden group hover:shadow-xl transition-all border border-slate-100">
-              <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm font-bold shadow-sm">
+            <div className="bg-surface-container-lowest/90 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-lg flex flex-col justify-between relative overflow-hidden group hover:shadow-xl transition-all border border-slate-100">
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-1.5 sm:gap-2">
+                <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-primary-container text-on-primary text-[10px] sm:text-xs font-bold shadow-sm">
                   GROUPAGE PHARE
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px] text-primary">schedule</span> J-5
+                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-surface-container-highest text-on-surface text-[10px] sm:text-xs font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary">schedule</span> J-5
                 </span>
               </div>
 
@@ -664,34 +664,34 @@ export const GroupagesPage: React.FC = () => {
                     `${Math.round(f2Price * 0.3).toLocaleString('fr-FR')} FCFA`
                   )
                 }
-                className="relative w-full h-72 rounded-2xl overflow-hidden bg-surface-container-high mb-6 cursor-pointer"
+                className="relative w-full h-44 sm:h-72 rounded-xl sm:rounded-2xl overflow-hidden bg-surface-container-high mb-4 sm:mb-6 cursor-pointer"
               >
                 <img
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   alt={f2Title}
                   src={featured2?.image || "https://lh3.googleusercontent.com/aida-public/AB6AXuC3U48FLXKElDapqhQKR-dHWZUGu8_lJa4QbOhm2NVE9DUQlyFnLF0gNkiI4_Wk_udRM9yRd0P7UQBEwc6V9T1RvGeXEkX3cD87gZpk0CkIABZWe72zpOzqG2CuH_tPsbNBCaBlxBy0uYhkbdtvNHH99rlmZVMf1d4FF-HTWCOQhOcE4Lc-n0PijDGmIdgn2jkgFlJlQ8d8UVPG6Qyn9Z-8EfuNDotLbb7T1qz3OtXfGDQ6H5JdNW0MAg"}
                 />
-                <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap">
-                  <span className="px-2.5 py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface font-label-sm text-label-sm">
+                <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 flex gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface text-[9px] sm:text-xs font-bold">
                     Vitesse max 50 km/h
                   </span>
-                  <span className="px-2.5 py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface font-label-sm text-label-sm">
+                  <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-inverse-surface/80 backdrop-blur-md text-inverse-on-surface text-[9px] sm:text-xs font-bold">
                     Recharge 220V standard
                   </span>
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-label-sm text-label-sm text-primary-container font-bold uppercase tracking-wide">
+                <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+                  <span className="text-[10px] sm:text-xs text-primary-container font-bold uppercase tracking-wide">
                     Auto & Deux-Roues ⚡
                   </span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">anchor</span> Port de Guangzhou
+                  <span className="text-[10px] sm:text-xs text-on-surface-variant flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px] sm:text-[16px]">anchor</span> Port de Guangzhou
                   </span>
                 </div>
 
-                <h3 className="font-headline-lg text-headline-lg text-on-surface font-bold mb-3">
+                <h3 className="text-base sm:text-xl text-on-surface font-bold mb-2 sm:mb-3 line-clamp-1">
                   {f2Title}
                 </h3>
 
@@ -775,69 +775,55 @@ export const GroupagesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6">
             {filteredCards.map(card => (
               <div
                 key={card.id}
-                className="bg-surface-container-lowest/85 backdrop-blur-xl rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between border border-slate-100 group"
+                className="bg-surface-container-lowest/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between border border-slate-100 group"
               >
                 <div>
-                  <div className="relative h-52 w-full rounded-xl overflow-hidden bg-surface-container-high mb-4">
+                  <div className="relative h-32 sm:h-52 w-full rounded-xl overflow-hidden bg-surface-container-high mb-2.5 sm:mb-4">
                     <img
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       src={card.image}
                       alt={card.title}
                     />
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                      <span className="px-2 py-0.5 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm font-bold shadow-sm">
+                    <div className="absolute top-2 left-2 flex items-center gap-1">
+                      <span className="px-1.5 py-0.5 rounded-full bg-primary-container text-on-primary text-[9px] sm:text-label-sm font-black shadow-sm">
                         GROUPAGE
                       </span>
-                      <span className="px-2 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-on-surface font-label-sm text-label-sm font-semibold">
-                        {card.categoryLabel}
-                      </span>
                     </div>
-                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-inverse-surface/85 text-inverse-on-surface font-label-sm text-label-sm font-medium">
-                      MOQ {card.moq} pcs
+                    <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-inverse-surface/85 text-inverse-on-surface text-[9px] sm:text-label-sm font-medium">
+                      MOQ {card.moq}
                     </div>
                   </div>
 
                   <div className="flex items-baseline justify-between mb-1">
-                    <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold truncate pr-2">
+                    <h3 className="text-xs sm:text-base font-bold text-on-surface truncate pr-1" title={card.title}>
                       {card.title}
                     </h3>
-                    <span className="font-label-md text-label-md text-outline line-through shrink-0">
-                      {card.oldPriceXOF.toLocaleString('fr-FR')} F
-                    </span>
                   </div>
 
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-price-xl text-price-xl text-primary-container font-extrabold">
-                      {card.priceXOF.toLocaleString('fr-FR')} FCFA
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs sm:text-lg font-black text-primary-container font-mono-numeric">
+                      {card.priceXOF.toLocaleString('fr-FR')} F
                     </span>
-                    <span className="font-label-sm text-label-sm bg-primary-fixed/30 text-on-primary-fixed font-bold px-2 py-0.5 rounded-full">
-                      Éco {card.discount}
+                    <span className="text-[9px] sm:text-label-sm bg-primary-fixed/30 text-on-primary-fixed font-bold px-1.5 py-0.5 rounded-full">
+                      -{card.discount}
                     </span>
                   </div>
 
                   {/* Gauge */}
-                  <div className="space-y-1.5 mb-4">
-                    <div className="flex justify-between font-label-md text-label-md">
-                      <span className="text-on-surface-variant">
-                        Réservé : <strong className="text-on-surface">{card.reserved} / {card.moq}</strong> ({card.progress}%)
-                      </span>
-                      <span className="text-primary-container font-bold">{card.remaining} restants</span>
+                  <div className="space-y-1 mb-3 text-[10px] sm:text-xs">
+                    <div className="flex justify-between text-on-surface-variant font-medium">
+                      <span>{card.reserved}/{card.moq} réservés</span>
+                      <span className="text-primary-container font-bold">{card.progress}%</span>
                     </div>
-                    <div className="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-primary-container rounded-full"
                         style={{ width: `${card.progress}%` }}
                       />
-                    </div>
-                    <div className="flex justify-between items-center font-body-sm text-body-sm text-on-surface-variant pt-1">
-                      <span>
-                        Clôture : <strong className="text-on-surface">{card.deadline}</strong>
-                      </span>
-                      <span className="text-primary-container font-medium">{card.note}</span>
                     </div>
                   </div>
                 </div>
@@ -858,14 +844,13 @@ export const GroupagesPage: React.FC = () => {
                       card.remaining
                     );
                   }}
-                  className={`w-full h-11 rounded-full font-label-md text-label-md font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`w-full py-2 sm:h-11 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
                     card.isFull || card.isClosed
                       ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                      : 'bg-surface-container hover:bg-primary-container hover:text-on-primary text-on-surface'
+                      : 'bg-[#0B192C] hover:bg-[#FF4500] text-white shadow-xs'
                   }`}
                 >
-                  <span>{card.isFull ? 'Complet' : card.isClosed ? 'Fermé' : 'Rejoindre le groupage'}</span>
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  <span>{card.isFull ? 'Complet' : card.isClosed ? 'Fermé' : 'Réserver'}</span>
                 </button>
               </div>
             ))}

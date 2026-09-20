@@ -385,9 +385,9 @@ export const CatalogPage: React.FC = () => {
               </button>
             </div>
           ) : productsList.length > 0 ? (
-            /* Grid Products (2 cols mobile, 3 cols desktop) */
             <div className="space-y-8">
-              <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+              {/* Grid Products (Strict 2 cols mobile, 3 cols desktop) */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
                 {productsList.map(prod => (
                   <ProductCard key={prod.id} product={prod} />
                 ))}

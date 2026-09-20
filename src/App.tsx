@@ -322,7 +322,7 @@ const AppRouter: React.FC = () => {
   return (
     <div className="app-shell min-h-screen flex flex-col bg-[#F8F6F2] text-slate-900 selection:bg-[#FF4500] selection:text-white">
       <Navbar />
-      <main className="app-content flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+      <main className="app-content flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-28 lg:pb-12">
         {clientContent}
       </main>
       <Footer />

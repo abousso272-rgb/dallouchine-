@@ -46,28 +46,28 @@ export const FeaturePillsBar: React.FC = () => {
 
   return (
     <section className="relative z-20">
-      <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-xl shadow-slate-200/50 border border-slate-100">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-7 shadow-lg sm:shadow-xl shadow-slate-200/50 border border-slate-100">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-6 sm:divide-x sm:divide-slate-100">
           {features.map((feat, index) => {
             const Icon = feat.icon;
             return (
               <div
                 key={feat.id}
                 onClick={feat.action}
-                className={`group flex items-start gap-4 cursor-pointer hover:bg-orange-50/30 p-2 sm:p-3 rounded-2xl transition-all duration-200 ${
+                className={`group flex flex-col sm:flex-row items-start gap-2 sm:gap-4 cursor-pointer bg-slate-50/60 sm:bg-transparent hover:bg-orange-50/50 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all duration-200 border border-slate-100 sm:border-0 ${
                   index > 0 ? 'sm:pl-6' : ''
                 }`}
               >
                 <div
-                  className={`w-12 h-12 rounded-2xl ${feat.iconBg} ${feat.iconColor} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-2xs`}
+                  className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${feat.iconBg} ${feat.iconColor} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-2xs`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div className="space-y-1 min-w-0">
-                  <h3 className="text-base font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors flex items-center gap-1.5">
-                    <span>{feat.title}</span>
+                <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                  <h3 className="text-xs sm:text-base font-bold text-[#0B192C] group-hover:text-[#FF4500] transition-colors flex items-center gap-1">
+                    <span className="truncate">{feat.title}</span>
                   </h3>
-                  <p className="text-xs sm:text-[13px] text-slate-500 font-normal leading-relaxed">
+                  <p className="text-[10px] sm:text-[13px] text-slate-500 font-normal leading-tight sm:leading-relaxed line-clamp-2">
                     {feat.description}
                   </p>
                 </div>

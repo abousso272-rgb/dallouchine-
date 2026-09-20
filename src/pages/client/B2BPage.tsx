@@ -431,7 +431,7 @@ export const B2BPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6">
           <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
             <span className="material-symbols-outlined text-primary-container text-[28px]">inventory_2</span>
             <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
@@ -510,76 +510,76 @@ export const B2BPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
-            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6">
+          <div className="bg-surface-container-lowest p-3.5 sm:p-6 rounded-2xl border border-slate-100 relative">
+            <span className="text-xl sm:text-3xl font-mono text-primary/30 font-bold absolute top-2.5 right-2.5 sm:top-4 sm:right-4">
               01
             </span>
-            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-              Cahier des Charges & Volumes
+            <h3 className="text-xs sm:text-base font-bold text-on-surface leading-tight pr-6 sm:pr-0">
+              Cahier des Charges
             </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
-              Étude approfondie de vos spécifications techniques, de vos exigences normatives et du plan de livraison annuel.
+            <p className="text-[11px] sm:text-sm text-on-surface-variant mt-1.5 sm:mt-2 leading-relaxed">
+              Étude approfondie de vos spécifications techniques, de vos exigences normatives et des volumes.
             </p>
           </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
-            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+          <div className="bg-surface-container-lowest p-3.5 sm:p-6 rounded-2xl border border-slate-100 relative">
+            <span className="text-xl sm:text-3xl font-mono text-primary/30 font-bold absolute top-2.5 right-2.5 sm:top-4 sm:right-4">
               02
             </span>
-            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-              Audit d'Usines en Chine
+            <h3 className="text-xs sm:text-base font-bold text-on-surface leading-tight pr-6 sm:pr-0">
+              Audit d'Usines
             </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
-              Visite in situ de 2 à 3 fabricants qualifiés par nos inspecteurs Dallou basés à Guangzhou, Ningbo et Yiwu.
+            <p className="text-[11px] sm:text-sm text-on-surface-variant mt-1.5 sm:mt-2 leading-relaxed">
+              Visite in situ de fabricants qualifiés par nos inspecteurs Dallou Chine à Guangzhou et Ningbo.
             </p>
           </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
-            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+          <div className="bg-surface-container-lowest p-3.5 sm:p-6 rounded-2xl border border-slate-100 relative">
+            <span className="text-xl sm:text-3xl font-mono text-primary/30 font-bold absolute top-2.5 right-2.5 sm:top-4 sm:right-4">
               03
             </span>
-            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-              Contrat B2B International
+            <h3 className="text-xs sm:text-base font-bold text-on-surface leading-tight pr-6 sm:pr-0">
+              Contrat B2B
             </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
-              Signature du contrat avec pénalités de retard usine, conditions FOB/CIF transparentes et acompte séquestre.
+            <p className="text-[11px] sm:text-sm text-on-surface-variant mt-1.5 sm:mt-2 leading-relaxed">
+              Signature du contrat avec pénalités de retard, conditions FOB/CIF et acompte séquestre.
             </p>
           </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
-            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+          <div className="bg-surface-container-lowest p-3.5 sm:p-6 rounded-2xl border border-slate-100 relative">
+            <span className="text-xl sm:text-3xl font-mono text-primary/30 font-bold absolute top-2.5 right-2.5 sm:top-4 sm:right-4">
               04
             </span>
-            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-              Production & Contrôle Vidéo HD
+            <h3 className="text-xs sm:text-base font-bold text-on-surface leading-tight pr-6 sm:pr-0">
+              Production & Contrôle
             </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
-              Suivi de chaîne, tests d'endurance, pesée, cubage certifié et rapport de pré-embarquement avant solde usine.
+            <p className="text-[11px] sm:text-sm text-on-surface-variant mt-1.5 sm:mt-2 leading-relaxed">
+              Suivi de chaîne, tests d'endurance, pesée, cubage certifié et rapport vidéo pré-embarquement.
             </p>
           </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
-            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+          <div className="bg-surface-container-lowest p-3.5 sm:p-6 rounded-2xl border border-slate-100 relative">
+            <span className="text-xl sm:text-3xl font-mono text-primary/30 font-bold absolute top-2.5 right-2.5 sm:top-4 sm:right-4">
               05
             </span>
-            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-              Transit Maritime & Dédouanement
+            <h3 className="text-xs sm:text-base font-bold text-on-surface leading-tight pr-6 sm:pr-0">
+              Transit & GAINDE
             </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
-              Expédition maritime directe via Maersk, CMA-CGM ou MSC. Formalités en douane GAINDE gérées par notre équipe.
+            <p className="text-[11px] sm:text-sm text-on-surface-variant mt-1.5 sm:mt-2 leading-relaxed">
+              Expédition maritime directe via Maersk/CMA. Formalités en douane GAINDE prises en charge.
             </p>
           </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-100 relative">
-            <span className="font-price-xl text-price-xl font-mono text-primary/30 font-bold absolute top-4 right-4">
+          <div className="bg-surface-container-lowest p-3.5 sm:p-6 rounded-2xl border border-slate-100 relative">
+            <span className="text-xl sm:text-3xl font-mono text-primary/30 font-bold absolute top-2.5 right-2.5 sm:top-4 sm:right-4">
               06
             </span>
-            <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-              Livraison Directe sur Site
+            <h3 className="text-xs sm:text-base font-bold text-on-surface leading-tight pr-6 sm:pr-0">
+              Livraison sur Site
             </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
-              Acheminement par camion plateau vers vos entrepôts, usines ou concessions à Dakar, Thiès ou dans la sous-région.
+            <p className="text-[11px] sm:text-sm text-on-surface-variant mt-1.5 sm:mt-2 leading-relaxed">
+              Acheminement par camion plateau vers vos entrepôts, usines ou concessions à Dakar et régions.
             </p>
           </div>
         </div>
@@ -598,7 +598,7 @@ export const B2BPage: React.FC = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
           <div className="bg-surface-container-lowest p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
             <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
               <span className="material-symbols-outlined text-[20px]">currency_exchange</span>

@@ -38,6 +38,12 @@ export const Navbar: React.FC = () => {
   const [isSpacesOpen, setIsSpacesOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
+  const [mobileExpandedSection, setMobileExpandedSection] = useState<'catalog' | 'services' | 'spaces' | null>(null);
+
+  const toggleMobileSection = (section: 'catalog' | 'services' | 'spaces') => {
+    setMobileExpandedSection(prev => (prev === section ? null : section));
+  };
+
   const catalogRef = useRef<HTMLDivElement>(null);
   const servicesRef = useRef<HTMLDivElement>(null);
   const spacesRef = useRef<HTMLDivElement>(null);
@@ -350,7 +356,7 @@ export const Navbar: React.FC = () => {
               {!currentUser.isLoggedIn ? (
                 <button
                   onClick={() => openAuthModal('client')}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FF4500] hover:bg-[#E03D00] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                  className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FF4500] hover:bg-[#E03D00] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5" />
                   <span>Connexion / Inscription</span>
@@ -416,38 +422,38 @@ export const Navbar: React.FC = () => {
         </div>
       </header>
 
-      {/* 4. MOBILE / TABLET OVERLAY DRAWER */}
+      {/* 4. MOBILE OVERLAY DRAWER WITH COLLAPSIBLE ACCORDIONS */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="fixed top-20 right-3 left-3 max-h-[85vh] overflow-y-auto bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-5">
-            {/* User status header */}
+        <div className="fixed inset-0 z-50 lg:hidden bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed top-18 right-3 left-3 max-h-[85vh] overflow-y-auto bg-white rounded-3xl p-4 sm:p-5 shadow-2xl border border-slate-200 space-y-4">
+            {/* Header: User Account Bar */}
             {!currentUser.isLoggedIn ? (
-              <div className="p-4 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/80 flex items-center justify-between">
                 <div>
                   <strong className="text-xs font-bold text-[#0B192C] block">Bienvenue sur Dallou Chine</strong>
-                  <span className="text-[11px] text-slate-500">Connectez-vous pour réserver vos conteneurs</span>
+                  <span className="text-[10px] text-slate-500">Achetez en Chine, recevez à Dakar</span>
                 </div>
                 <button
                   onClick={() => { openAuthModal('client'); setIsMobileMenuOpen(false); }}
-                  className="px-3 py-1.5 rounded-full bg-[#FF4500] text-white text-xs font-bold shadow-xs"
+                  className="px-3.5 py-1.5 rounded-full bg-[#FF4500] text-white text-xs font-bold shadow-xs shrink-0"
                 >
                   Connexion
                 </button>
               </div>
             ) : (
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#0B192C] text-white flex items-center justify-center font-bold text-xs">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#0B192C] text-white flex items-center justify-center font-bold text-xs shrink-0">
                     {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                   </div>
-                  <div>
-                    <strong className="text-xs font-bold text-[#0B192C] block">{currentUser.name}</strong>
-                    <span className="text-[10px] text-slate-500">{currentUser.email || currentUser.phone}</span>
+                  <div className="min-w-0">
+                    <strong className="text-xs font-bold text-[#0B192C] block truncate">{currentUser.name}</strong>
+                    <span className="text-[10px] text-slate-500 truncate block">{currentUser.email || currentUser.phone}</span>
                   </div>
                 </div>
                 <button
                   onClick={() => { logoutUser(); setIsMobileMenuOpen(false); }}
-                  className="p-2 text-slate-400 hover:text-rose-600"
+                  className="p-2 text-slate-400 hover:text-rose-600 rounded-lg shrink-0"
                   title="Déconnexion"
                 >
                   <LogOut className="w-4 h-4" />
@@ -455,101 +461,196 @@ export const Navbar: React.FC = () => {
               </div>
             )}
 
-            {/* Navigation links */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 block mb-1">
-                Navigation Principale
-              </span>
+            {/* Quick Primary Actions */}
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-[#0B192C] hover:bg-slate-50 flex items-center justify-between"
+                className={`p-2.5 rounded-xl text-left border flex items-center gap-2 transition-all ${
+                  currentPath === '/' ? 'bg-[#0B192C] text-white border-[#0B192C]' : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'
+                }`}
               >
-                <span>Accueil</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-              <button
-                onClick={() => { navigate('/products'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-[#0B192C] hover:bg-slate-50 flex items-center justify-between"
-              >
-                <span>Catalogue Usine Chine</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-              <button
-                onClick={() => { navigate('/auto-mobilite'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-[#0B192C] hover:bg-slate-50 flex items-center justify-between"
-              >
-                <span>Auto &amp; Mobilité (Motos, Véhicules)</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                <div className="w-2 h-2 rounded-full bg-orange-400" />
+                <span className="text-xs font-bold">Accueil</span>
               </button>
               <button
                 onClick={() => { navigate('/groupages'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-[#FF4500] hover:bg-orange-50 flex items-center justify-between"
+                className="p-2.5 rounded-xl text-left border border-orange-200 bg-orange-50 text-[#FF4500] hover:bg-orange-100 flex items-center justify-between transition-all"
               >
-                <span className="flex items-center gap-2">
+                <span className="text-xs font-bold flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Groupages Conteneurs
+                  Groupages
                 </span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#FF4500]" />
-              </button>
-              <button
-                onClick={() => { navigate('/sourcing'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-[#0B192C] hover:bg-slate-50 flex items-center justify-between"
-              >
-                <span>Sourcing Usine Personnalisé (1688)</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FF4500] text-white">🔥 Actifs</span>
               </button>
               <button
                 onClick={() => { navigate('/b2b'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-[#0B192C] hover:bg-slate-50 flex items-center justify-between"
+                className="p-2.5 rounded-xl text-left border border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
               >
-                <span>Espace B2B Grossistes</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                <span className="text-xs font-bold">B2B Grossistes</span>
               </button>
               <button
                 onClick={() => { navigate('/suivi'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-[#0B192C] hover:bg-slate-50 flex items-center justify-between"
+                className="p-2.5 rounded-xl text-left border border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
               >
-                <span>Suivi Expédition AWP</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                <Package className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-xs font-bold">Suivi AWP</span>
               </button>
             </div>
 
-            {/* Role / Space switcher */}
-            <div className="pt-3 border-t border-slate-100 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 block mb-1">
-                Espaces Dédiés
-              </span>
+            {/* Accordion 1: Catalogue Usine Chine */}
+            <div className="border border-slate-200/80 rounded-2xl overflow-hidden">
               <button
-                onClick={() => { navigate('/client'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left p-2.5 rounded-xl bg-orange-50/60 border border-orange-100 flex items-center gap-2.5"
+                onClick={() => toggleMobileSection('catalog')}
+                className="w-full p-3.5 bg-slate-50 hover:bg-slate-100/80 flex items-center justify-between text-xs font-bold text-[#0B192C] transition-colors"
               >
-                <User className="w-4 h-4 text-[#FF4500]" />
-                <div>
-                  <strong className="text-xs font-bold text-[#0B192C] block">Espace Client</strong>
-                  <span className="text-[10px] text-slate-500">Commandes &amp; Acomptes usine</span>
-                </div>
+                <span className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-[#FF4500]" />
+                  <span>Catalogue Usine Chine</span>
+                </span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${mobileExpandedSection === 'catalog' ? 'rotate-180' : ''}`} />
               </button>
-              <button
-                onClick={() => { navigate('/collaborateur'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center gap-2.5"
-              >
-                <Anchor className="w-4 h-4 text-blue-700" />
-                <div>
-                  <strong className="text-xs font-bold text-[#0B192C] block">Espace Collaborateur</strong>
-                  <span className="text-[10px] text-slate-500">Hubs Chine &amp; Port de Dakar</span>
+
+              {mobileExpandedSection === 'catalog' && (
+                <div className="p-2 bg-white border-t border-slate-100 space-y-1 animate-in fade-in duration-150">
+                  <button
+                    onClick={() => { navigate('/auto-mobilite'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-orange-50 hover:text-[#FF4500] flex items-center justify-between"
+                  >
+                    <span>⚡ Motos &amp; Véhicules Électriques</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                  <button
+                    onClick={() => { navigate('/products'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-orange-50 hover:text-[#FF4500] flex items-center justify-between"
+                  >
+                    <span>📺 Électronique &amp; Multimédia</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                  <button
+                    onClick={() => { navigate('/products'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-orange-50 hover:text-[#FF4500] flex items-center justify-between"
+                  >
+                    <span>☀️ Énergie Solaire &amp; Maison</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                  <button
+                    onClick={() => { navigate('/products'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-[#FF4500] hover:bg-orange-50 flex items-center justify-between"
+                  >
+                    <span>Tous les produits de la Marketplace</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#FF4500]" />
+                  </button>
                 </div>
-              </button>
-              <button
-                onClick={() => { navigate('/admin'); setIsMobileMenuOpen(false); }}
-                className="w-full text-left p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-2.5"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <div>
-                  <strong className="text-xs font-bold text-[#0B192C] block">Espace Administration</strong>
-                  <span className="text-[10px] text-slate-500">Supervision &amp; Finance</span>
-                </div>
-              </button>
+              )}
             </div>
+
+            {/* Accordion 2: Services Logistiques & Transit */}
+            <div className="border border-slate-200/80 rounded-2xl overflow-hidden">
+              <button
+                onClick={() => toggleMobileSection('services')}
+                className="w-full p-3.5 bg-slate-50 hover:bg-slate-100/80 flex items-center justify-between text-xs font-bold text-[#0B192C] transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Plane className="w-4 h-4 text-cyan-600" />
+                  <span>Services &amp; Transit Chine-Dakar</span>
+                </span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${mobileExpandedSection === 'services' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {mobileExpandedSection === 'services' && (
+                <div className="p-2 bg-white border-t border-slate-100 space-y-1 animate-in fade-in duration-150">
+                  <button
+                    onClick={() => { navigate('/sourcing'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-orange-50 flex items-center justify-between"
+                  >
+                    <span>✈️ Fret Aérien Express (5 à 7j)</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                  <button
+                    onClick={() => { navigate('/groupages'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-orange-50 flex items-center justify-between"
+                  >
+                    <span>🚢 Fret Maritime Conteneurs (35 à 45j)</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                  <button
+                    onClick={() => { navigate('/sourcing'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-orange-50 flex items-center justify-between"
+                  >
+                    <span>🔍 Sourcing Usine 1688 &amp; Négociation</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                  <button
+                    onClick={() => { navigate('/suivi'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-orange-50 flex items-center justify-between"
+                  >
+                    <span>📍 Suivi Expédition AWP</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Accordion 3: Espaces Métiers & Profils */}
+            <div className="border border-slate-200/80 rounded-2xl overflow-hidden">
+              <button
+                onClick={() => toggleMobileSection('spaces')}
+                className="w-full p-3.5 bg-slate-50 hover:bg-slate-100/80 flex items-center justify-between text-xs font-bold text-[#0B192C] transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Users2 className="w-4 h-4 text-emerald-600" />
+                  <span>Espaces Métiers &amp; Administration</span>
+                </span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${mobileExpandedSection === 'spaces' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {mobileExpandedSection === 'spaces' && (
+                <div className="p-2 bg-white border-t border-slate-100 space-y-1 animate-in fade-in duration-150">
+                  <button
+                    onClick={() => { navigate('/client'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left p-2 rounded-xl bg-orange-50/60 border border-orange-100 flex items-center gap-2.5"
+                  >
+                    <User className="w-4 h-4 text-[#FF4500] shrink-0" />
+                    <div>
+                      <strong className="text-xs font-bold text-[#0B192C] block">Espace Client</strong>
+                      <span className="text-[10px] text-slate-500">Commandes &amp; Acomptes</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { navigate('/collaborateur'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left p-2 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center gap-2.5 mt-1"
+                  >
+                    <Anchor className="w-4 h-4 text-blue-700 shrink-0" />
+                    <div>
+                      <strong className="text-xs font-bold text-[#0B192C] block">Espace Collaborateur</strong>
+                      <span className="text-[10px] text-slate-500">Hubs Chine &amp; Port Dakar</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { navigate('/admin'); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left p-2 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-2.5 mt-1"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <strong className="text-xs font-bold text-[#0B192C] block">Espace Administration</strong>
+                      <span className="text-[10px] text-slate-500">Gestion &amp; Finance</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Direct WhatsApp Call to Action */}
+            <a
+              href="https://wa.me/221774201819?text=Bonjour%20Dallou%20Chine,%20je%20souhaite%20des%20renseignements%20sur%20vos%20services."
+              target="_blank"
+              rel="noreferrer"
+              className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all"
+            >
+              <span>Discuter avec un conseiller WhatsApp</span>
+              <span className="text-base">🇸🇳</span>
+            </a>
           </div>
         </div>
       )}

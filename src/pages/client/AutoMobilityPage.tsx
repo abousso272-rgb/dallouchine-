@@ -410,86 +410,80 @@ export const AutoMobilityPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Grid Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Grid Cards (Strict 2 columns on mobile) */}
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6">
             {(dbVehicles.length > 0 ? dbVehicles : vehicleCatalog).map(vehicle => (
               <div
                 key={vehicle.id}
-                className="group bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                className="group bg-white rounded-2xl sm:rounded-3xl p-2.5 sm:p-6 border border-slate-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
               >
-                <div className="flex flex-col gap-4">
-                  <div className="relative w-full aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100">
+                <div className="flex flex-col gap-2 sm:gap-4">
+                  <div className="relative w-full aspect-square sm:aspect-[16/10] rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100">
                     <img
                       src={vehicle.image}
                       alt={vehicle.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                      <span className="px-2.5 py-1 rounded-full bg-[#0B192C]/90 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1.5">
+                    <div className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 flex flex-wrap gap-1">
+                      <span className="px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#0B192C]/90 backdrop-blur-md text-white text-[8px] sm:text-[10px] font-bold flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#FF4500]" />
                         {vehicle.moq}
                       </span>
-                      <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[10px] font-bold">
-                        {vehicle.highlight}
-                      </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#FF4500] uppercase tracking-wider font-bold">
-                        {vehicle.subtitle}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-black text-[#0B192C] font-heading">{vehicle.title}</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">{vehicle.description}</p>
+                  <div className="flex flex-col gap-0.5 sm:gap-1.5">
+                    <span className="text-[9px] sm:text-xs text-[#FF4500] uppercase tracking-wider font-bold truncate">
+                      {vehicle.subtitle}
+                    </span>
+                    <h3 className="text-xs sm:text-lg font-black text-[#0B192C] font-heading truncate" title={vehicle.title}>
+                      {vehicle.title}
+                    </h3>
+                    <p className="hidden sm:block text-xs text-slate-500 leading-relaxed line-clamp-2">{vehicle.description}</p>
                   </div>
 
                   {vehicle.startingPrice ? (
-                    <div className="bg-slate-50 rounded-2xl p-3 flex items-center justify-between border border-slate-100">
+                    <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center justify-between border border-slate-100">
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">
-                          À partir de
+                        <span className="text-[8px] sm:text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">
+                          Dès
                         </span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl font-black text-[#FF4500] font-mono">
+                        <div className="flex items-baseline gap-0.5 sm:gap-1">
+                          <span className="text-xs sm:text-xl font-black text-[#FF4500] font-mono">
                             {vehicle.startingPrice}
                           </span>
-                          <span className="text-xs text-slate-400 font-bold">FCFA</span>
+                          <span className="text-[9px] sm:text-xs text-slate-400 font-bold">F</span>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold flex items-center gap-1 border border-emerald-100">
+                      <span className="hidden sm:flex px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold items-center gap-1 border border-emerald-100">
                         <CheckCircle2 className="w-3 h-3" />
                         {vehicle.priceTag}
                       </span>
                     </div>
                   ) : (
-                    <div className="bg-slate-50 rounded-2xl p-3 flex items-center justify-between border border-slate-100">
+                    <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center justify-between border border-slate-100">
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">
+                        <span className="text-[8px] sm:text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">
                           Formule Pro
                         </span>
-                        <span className="text-xs font-bold text-slate-800">{vehicle.priceNote}</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-800">{vehicle.priceNote}</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-orange-100 text-[#FF4500] text-[10px] font-bold">
-                        Dallou Chine
-                      </span>
                     </div>
                   )}
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center gap-2">
+                <div className="mt-2.5 sm:mt-5 pt-2 sm:pt-3 border-t border-slate-100 flex items-center gap-1.5 sm:gap-2">
                   <button
                     onClick={() => handlePreFillSourcing(vehicle)}
-                    className="flex-1 h-11 rounded-full bg-slate-100 hover:bg-[#FF4500] hover:text-white text-slate-800 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 h-8 sm:h-11 rounded-xl sm:rounded-full bg-[#0B192C] sm:bg-slate-100 hover:bg-[#FF4500] text-white sm:text-slate-800 hover:text-white text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
                   >
-                    <span>{vehicle.actionText}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>{vehicle.actionText || 'Réserver'}</span>
+                    <ArrowRight className="w-3 h-3" />
                   </button>
                   {vehicle.slug && (
                     <button
                       onClick={() => navigate(`/products/${vehicle.slug}`)}
-                      className="px-3 h-11 rounded-full bg-slate-50 hover:bg-[#0B192C] hover:text-white text-slate-700 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer border border-slate-200"
+                      className="hidden sm:flex px-3 h-11 rounded-full bg-slate-50 hover:bg-[#0B192C] hover:text-white text-slate-700 text-xs font-bold transition-all items-center justify-center gap-1 cursor-pointer border border-slate-200"
                       title="Voir sur le Marketplace"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -497,10 +491,10 @@ export const AutoMobilityPage: React.FC = () => {
                   )}
                   <button
                     onClick={() => setSelectedVehicle(vehicle)}
-                    className="w-11 h-11 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors cursor-pointer border border-slate-200"
+                    className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors cursor-pointer border border-slate-200 shrink-0"
                     title="Voir spécifications"
                   >
-                    <Info className="w-4 h-4" />
+                    <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </div>
