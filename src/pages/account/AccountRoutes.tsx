@@ -27,7 +27,20 @@ const NAV = [
 ];
 
 export default function AccountRoutes({ path }: { path: string }) {
-  const { user, unreadCount } = useApp();
+  const { user, unreadCount, signIn, toast } = useApp();
+  const [loggingIn, setLoggingIn] = React.useState(false);
+
+  async function loginAsDemoClient() {
+    setLoggingIn(true);
+    try {
+      await signIn('qa.client@daluche-qa.test', 'Daluche2026!');
+      toast('success', 'Connecté en tant que client', 'Bienvenue dans votre espace client.');
+    } catch (err) {
+      toast('error', 'Connexion impossible', String(err));
+    } finally {
+      setLoggingIn(false);
+    }
+  }
 
   if (!user) {
     return (
@@ -36,6 +49,22 @@ export default function AccountRoutes({ path }: { path: string }) {
         <p className="mb-6 mt-1 text-sm text-muted">Connectez-vous pour retrouver vos commandes, groupages, demandes et paiements.</p>
         <div className="card p-5 sm:p-6">
           <AuthForm />
+          <div className="mt-5 border-t border-line pt-4">
+            <button
+              type="button"
+              onClick={loginAsDemoClient}
+              disabled={loggingIn}
+              className="flex w-full items-center justify-between rounded-xl border border-line-2 bg-paper-2 p-3 text-left transition hover:border-brand/40 hover:bg-paper"
+            >
+              <div>
+                <p className="text-[13px] font-semibold text-ink flex items-center gap-1.5">
+                  <span>👤</span> Connexion Compte Client Démo
+                </p>
+                <p className="text-[11.5px] text-muted">Voir les commandes, demandes de devis et paiements</p>
+              </div>
+              <span className="text-[12px] font-bold text-brand">{loggingIn ? 'Connexion…' : '1 clic →'}</span>
+            </button>
+          </div>
         </div>
       </div>
     );

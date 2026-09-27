@@ -44,7 +44,8 @@ export function SiteFooter() {
           links={[
             ['/suivi', 'Suivre une commande'],
             ['/compte', 'Mon espace client'],
-            ['/compte/demandes', 'Mes demandes & devis']
+            ['/compte/demandes', 'Mes demandes & devis'],
+            ['/espace-pro', 'Espace professionnel']
           ]}
         />
       </div>
