@@ -62,10 +62,10 @@ export class GeniusPayProvider implements PaymentProvider {
     const payload: Record<string, any> = {
       amount: Math.round(params.amount),
       currency: params.currency || 'XOF',
-      description: params.description || `Commande ${params.orderCode} - Dallou Chine`,
+      description: params.description || `Commande ${params.orderCode} - DALUCHE`,
       customer: {
-        name: params.customer.name || 'Client Dallou Chine',
-        email: params.customer.email || 'client@dallouchine.sn',
+        name: params.customer.name || 'Client DALUCHE',
+        ...(params.customer.email ? { email: params.customer.email } : {}),
         phone: params.customer.phone || ''
       },
       success_url: params.returnUrl,
@@ -75,7 +75,7 @@ export class GeniusPayProvider implements PaymentProvider {
         order_code: params.orderCode,
         merchant_reference: params.merchantReference,
         user_id: params.userId || null,
-        platform: 'dallou_chine',
+        platform: 'daluche',
         ...(params.metadata || {})
       }
     };
@@ -101,70 +101,36 @@ export class GeniusPayProvider implements PaymentProvider {
         body: JSON.stringify(payload)
       });
 
-      if (response.ok) {
-        const json = await response.json();
-        const data = json.data || json;
-        const checkoutUrl = data.checkout_url || data.payment_url || json.checkout_url || json.payment_url;
-        const providerTransactionId = String(data.id || json.id || `gp_tx_${Date.now()}`);
-        const providerReference = data.reference || json.reference || params.merchantReference || `GP-REF-${Date.now()}`;
+      const json: any = await response.json().catch(() => ({}));
+      const data = json?.data || json;
+      const checkoutUrl = data?.checkout_url || data?.payment_url || json?.checkout_url || json?.payment_url;
 
-        return {
-          success: true,
-          paymentId: params.orderId,
-          checkoutUrl: checkoutUrl || `/payment/hosted-checkout?tx=${providerTransactionId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}&ref=${encodeURIComponent(params.merchantReference || '')}`,
-          providerTransactionId,
-          providerReference,
-          expiresAt: data.expires_at || new Date(Date.now() + 30 * 60 * 1000).toISOString()
-        };
-      } else {
-        const errText = await response.text();
-        console.warn(`[GeniusPayProvider] Gateway response error HTTP ${response.status}:`, errText);
-
-        if (this.environment === 'production') {
-          return {
-            success: false,
-            paymentId: params.orderId,
-            checkoutUrl: '',
-            errorMessage: `La passerelle de paiement a retourné une erreur (HTTP ${response.status}).`
-          };
-        }
-
-        // Mode Sandbox : simulateur fluide si les clés fournies sont de test ou si l'API distante est indisponible
-        console.warn('[GeniusPayProvider] Activating sandbox simulator fallback for development.');
-        const mockTxId = `gp_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const mockRef = params.merchantReference || `GP-REF-${Math.floor(100000 + Math.random() * 900000)}`;
-
-        return {
-          success: true,
-          paymentId: params.orderId,
-          checkoutUrl: `/payment/hosted-checkout?tx=${mockTxId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}&ref=${encodeURIComponent(mockRef)}`,
-          providerTransactionId: mockTxId,
-          providerReference: mockRef,
-          expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-        };
-      }
-    } catch (err: any) {
-      if (this.environment === 'production') {
-        console.error('[GeniusPayProvider] Production live gateway unreachable:', err.message || err);
+      if (!response.ok || !checkoutUrl) {
+        console.warn(`[GeniusPayProvider] Gateway error HTTP ${response.status}:`, JSON.stringify(json).slice(0, 500));
         return {
           success: false,
           paymentId: params.orderId,
           checkoutUrl: '',
-          errorMessage: 'La passerelle de paiement GeniusPay est temporairement inaccessible.'
+          errorMessage:
+            json?.message || json?.error || `La passerelle de paiement a refusé la demande (HTTP ${response.status}).`
         };
       }
-
-      console.warn('[GeniusPayProvider] Remote API unreachable in sandbox, activating simulator:', err.message || err);
-      const mockTxId = `gp_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const mockRef = params.merchantReference || `GP-REF-${Math.floor(100000 + Math.random() * 900000)}`;
 
       return {
         success: true,
         paymentId: params.orderId,
-        checkoutUrl: `/payment/hosted-checkout?tx=${mockTxId}&orderId=${params.orderId}&code=${params.orderCode}&amount=${params.amount}&ref=${encodeURIComponent(mockRef)}`,
-        providerTransactionId: mockTxId,
-        providerReference: mockRef,
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+        checkoutUrl,
+        providerTransactionId: String(data.id || json.id || ''),
+        providerReference: data.reference || json.reference || params.merchantReference,
+        expiresAt: data.expires_at || new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      };
+    } catch (err: any) {
+      console.error('[GeniusPayProvider] Gateway unreachable:', err?.message || err);
+      return {
+        success: false,
+        paymentId: params.orderId,
+        checkoutUrl: '',
+        errorMessage: 'La passerelle de paiement est momentanément inaccessible. Réessayez dans quelques instants.'
       };
     }
   }
@@ -208,6 +174,14 @@ export class GeniusPayProvider implements PaymentProvider {
       headers['X-GeniusPay-Event'] ||
       headers['event']
     ) as string | undefined;
+
+    // Sans secret configuré, aucune signature ne peut être vérifiée : tout webhook est rejeté
+    if (!this.webhookSecret) {
+      return {
+        isValid: false,
+        reason: 'GENIUSPAY_WEBHOOK_SECRET non configuré sur le serveur.'
+      };
+    }
 
     // RÈGLE CRITIQUE : Un webhook sans signature doit TOUJOURS être rejeté
     if (!signatureHeader) {

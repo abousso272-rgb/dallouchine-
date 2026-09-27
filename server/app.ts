@@ -1,69 +1,71 @@
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
 import { shipmentsRouter } from './api/shipmentsRouter';
-import { sourcingRouter } from './api/sourcingRouter';
-import { b2bRouter } from './api/b2bRouter';
 import { paymentsRouter } from './api/paymentsRouter';
-
-dotenv.config();
+import { teamRouter } from './api/teamRouter';
+import { config, hasServiceRole, hasGeniusPayCredentials } from './config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const app = express();
+/** Application Express limitée aux routes /api (réutilisée par le serveur Vite en développement). */
+export function createApiApp() {
+  const api = express();
 
-// Configuration du parseur JSON avec capture du rawBody pour la signature HMAC des webhooks
-app.use(
-  express.json({
-    verify: (req: Request, _res: Response, buf: Buffer) => {
-      (req as any).rawBody = buf.toString('utf8');
-    }
-  })
-);
+  // Corps JSON + capture du corps brut pour la vérification HMAC des webhooks
+  api.use(
+    express.json({
+      limit: '1mb',
+      verify: (req: Request, _res: Response, buf: Buffer) => {
+        (req as any).rawBody = buf.toString('utf8');
+      }
+    })
+  );
+  api.use(express.urlencoded({ extended: true }));
 
-app.use(express.urlencoded({ extended: true }));
-
-// En-têtes de sécurité
-app.use((_req: Request, res: Response, next: NextFunction) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
-});
-
-// 1. API Health Check
-app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({
-    status: 'online',
-    service: 'Dallou Chine API & Logistics Engine',
-    gateway: 'GeniusPay',
-    timestamp: new Date().toISOString()
+  api.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Cache-Control', 'no-store');
+    next();
   });
-});
 
-// 2. API Routes
-app.use('/api/payments', paymentsRouter);
-app.use('/api', paymentsRouter); // Supporte aussi /api/webhooks/geniuspay
-app.use('/api/shipments', shipmentsRouter);
-app.use('/api/sourcing', sourcingRouter);
-app.use('/api/b2b', b2bRouter);
+  api.get('/api/health', (_req: Request, res: Response) => {
+    res.json({
+      status: 'online',
+      service: 'DALUCHE API',
+      gateway: 'GeniusPay',
+      paymentsConfigured: hasGeniusPayCredentials,
+      paymentsEnvironment: config.geniusPayEnvironment,
+      serviceRoleConfigured: hasServiceRole,
+      timestamp: new Date().toISOString()
+    });
+  });
 
-// 3. Fichiers statiques et SPA Fallback en production (hors Vercel)
+  api.use('/api/payments', paymentsRouter);
+  api.use('/api', paymentsRouter); // /api/webhooks/geniuspay
+  api.use('/api/shipments', shipmentsRouter);
+  api.use('/api/team', teamRouter);
+
+  api.use('/api', (_req: Request, res: Response) => {
+    res.status(404).json({ success: false, error: 'Route API inconnue.' });
+  });
+
+  return api;
+}
+
+export const app = express();
+app.use(createApiApp());
+
+// Fichiers statiques + fallback SPA (hors Vercel, qui sert lui-même dist/)
 if (!process.env.VERCEL) {
   const distPath = path.resolve(__dirname, '..', 'dist');
   app.use(express.static(distPath));
-
-  app.get('*', (req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/api/')) {
-      return next();
-    }
-    const indexPath = path.join(distPath, 'index.html');
-    res.sendFile(indexPath, (err) => {
-      if (err) {
-        res.status(404).send('Application non construite. Exécutez npm run build d\'abord.');
-      }
+  app.get('*', (_req: Request, res: Response) => {
+    res.sendFile(path.join(distPath, 'index.html'), err => {
+      if (err) res.status(404).send('Application non construite. Exécutez npm run build.');
     });
   });
 }

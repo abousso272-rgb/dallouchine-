@@ -1,349 +1,162 @@
-import React from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
-import { Navbar } from './components/layout/Navbar';
-import { MobileBottomNav } from './components/layout/MobileBottomNav';
-import { Footer } from './components/layout/Footer';
-import { AdminLayout } from './components/layout/AdminLayout';
-import { ToastContainer } from './components/common/ToastContainer';
-import { ClientAIAssistant } from './components/common/ClientAIAssistant';
+import { SiteHeader } from './components/layout/SiteHeader';
+import { SiteFooter } from './components/layout/SiteFooter';
+import { MobileTabBar } from './components/layout/MobileTabBar';
+import { Toasts } from './components/ui/Toasts';
 import { AuthModal } from './components/auth/AuthModal';
-import { UnifiedAuthForm } from './components/auth/UnifiedAuthForm';
-import { ShieldAlert, Lock } from 'lucide-react';
+import { PageLoader } from './components/ui/States';
+import type { AppRole } from './lib/types';
+import { matchPattern, type Params } from './lib/router';
 
-// Client Pages
-import { HomePage } from './pages/client/HomePage';
-import { CatalogPage } from './pages/client/CatalogPage';
-import { ProductDetailPage } from './pages/client/ProductDetailPage';
-import { GroupagesPage } from './pages/client/GroupagesPage';
-import { GroupageDetailPage } from './pages/client/GroupageDetailPage';
-import { B2BPage } from './pages/client/B2BPage';
-import { SourcingRequestPage } from './pages/client/SourcingRequestPage';
-import { QuoteRequestPage } from './pages/client/QuoteRequestPage';
-import { HowItWorksPage } from './pages/client/HowItWorksPage';
-import { TrackingPage } from './pages/client/TrackingPage';
-import { TransitPage } from './pages/client/TransitPage';
-import { AboutPage } from './pages/client/AboutPage';
-import { CartPage } from './pages/client/CartPage';
-import { CheckoutPage } from './pages/client/CheckoutPage';
-import { OrderSuccessPage } from './pages/client/OrderSuccessPage';
-import { AccountPage } from './pages/client/AccountPage';
-import { ClientDashboardPage } from './pages/client/ClientDashboardPage';
-import { AuthPage } from './pages/client/AuthPage';
-import { PaymentStatusPage } from './pages/client/PaymentStatusPage';
-import { PaymentHostedSimulatorPage } from './pages/client/PaymentHostedSimulatorPage';
-import { PaymentsPage } from './pages/client/PaymentsPage';
-import { DocumentsPage } from './pages/client/DocumentsPage';
-import { AutoMobilityPage } from './pages/client/AutoMobilityPage';
-import { CollaboratorDashboardPage } from './pages/collaborator/CollaboratorDashboardPage';
+// Pages publiques
+import { HomePage } from './pages/public/HomePage';
+const CatalogPage = lazy(() => import('./pages/public/CatalogPage'));
+const ProductPage = lazy(() => import('./pages/public/ProductPage'));
+const GroupagesPage = lazy(() => import('./pages/public/GroupagesPage'));
+const GroupagePage = lazy(() => import('./pages/public/GroupagePage'));
+const SourcingPage = lazy(() => import('./pages/public/SourcingPage'));
+const ProPage = lazy(() => import('./pages/public/ProPage'));
+const VehiclesPage = lazy(() => import('./pages/public/VehiclesPage'));
+const VehiclePage = lazy(() => import('./pages/public/VehiclePage'));
+const TrackingPage = lazy(() => import('./pages/public/TrackingPage'));
+const CartPage = lazy(() => import('./pages/public/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/public/CheckoutPage'));
+const PaymentReturnPage = lazy(() => import('./pages/public/PaymentReturnPage'));
+const AuthPage = lazy(() => import('./pages/public/AuthPage'));
+const PasswordPage = lazy(() => import('./pages/public/PasswordPage'));
+const InvitationPage = lazy(() => import('./pages/public/InvitationPage'));
+const NotFoundPage = lazy(() => import('./pages/public/NotFoundPage'));
 
-// Admin Pages
-import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
-import { AdminProductsPage } from './pages/admin/AdminProductsPage';
-import { AdminGroupagesPage } from './pages/admin/AdminGroupagesPage';
-import { AdminCalculatorPage } from './pages/admin/AdminCalculatorPage';
-import { AdminCostVariancePage } from './pages/admin/AdminCostVariancePage';
-import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
-import { AdminSourcingPage } from './pages/admin/AdminSourcingPage';
-import { AdminB2BPage } from './pages/admin/AdminB2BPage';
-import { AdminLogisticsPage } from './pages/admin/AdminLogisticsPage';
-import { AdminTransportersPage } from './pages/admin/AdminTransportersPage';
-import { AdminHubPage } from './pages/admin/AdminHubPage';
-import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
-import { AdminPaymentsPage } from './pages/admin/AdminPaymentsPage';
-import { AdminPromotionsPage } from './pages/admin/AdminPromotionsPage';
-import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
-import { AdminAlertsPage } from './pages/admin/AdminAlertsPage';
-import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
-import { AdminSuppliersPage } from './pages/admin/AdminSuppliersPage';
-import { AdminSourcersPage } from './pages/admin/AdminSourcersPage';
-import { AdminAIAssistantPage } from './pages/admin/AdminAIAssistantPage';
-import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+// Espace client
+const AccountRoutes = lazy(() => import('./pages/account/AccountRoutes'));
+// Espace professionnel
+const ProRoutes = lazy(() => import('./pages/pro/ProRoutes'));
 
-const AppRouter: React.FC = () => {
-  const { currentPath, isAuthModalOpen, closeAuthModal, authModalDefaultTab, currentUser, authLoading } = useApp();
 
-  // ADMIN ROUTING
-  if (currentPath.startsWith('/admin')) {
-    // 1. Attente de la validation du token Supabase Auth
-    if (authLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0B192C] text-white">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-4 border-[#FF4500] border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs font-bold text-slate-400">Vérification de sécurité Supabase...</span>
-          </div>
-        </div>
-      );
+interface Route {
+  pattern: string;
+  render: (p: Params) => React.ReactNode;
+}
+
+const PUBLIC_ROUTES: Route[] = [
+  { pattern: '/', render: () => <HomePage /> },
+  { pattern: '/catalogue', render: () => <CatalogPage /> },
+  { pattern: '/produit/:slug', render: p => <ProductPage slug={p.slug} /> },
+  { pattern: '/groupages', render: () => <GroupagesPage /> },
+  { pattern: '/groupages/:id', render: p => <GroupagePage id={p.id} /> },
+  { pattern: '/sourcing', render: () => <SourcingPage /> },
+  { pattern: '/pro', render: () => <ProPage /> },
+  { pattern: '/automobile', render: () => <VehiclesPage /> },
+  { pattern: '/automobile/:slug', render: p => <VehiclePage slug={p.slug} /> },
+  { pattern: '/suivi', render: () => <TrackingPage /> },
+  { pattern: '/panier', render: () => <CartPage /> },
+  { pattern: '/commande', render: () => <CheckoutPage /> },
+  { pattern: '/paiement/retour', render: () => <PaymentReturnPage /> },
+  { pattern: '/connexion', render: () => <AuthPage mode="login" /> },
+  { pattern: '/inscription', render: () => <AuthPage mode="register" /> },
+  { pattern: '/mot-de-passe', render: () => <PasswordPage /> },
+  { pattern: '/invitation', render: () => <InvitationPage /> }
+];
+
+// Anciennes adresses du site : redirigées vers la nouvelle structure
+const LEGACY_REDIRECTS: [RegExp, (m: RegExpMatchArray, search: string) => string][] = [
+  [/^\/(products|produits)\/?$/, (_m, s) => `/catalogue${s}`],
+  [/^\/(products|product)\/(.+)$/, m => `/produit/${m[2]}`],
+  [/^\/(group-buys|groupage)\/?$/, () => '/groupages'],
+  [/^\/groupage\/(.+)$/, m => `/groupages/${m[1]}`],
+  [/^\/(request|sourcing-personnalise)\/?$/, () => '/sourcing'],
+  [/^\/(b2b|espace-b2b|demande-devis|demander-un-devis|devis|quote)\/?$/, () => '/pro'],
+  [/^\/(auto-mobilite|vehicules|auto)\/?$/, () => '/automobile'],
+  [/^\/(tracking)\/?$/, (_m, s) => `/suivi${s}`],
+  [/^\/(cart)\/?$/, () => '/panier'],
+  [/^\/(checkout|validation-commande)\/?$/, () => '/commande'],
+  [/^\/payment\/(success|status|pending|error|failed|cancelled)\/?$/, (m, s) => `/paiement/retour${s}${m[1] === 'cancelled' ? (s ? '&' : '?') + 'cancelled=1' : ''}`],
+  [/^\/(login|auth|signin)\/?$/, () => '/connexion'],
+  [/^\/register\/?$/, () => '/inscription'],
+  [/^\/(dashboard|mon-espace|tableau-de-bord|client|account)\/?$/, () => '/compte'],
+  [/^\/(paiements|transactions|finances)\/?$/, () => '/compte/paiements'],
+  [/^\/admin(\/.*)?$/, () => '/espace-pro'],
+  [/^\/(transitaire|collaborateur|espace-transitaire|sourceur|gestionnaire-groupages|groupages-admin|espace-groupages)\/?$/, () => '/espace-pro']
+];
+
+function Router() {
+  const { path, navigate, query, authLoading, user } = useApp();
+  const normalized = path.length > 1 ? path.replace(/\/+$/, '') : path;
+
+  // Redirections héritées
+  useEffect(() => {
+    const search = window.location.search;
+    for (const [re, to] of LEGACY_REDIRECTS) {
+      const m = normalized.match(re);
+      if (m) {
+        navigate(to(m, search), { replace: true });
+        return;
+      }
     }
+  }, [normalized, navigate]);
 
-    // 2. Protection stricte : rôle administrateur certifié requis
-    if (!currentUser.isLoggedIn || currentUser.role !== 'admin') {
-      return (
-        <div className="min-h-screen flex flex-col bg-[#0B192C] text-white selection:bg-[#FF4500] selection:text-white">
-          <Navbar />
-          <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 flex flex-col items-center justify-center">
-            <div className="w-full max-w-xl space-y-6">
-              <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-center space-y-1.5">
-                <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-rose-300">
-                  <ShieldAlert className="w-4 h-4" />
-                  <span>Zone d'Administration Restreinte</span>
-                </div>
-                <p className="text-xs text-slate-300">
-                  {currentUser.isLoggedIn
-                    ? `Votre compte (${currentUser.email}) possède le profil "${currentUser.role}". L'accès au panneau opérationnel HQ est réservé aux administrateurs autorisés.`
-                    : 'Veuillez vous authentifier avec votre compte superviseur pour accéder à cette zone.'}
-                </p>
-              </div>
-              <UnifiedAuthForm defaultTab="admin" redirectTo={currentPath} />
-            </div>
-          </main>
-          <Footer />
-        </div>
-      );
+  // Titre de page
+  useEffect(() => {
+    if (normalized.startsWith('/espace-pro')) document.title = 'Espace pro — DALUCHE';
+    else if (normalized.startsWith('/compte')) document.title = 'Mon espace — DALUCHE';
+  }, [normalized]);
+
+  // Un utilisateur déjà connecté qui ouvre /connexion est renvoyé vers son espace (ou ?next=)
+  useEffect(() => {
+    if (!authLoading && user && (normalized === '/connexion' || normalized === '/inscription')) {
+      navigate(query.get('next') || (user.role === 'client' ? '/compte' : '/espace-pro'), { replace: true });
     }
+  }, [authLoading, user, normalized, navigate, query]);
 
-    let adminContent: React.ReactNode = <AdminDashboardPage />;
-
-    if (currentPath === '/admin/products') {
-      adminContent = <AdminProductsPage />;
-    } else if (currentPath === '/admin/groupages') {
-      adminContent = <AdminGroupagesPage />;
-    } else if (currentPath === '/admin/calculator') {
-      adminContent = <AdminCalculatorPage />;
-    } else if (currentPath === '/admin/cost-variance') {
-      adminContent = <AdminCostVariancePage />;
-    } else if (currentPath === '/admin/orders') {
-      adminContent = <AdminOrdersPage />;
-    } else if (currentPath === '/admin/sourcing') {
-      adminContent = <AdminSourcingPage />;
-    } else if (currentPath === '/admin/b2b') {
-      adminContent = <AdminB2BPage />;
-    } else if (currentPath === '/admin/logistics') {
-      adminContent = <AdminLogisticsPage />;
-    } else if (currentPath === '/admin/transporters') {
-      adminContent = <AdminTransportersPage />;
-    } else if (currentPath === '/admin/hub') {
-      adminContent = <AdminHubPage />;
-    } else if (currentPath === '/admin/customers') {
-      adminContent = <AdminCustomersPage />;
-    } else if (currentPath === '/admin/payments') {
-      adminContent = <AdminPaymentsPage />;
-    } else if (currentPath === '/admin/promotions') {
-      adminContent = <AdminPromotionsPage />;
-    } else if (currentPath === '/admin/analytics') {
-      adminContent = <AdminAnalyticsPage />;
-    } else if (currentPath === '/admin/alerts') {
-      adminContent = <AdminAlertsPage />;
-    } else if (currentPath === '/admin/notifications') {
-      adminContent = <AdminNotificationsPage />;
-    } else if (currentPath === '/admin/suppliers') {
-      adminContent = <AdminSuppliersPage />;
-    } else if (currentPath === '/admin/sourcers') {
-      adminContent = <AdminSourcersPage />;
-    } else if (currentPath === '/admin/ai-assistant') {
-      adminContent = <AdminAIAssistantPage />;
-    } else if (currentPath === '/admin/settings') {
-      adminContent = <AdminSettingsPage />;
-    }
-
+  if (normalized.startsWith('/espace-pro')) {
+    if (authLoading) return <PageLoader label="Vérification de votre session…" />;
     return (
-      <AdminLayout>
-        {adminContent}
-        <ToastContainer />
-      </AdminLayout>
+      <Suspense fallback={<PageLoader />}>
+        <ProRoutes path={normalized} />
+      </Suspense>
     );
   }
 
-  // PAYMENT HOSTED SIMULATOR / REDIRECT ROUTING
-  if (
-    currentPath.startsWith('/payment/hosted-checkout') ||
-    currentPath.startsWith('/payment/checkout-simulator')
-  ) {
-    return <PaymentHostedSimulatorPage />;
-  }
-
-  // PUBLIC CLIENT ROUTING
-  let clientContent: React.ReactNode = <HomePage />;
-
-  if (
-    currentPath === '/auto-mobilite' ||
-    currentPath.startsWith('/auto-mobilite?') ||
-    currentPath === '/vehicules' ||
-    currentPath === '/auto'
-  ) {
-    clientContent = <AutoMobilityPage />;
-  } else if (
-    currentPath === '/products' ||
-    currentPath.startsWith('/products?') ||
-    currentPath === '/produits'
-  ) {
-    clientContent = <CatalogPage />;
-  } else if (currentPath.startsWith('/products/') || currentPath.startsWith('/product/')) {
-    const slug = currentPath.replace('/products/', '').replace('/product/', '');
-    clientContent = <ProductDetailPage slug={slug} />;
-  } else if (currentPath === '/groupages' || currentPath === '/group-buys' || currentPath === '/groupage') {
-    clientContent = <GroupagesPage />;
-  } else if (currentPath.startsWith('/groupages/') || currentPath.startsWith('/groupage/')) {
-    const id = currentPath.replace('/groupages/', '').replace('/groupage/', '');
-    clientContent = <GroupageDetailPage id={id} />;
-  } else if (currentPath === '/b2b' || currentPath === '/espace-b2b') {
-    clientContent = <B2BPage />;
-  } else if (
-    currentPath === '/request' ||
-    currentPath === '/sourcing' ||
-    currentPath === '/sourcing-personnalise' ||
-    currentPath.startsWith('/sourcing?')
-  ) {
-    clientContent = <SourcingRequestPage />;
-  } else if (
-    currentPath === '/demande-devis' ||
-    currentPath === '/demander-un-devis' ||
-    currentPath === '/devis' ||
-    currentPath === '/quote' ||
-    currentPath.startsWith('/demande-devis?') ||
-    currentPath.startsWith('/devis?')
-  ) {
-    clientContent = <QuoteRequestPage />;
-  } else if (currentPath === '/how-it-works') {
-    clientContent = <HowItWorksPage />;
-  } else if (
-    currentPath === '/transit' ||
-    currentPath === '/fret' ||
-    currentPath === '/tarifs' ||
-    currentPath === '/entrepots' ||
-    currentPath === '/logistics'
-  ) {
-    clientContent = <TransitPage />;
-  } else if (currentPath === '/about' || currentPath === '/a-propos') {
-    clientContent = <AboutPage />;
-  } else if (
-    currentPath === '/tracking' ||
-    currentPath.startsWith('/tracking?') ||
-    currentPath === '/suivi' ||
-    currentPath.startsWith('/suivi?')
-  ) {
-    clientContent = <TrackingPage />;
-  } else if (
-    currentPath === '/dashboard' ||
-    currentPath.startsWith('/dashboard?') ||
-    currentPath === '/mon-espace' ||
-    currentPath.startsWith('/mon-espace?') ||
-    currentPath === '/tableau-de-bord' ||
-    currentPath === '/client' ||
-    currentPath.startsWith('/client?')
-  ) {
-    clientContent = <ClientDashboardPage />;
-  } else if (
-    currentPath === '/collaborateur' ||
-    currentPath.startsWith('/collaborateur?') ||
-    currentPath === '/espace-collaborateur'
-  ) {
-    clientContent = <CollaboratorDashboardPage />;
-  } else if (currentPath === '/cart' || currentPath === '/panier') {
-    clientContent = <CartPage />;
-  } else if (currentPath === '/checkout' || currentPath === '/validation-commande') {
-    clientContent = <CheckoutPage />;
-  } else if (currentPath.startsWith('/order-success') || currentPath.startsWith('/commande-succes')) {
-    clientContent = <OrderSuccessPage />;
-  } else if (
-    currentPath.startsWith('/payment/success') ||
-    currentPath.startsWith('/payment/status') ||
-    currentPath.startsWith('/payment/pending') ||
-    currentPath.startsWith('/payment/error') ||
-    currentPath.startsWith('/payment/failed') ||
-    currentPath.startsWith('/payment/cancelled')
-  ) {
-    clientContent = <PaymentStatusPage />;
-  } else if (
-    currentPath === '/login' ||
-    currentPath.startsWith('/login?') ||
-    currentPath === '/connexion' ||
-    currentPath.startsWith('/connexion?') ||
-    currentPath === '/auth' ||
-    currentPath.startsWith('/auth?') ||
-    currentPath === '/signin' ||
-    currentPath === '/register'
-  ) {
-    clientContent = <AuthPage />;
-  } else if (
-    currentPath === '/paiements' ||
-    currentPath.startsWith('/paiements?') ||
-    currentPath === '/transactions' ||
-    currentPath.startsWith('/transactions?') ||
-    currentPath === '/finances'
-  ) {
-    clientContent = <PaymentsPage />;
-  } else if (
-    currentPath === '/devis-documents' ||
-    currentPath.startsWith('/devis-documents?') ||
-    currentPath === '/documents' ||
-    currentPath.startsWith('/documents?') ||
-    currentPath === '/certificats'
-  ) {
-    clientContent = <DocumentsPage />;
-  } else if (currentPath === '/account' || currentPath.startsWith('/account?')) {
-    clientContent = <AccountPage />;
-  }
-
-  // Protection des routes privées client : authentification requise
-  const isPrivateClientRoute = 
-    currentPath === '/account' ||
-    currentPath.startsWith('/account?') ||
-    currentPath === '/dashboard' ||
-    currentPath.startsWith('/dashboard?') ||
-    currentPath === '/mon-espace' ||
-    currentPath.startsWith('/mon-espace?') ||
-    currentPath === '/tableau-de-bord' ||
-    currentPath === '/paiements' ||
-    currentPath.startsWith('/paiements?') ||
-    currentPath === '/transactions' ||
-    currentPath.startsWith('/transactions?') ||
-    currentPath === '/devis-documents' ||
-    currentPath.startsWith('/devis-documents?') ||
-    currentPath === '/documents';
-
-  if (isPrivateClientRoute && !authLoading && !currentUser.isLoggedIn) {
-    clientContent = (
-      <div className="w-full max-w-xl mx-auto py-8 space-y-6 animate-in fade-in">
-        <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-center space-y-1.5">
-          <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-800">
-            <Lock className="w-4 h-4 text-amber-600" />
-            <span>Connexion Requise</span>
-          </div>
-          <p className="text-xs text-slate-600">
-            Veuillez vous connecter à votre compte client pour accéder à vos expéditions, vos factures et vos documents.
-          </p>
-        </div>
-        <UnifiedAuthForm defaultTab="client" redirectTo={currentPath} />
-      </div>
-    );
+  let content: React.ReactNode = null;
+  if (normalized.startsWith('/compte')) {
+    content = authLoading ? <PageLoader label="Vérification de votre session…" /> : <AccountRoutes path={normalized} />;
+  } else {
+    for (const r of PUBLIC_ROUTES) {
+      const params = matchPattern(r.pattern, normalized);
+      if (params) {
+        content = r.render(params);
+        break;
+      }
+    }
+    if (!content && !LEGACY_REDIRECTS.some(([re]) => re.test(normalized))) content = <NotFoundPage />;
   }
 
   return (
-    <div className="app-shell min-h-screen flex flex-col bg-[#F8F6F2] text-slate-900 selection:bg-[#FF4500] selection:text-white">
-      <Navbar />
-      <main className="app-content flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-28 lg:pb-12">
-        {clientContent}
+    <div className="flex min-h-dvh flex-col">
+      <a href="#contenu" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-ink focus:px-4 focus:py-2 focus:text-white">
+        Aller au contenu
+      </a>
+      <SiteHeader />
+      <main id="contenu" className="flex-1 pb-24 lg:pb-0">
+        <Suspense fallback={<PageLoader />}>{content}</Suspense>
       </main>
-      <Footer />
-      <MobileBottomNav />
-      <ClientAIAssistant />
-      <ToastContainer />
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={closeAuthModal}
-        defaultTab={authModalDefaultTab}
-      />
+      <SiteFooter />
+      <MobileTabBar />
     </div>
-  );
-};
-
-export function App() {
-  return (
-    <AppProvider>
-      <AppRouter />
-    </AppProvider>
   );
 }
 
-export default App;
+export function hasRole(role: AppRole | undefined, allowed: AppRole[]) {
+  return Boolean(role && allowed.includes(role));
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <Router />
+      <AuthModal />
+      <Toasts />
+    </AppProvider>
+  );
+}

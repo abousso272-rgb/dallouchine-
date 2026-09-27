@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseServerClient } from '../middleware/auth';
 import { PaymentProvider } from '../providers/PaymentProvider';
 import { GeniusPayProvider } from '../providers/GeniusPayProvider';
@@ -5,7 +6,7 @@ import {
   PaymentItem,
   PaymentStatus
 } from '../types/payment';
-import { config } from '../config';
+import { config, hasGeniusPayCredentials } from '../config';
 
 export class PaymentService {
   private provider: PaymentProvider;
@@ -39,6 +40,14 @@ export class PaymentService {
     errorCode?: string;
     errorMessage?: string;
   }> {
+    if (!hasGeniusPayCredentials) {
+      return {
+        success: false,
+        errorCode: 'PROVIDER_NOT_CONFIGURED',
+        errorMessage: 'Le paiement en ligne n\'est pas encore configuré. Contactez DALUCHE pour finaliser votre commande.'
+      };
+    }
+
     const supabase = getSupabaseServerClient();
 
     // 1. Appel de la procédure stockée PostgreSQL transactionnelle create_payment_attempt
@@ -70,15 +79,8 @@ export class PaymentService {
       ? config.appUrl.replace(/\/+$/, '')
       : 'https://dallouchine.vercel.app';
 
-    let returnUrl = params.returnUrl;
-    let cancelUrl = params.cancelUrl;
-
-    if (!returnUrl || returnUrl.includes('localhost')) {
-      returnUrl = `${defaultAppUrl}/payment/success?orderId=${attemptResult.order_id}&paymentId=${attemptResult.payment_id}`;
-    }
-    if (!cancelUrl || cancelUrl.includes('localhost')) {
-      cancelUrl = `${defaultAppUrl}/payment/cancelled?orderId=${attemptResult.order_id}`;
-    }
+    const returnUrl = params.returnUrl || `${defaultAppUrl}/paiement/retour?orderId=${attemptResult.order_id}`;
+    const cancelUrl = params.cancelUrl || `${defaultAppUrl}/paiement/retour?orderId=${attemptResult.order_id}&cancelled=1`;
 
     const sessionResult = await this.provider.createPaymentSession({
       orderId: attemptResult.order_id,
@@ -88,10 +90,10 @@ export class PaymentService {
       amount: attemptResult.amount_xof,
       currency: attemptResult.currency || 'XOF',
       paymentMethod: params.paymentMethod,
-      description: `Commande ${attemptResult.tracking_code} - Dallou Chine`,
+      description: `Commande ${attemptResult.tracking_code} - DALUCHE`,
       customer: {
-        name: attemptResult.customer_name || 'Client Dallou Chine',
-        email: attemptResult.customer_email || 'client@dallouchine.sn',
+        name: attemptResult.customer_name || 'Client DALUCHE',
+        email: attemptResult.customer_email || '',
         phone: attemptResult.customer_phone || ''
       },
       returnUrl,
@@ -114,12 +116,15 @@ export class PaymentService {
 
     // 3. Mise à jour certifiée en base avec la réponse du fournisseur
     const nowIso = new Date().toISOString();
-    await supabase.from('payments').update({
+    const { error: paymentUpdateError } = await supabase.from('payments').update({
       checkout_url: sessionResult.checkoutUrl,
-      provider_transaction_id: sessionResult.providerTransactionId || null,
+      provider_payment_id: sessionResult.providerTransactionId || null,
       provider_reference: sessionResult.providerReference || attemptResult.merchant_reference,
       updated_at: nowIso
     }).eq('id', attemptResult.payment_id);
+    if (paymentUpdateError) {
+      console.warn('[PaymentService] payments update:', paymentUpdateError.message);
+    }
 
     await supabase.from('payment_attempts').update({
       provider_payment_id: sessionResult.providerTransactionId || null,
@@ -334,9 +339,8 @@ export class PaymentService {
   /**
    * 4. Journal des paiements pour l'administration
    */
-  async getAdminPayments(): Promise<PaymentItem[]> {
-    const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase
+  async getAdminPayments(db: SupabaseClient): Promise<PaymentItem[]> {
+    const { data, error } = await db
       .from('payments')
       .select('*, orders(tracking_code, customer_name, customer_email, total_xof)')
       .order('created_at', { ascending: false });
@@ -351,7 +355,7 @@ export class PaymentService {
       orderCode: d.orders?.tracking_code || d.metadata?.order_code || 'AWP-N/A',
       userId: d.user_id,
       provider: d.provider,
-      providerTransactionId: d.provider_transaction_id,
+      providerTransactionId: d.provider_payment_id || d.provider_transaction_id,
       providerReference: d.provider_reference,
       amount: Number(d.amount_xof),
       currency: d.currency,
@@ -385,21 +389,6 @@ export class PaymentService {
       return await this.provider.getAccountInfo();
     }
     return { success: false, error: 'Fournisseur GeniusPay non actif' };
-  }
-
-  /**
-   * 7. Consultation des transactions en direct sur la passerelle GeniusPay (GET /payments)
-   */
-  async getGeniusPayLiveTransactions(params?: {
-    status?: 'pending' | 'completed' | 'failed';
-    from?: string;
-    to?: string;
-    per_page?: number;
-  }) {
-    if (this.provider instanceof GeniusPayProvider) {
-      return await this.provider.listPayments(params);
-    }
-    return { success: false, data: [] };
   }
 }
 

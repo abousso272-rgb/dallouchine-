@@ -1,173 +1,153 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { config } from '../config';
+import { config, hasServiceRole } from '../config';
 
-// Lazy initialized server Supabase client
-let serverSupabase: SupabaseClient | null = null;
+export type AppRole = 'admin' | 'transitaire' | 'groupage_manager' | 'client';
 
+const ADMIN_ROLES = ['admin', 'super_admin', 'operations', 'commercial', 'finance'];
+const TRANSITAIRE_ROLES = ['transitaire', 'sourcing', 'sourcer'];
+
+export function toAppRole(rawRole?: string | null, roles?: string[] | null): AppRole {
+  const all = [String(rawRole || '').toLowerCase(), ...(roles || []).map(r => String(r).toLowerCase())];
+  if (all.some(r => ADMIN_ROLES.includes(r))) return 'admin';
+  if (all.some(r => TRANSITAIRE_ROLES.includes(r))) return 'transitaire';
+  if (all.includes('groupage_manager')) return 'groupage_manager';
+  return 'client';
+}
+
+let serviceClient: SupabaseClient | null = null;
+
+/**
+ * Client serveur privilégié (service_role) pour les opérations que seul le serveur
+ * peut réaliser (webhooks, tentatives de paiement). Sans clé service_role, retombe
+ * sur la clé publique : l'application reste fonctionnelle tant que la migration de
+ * durcissement des paiements n'est pas appliquée.
+ */
 export function getSupabaseServerClient(): SupabaseClient {
-  if (!serverSupabase) {
-    const url = config.supabaseUrl || 'https://splsjtguapquznbiacad.supabase.co';
-    const key = config.supabaseServiceRoleKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbHNqdGd1YXBxdXpuYmlhY2FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NzYwNjYsImV4cCI6MjEwNTM1MjA2Nn0.yr8irdxSNMFI-N3K7ueOZV72uKQSVQykDpX9ioY1C4A';
-    serverSupabase = createClient(url, key, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      }
+  if (!serviceClient) {
+    serviceClient = createClient(config.supabaseUrl, config.supabaseServiceRoleKey || config.supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
     });
   }
-  return serverSupabase;
+  return serviceClient;
 }
+
+/** Client agissant au nom de l'utilisateur : toutes les politiques RLS s'appliquent. */
+export function getUserClient(accessToken: string): SupabaseClient {
+  return createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+
+export { hasServiceRole };
 
 export interface AuthenticatedUser {
   id: string;
   email?: string;
   phone?: string;
   fullName?: string;
-  role: string;
+  role: AppRole;
+  rawRole: string;
   isAdmin: boolean;
+  isStaff: boolean;
 }
 
-// Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
       user?: AuthenticatedUser;
+      accessToken?: string;
+      db?: SupabaseClient;
     }
   }
 }
 
-/**
- * Extrait et valide le jeton Bearer Supabase Auth
- */
-async function extractUserFromToken(req: Request): Promise<AuthenticatedUser | null> {
-  const authHeader = req.headers.authorization || '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return null;
-  }
+function readBearer(req: Request): string | null {
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Bearer ')) return null;
+  const token = header.substring(7).trim();
+  return token || null;
+}
 
-  const token = authHeader.substring(7).trim();
-  if (!token) {
-    return null;
-  }
+async function resolveUser(req: Request): Promise<AuthenticatedUser | null> {
+  const token = readBearer(req);
+  if (!token) return null;
 
-  const supabase = getSupabaseServerClient();
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+  const userClient = getUserClient(token);
+  const {
+    data: { user },
+    error
+  } = await userClient.auth.getUser(token);
+  if (error || !user) return null;
 
-  if (error || !user) {
-    return null;
-  }
-
-  // Client avec jeton d'authentification utilisateur pour satisfaire RLS (auth.uid() = id)
-  const url = config.supabaseUrl || 'https://splsjtguapquznbiacad.supabase.co';
-  const key = config.supabaseServiceRoleKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbHNqdGd1YXBxdXpuYmlhY2FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NzYwNjYsImV4cCI6MjEwNTM1MjA2Nn0.yr8irdxSNMFI-N3K7ueOZV72uKQSVQykDpX9ioY1C4A';
-  
-  const tokenClient = createClient(url, key, {
-    global: {
-      headers: { Authorization: `Bearer ${token}` }
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    }
-  });
-
-  // Récupération certifiée du rôle et profil depuis public.profiles
-  const { data: profile } = await tokenClient
+  // Rôle certifié lu en base avec le jeton de l'utilisateur (RLS : lecture de son propre profil)
+  const { data: profile } = await userClient
     .from('profiles')
-    .select('role, full_name, phone, status')
+    .select('role, roles, full_name, phone, status')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  const userRole = (profile?.role || 'client').toLowerCase();
-  const adminRoles = ['admin', 'super_admin', 'operations', 'sourcing', 'commercial', 'finance'];
+  if (profile?.status === 'suspended') return null;
+
+  const role = toAppRole(profile?.role, profile?.roles);
+  req.accessToken = token;
+  req.db = userClient;
 
   return {
     id: user.id,
     email: user.email,
-    phone: profile?.phone || user.phone || user.user_metadata?.phone,
-    fullName: profile?.full_name || user.user_metadata?.full_name,
-    role: userRole,
-    isAdmin: adminRoles.includes(userRole)
+    phone: profile?.phone || user.phone || undefined,
+    fullName: profile?.full_name || (user.user_metadata as any)?.full_name,
+    role,
+    rawRole: String(profile?.role || 'client'),
+    isAdmin: role === 'admin',
+    isStaff: role !== 'client'
   };
 }
 
-/**
- * Middleware d'authentification OBLIGATOIRE
- * Rejette toute requête sans jeton valide
- */
+function unauthorized(res: Response, message = 'Session invalide ou expirée. Veuillez vous reconnecter.') {
+  res.status(401).json({ success: false, code: 'UNAUTHORIZED', error: message, errorMessage: message });
+}
+
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const user = await extractUserFromToken(req);
-    if (!user) {
-      res.status(401).json({
-        success: false,
-        error: 'Accès non autorisé: Session invalide ou expirée.',
-        code: 'UNAUTHORIZED'
-      });
-      return;
-    }
-
+    const user = await resolveUser(req);
+    if (!user) return unauthorized(res);
     req.user = user;
     next();
   } catch (err: any) {
-    console.error('[AuthMiddleware] Error during authentication:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Erreur interne lors de la vérification de sécurité.'
-    });
+    console.error('[auth] requireAuth error:', err?.message || err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la vérification de la session.' });
   }
 }
 
-/**
- * Middleware d'authentification OPTIONNELLE
- * Injecte req.user si un jeton est présent, sans bloquer les anonymes
- */
 export async function optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
-    const user = await extractUserFromToken(req);
-    if (user) {
+    const user = await resolveUser(req);
+    if (user) req.user = user;
+  } catch (err: any) {
+    console.warn('[auth] optionalAuth:', err?.message || err);
+  }
+  next();
+}
+
+export function requireRole(...roles: AppRole[]) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = await resolveUser(req);
+      if (!user) return unauthorized(res);
+      if (!roles.includes(user.role)) {
+        res.status(403).json({ success: false, code: 'FORBIDDEN', error: 'Accès non autorisé pour votre rôle.' });
+        return;
+      }
       req.user = user;
+      next();
+    } catch (err: any) {
+      console.error('[auth] requireRole error:', err?.message || err);
+      res.status(500).json({ success: false, error: 'Erreur lors de la vérification des permissions.' });
     }
-    next();
-  } catch (err: any) {
-    console.warn('[AuthMiddleware] Optional auth warning:', err.message);
-    next();
-  }
+  };
 }
 
-/**
- * Middleware de protection des routes ADMINISTRATEURS
- * Exige un jeton valide ET un rôle administratif certifié en base
- */
-export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const user = await extractUserFromToken(req);
-    if (!user) {
-      res.status(401).json({
-        success: false,
-        error: 'Accès non autorisé: Veuillez vous connecter avec un compte administrateur.',
-        code: 'UNAUTHORIZED'
-      });
-      return;
-    }
-
-    if (!user.isAdmin) {
-      res.status(403).json({
-        success: false,
-        error: 'Accès interdit: Droits d\'administration insuffisants.',
-        code: 'FORBIDDEN'
-      });
-      return;
-    }
-
-    req.user = user;
-    next();
-  } catch (err: any) {
-    console.error('[AuthMiddleware] Error checking admin role:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Erreur interne lors de la vérification des permissions.'
-    });
-  }
-}
+export const requireAdmin = requireRole('admin');
