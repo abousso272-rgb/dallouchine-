@@ -2,37 +2,42 @@
 
 /* =============================================================================
    DALUCHE — Design tokens
-   Encre (bleu nuit) + papier chaud + rouge laque (accent) + ocre (rare)
+   Bleu nuit + papier chaud + orange-rouge du logo (accent) + ambre (rare)
    ============================================================================= */
 @theme {
   --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Sora", "Manrope", ui-sans-serif, system-ui, sans-serif;
 
-  --color-ink: #0e1726;
-  --color-ink-2: #1b2638;
-  --color-ink-3: #2a3649;
-  --color-paper: #f6f4ef;
-  --color-paper-2: #efebe3;
-  --color-line: #e5e0d6;
-  --color-line-2: #d6cfc2;
-  --color-muted: #5d6675;
-  --color-subtle: #8a92a0;
+  /* Bleu nuit du logo */
+  --color-ink: #0b1620;
+  --color-ink-2: #16222f;
+  --color-ink-3: #243242;
+  --color-paper: #f7f5f2;
+  --color-paper-2: #f0ece6;
+  --color-line: #e7e1d8;
+  --color-line-2: #d8d0c4;
+  --color-muted: #5b6573;
+  --color-subtle: #8a929f;
 
-  --color-brand: #d9412b;
-  --color-brand-600: #c0361f;
-  --color-brand-700: #9f2b18;
-  --color-brand-50: #fcefeb;
-  --color-brand-100: #f8dcd4;
+  /* Orange-rouge du logo (fonds : contraste AA avec texte blanc) */
+  --color-brand: #d9440f;
+  --color-brand-400: #fc920c;
+  --color-brand-500: #ef5a17;
+  --color-brand-600: #c23a0b;
+  --color-brand-700: #9e2c08;
+  --color-brand-50: #fff3ec;
+  --color-brand-100: #fde0d0;
 
-  --color-ochre: #b98424;
-  --color-ochre-50: #faf3e4;
+  /* Ambre du logo, usage rare */
+  --color-ochre: #a85a08;
+  --color-ochre-50: #fff5e6;
 
   --color-jade: #16795a;
   --color-jade-50: #e7f4ee;
 
   --radius-card: 1.25rem;
   --shadow-soft: 0 1px 2px rgb(14 23 38 / 0.04), 0 8px 24px -12px rgb(14 23 38 / 0.12);
-  --shadow-lift: 0 2px 4px rgb(14 23 38 / 0.05), 0 18px 40px -18px rgb(14 23 38 / 0.28);
+  --shadow-lift: 0 2px 4px rgb(11 22 32 / 0.05), 0 18px 40px -18px rgb(11 22 32 / 0.28);
 }
 
 @layer base {
@@ -89,6 +94,16 @@
   }
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Dégradé du logo : réservé à la marque et aux indicateurs de progression */
+  .bg-brand-gradient {
+    background-image: linear-gradient(120deg, #fc920c 0%, #f2560f 55%, #e3180a 100%);
+  }
+  .text-brand-gradient {
+    background-image: linear-gradient(100deg, #f7760d 0%, #ec4a10 60%, #d9230b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   .route-line {
     background-image: radial-gradient(circle, var(--color-line-2) 1.2px, transparent 1.3px);

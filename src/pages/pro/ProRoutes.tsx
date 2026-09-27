@@ -1,206 +1,224 @@
-import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Package, 
-  ShoppingBag, 
-  Users, 
-  Search, 
-  ShieldCheck, 
-  CreditCard, 
-  LogOut, 
-  UserCheck, 
-  Sparkles,
-  ChevronRight,
-  Shield,
-  Truck
+import React, { useEffect, useState } from 'react';
+import {
+  Boxes,
+  Car,
+  ClipboardList,
+  CreditCard,
+  ExternalLink,
+  FolderTree,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Package,
+  ShieldAlert,
+  UserCog,
+  Users,
+  UsersRound,
+  X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Link } from '../../components/ui/Link';
-import { Badge } from '../../components/ui/Badge';
-import { Button } from '../../components/ui/Button';
-import { AuthForm } from '../../components/auth/AuthForm';
-import NotFoundPage from '../public/NotFoundPage';
-
-import ProOverview from './ProOverview';
-import ProOrders from './ProOrders';
-import ProProducts from './ProProducts';
-import ProGroupages from './ProGroupages';
-import ProSourcing from './ProSourcing';
-import ProTeam from './ProTeam';
-import ProCustomers from './ProCustomers';
-import ProPayments from './ProPayments';
+import { matchPattern } from '../../lib/router';
 import type { AppRole } from '../../lib/types';
+import { ROLE_LABEL } from '../../lib/status';
+import { initials } from '../../lib/format';
+import { Link } from '../../components/ui/Link';
+import { Logo } from '../../components/ui/Logo';
+import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/States';
+import { AuthForm } from '../../components/auth/AuthForm';
+import DashboardPage from './DashboardPage';
+import StaffOrdersPage from './StaffOrdersPage';
+import StaffOrderDetailPage from './StaffOrderDetailPage';
+import StaffRequestsPage from './StaffRequestsPage';
+import StaffRequestDetailPage from './StaffRequestDetailPage';
+import StaffGroupagesPage from './StaffGroupagesPage';
+import GroupageEditorPage from './GroupageEditorPage';
+import StaffProductsPage from './StaffProductsPage';
+import ProductEditorPage from './ProductEditorPage';
+import CategoriesPage from './CategoriesPage';
+import StaffVehiclesPage from './StaffVehiclesPage';
+import VehicleEditorPage from './VehicleEditorPage';
+import StaffPaymentsPage from './StaffPaymentsPage';
+import CustomersPage from './CustomersPage';
+import TeamPage from './TeamPage';
+import type { RequestType } from '../../lib/status';
+
+const ALL: AppRole[] = ['admin', 'transitaire', 'groupage_manager'];
+
+export const PRO_NAV: { to: string; label: string; icon: React.ElementType; roles: AppRole[]; exact?: boolean }[] = [
+  { to: '/espace-pro', label: 'Tableau de bord', icon: LayoutDashboard, roles: ALL, exact: true },
+  { to: '/espace-pro/commandes', label: 'Commandes', icon: Package, roles: ALL },
+  { to: '/espace-pro/demandes', label: 'Demandes & devis', icon: ClipboardList, roles: ['admin', 'transitaire'] },
+  { to: '/espace-pro/groupages', label: 'Groupages', icon: Users, roles: ['admin', 'groupage_manager'] },
+  { to: '/espace-pro/produits', label: 'Produits', icon: Boxes, roles: ['admin', 'transitaire'] },
+  { to: '/espace-pro/categories', label: 'Catégories', icon: FolderTree, roles: ['admin'] },
+  { to: '/espace-pro/vehicules', label: 'Automobile', icon: Car, roles: ['admin', 'transitaire'] },
+  { to: '/espace-pro/paiements', label: 'Paiements', icon: CreditCard, roles: ['admin'] },
+  { to: '/espace-pro/clients', label: 'Clients', icon: UsersRound, roles: ['admin'] },
+  { to: '/espace-pro/equipe', label: 'Équipe', icon: UserCog, roles: ['admin'] }
+];
+
+interface ProRoute {
+  pattern: string;
+  roles: AppRole[];
+  render: (p: Record<string, string>) => React.ReactNode;
+}
+
+const ROUTES: ProRoute[] = [
+  { pattern: '/espace-pro', roles: ALL, render: () => <DashboardPage /> },
+  { pattern: '/espace-pro/commandes', roles: ALL, render: () => <StaffOrdersPage /> },
+  { pattern: '/espace-pro/commandes/:id', roles: ALL, render: p => <StaffOrderDetailPage id={p.id} /> },
+  { pattern: '/espace-pro/demandes', roles: ['admin', 'transitaire'], render: () => <StaffRequestsPage /> },
+  {
+    pattern: '/espace-pro/demandes/:type/:id',
+    roles: ['admin', 'transitaire'],
+    render: p => (['sourcing', 'b2b', 'vehicle'].includes(p.type) ? <StaffRequestDetailPage type={p.type as RequestType} id={p.id} /> : <NotFound />)
+  },
+  { pattern: '/espace-pro/groupages', roles: ['admin', 'groupage_manager'], render: () => <StaffGroupagesPage /> },
+  { pattern: '/espace-pro/groupages/:id', roles: ['admin', 'groupage_manager'], render: p => <GroupageEditorPage id={p.id} /> },
+  { pattern: '/espace-pro/produits', roles: ['admin', 'transitaire'], render: () => <StaffProductsPage /> },
+  { pattern: '/espace-pro/produits/:id', roles: ['admin', 'transitaire'], render: p => <ProductEditorPage id={p.id} /> },
+  { pattern: '/espace-pro/categories', roles: ['admin'], render: () => <CategoriesPage /> },
+  { pattern: '/espace-pro/vehicules', roles: ['admin', 'transitaire'], render: () => <StaffVehiclesPage /> },
+  { pattern: '/espace-pro/vehicules/:id', roles: ['admin', 'transitaire'], render: p => <VehicleEditorPage id={p.id} /> },
+  { pattern: '/espace-pro/paiements', roles: ['admin'], render: () => <StaffPaymentsPage /> },
+  { pattern: '/espace-pro/clients', roles: ['admin'], render: () => <CustomersPage /> },
+  { pattern: '/espace-pro/equipe', roles: ['admin'], render: () => <TeamPage /> }
+];
+
+function NotFound() {
+  return <EmptyState title="Page introuvable" action={<Button to="/espace-pro">Tableau de bord</Button>} />;
+}
 
 export default function ProRoutes({ path }: { path: string }) {
-  const { user, signOut, navigate } = useApp();
-  
-  // Rôle actif (avec possibilité de simulation locale démo)
-  const [demoRoleOverride, setDemoRoleOverride] = useState<AppRole | null>(() => {
-    return (localStorage.getItem('daluche_demo_role') as AppRole) || null;
-  });
+  const { user, signOut } = useApp();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const activeRole: AppRole = demoRoleOverride || (user?.role === 'client' ? 'admin' : (user?.role || 'admin'));
+  useEffect(() => setMenuOpen(false), [path]);
 
-  const handleSwitchDemoRole = (r: AppRole) => {
-    setDemoRoleOverride(r);
-    localStorage.setItem('daluche_demo_role', r);
-  };
-
-  // Si aucun utilisateur n'est connecté et pas de rôle démo actif
-  if (!user && !demoRoleOverride) {
+  if (!user) {
     return (
-      <div className="container-page max-w-md py-12">
-        <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-ink text-white shadow-lg">
-            <ShieldCheck className="h-7 w-7 text-brand" />
+      <div className="flex min-h-dvh items-center justify-center bg-paper px-4 py-10">
+        <div className="w-full max-w-md">
+          <div className="mb-6 flex justify-center">
+            <Logo />
           </div>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-ink">Espace Professionnel DALUCHE</h1>
-          <p className="mt-1.5 text-sm text-muted">
-            Accès réservé à la Direction, aux Transitaires Chine et aux Gestionnaires de conteneurs.
+          <div className="card p-5 sm:p-7">
+            <h1 className="text-xl font-semibold">Espace professionnel</h1>
+            <p className="mb-5 mt-1 text-sm text-muted">Réservé à l’équipe DALUCHE : administration, transitaires et gestionnaires de groupages.</p>
+            <AuthForm />
+          </div>
+          <p className="mt-4 text-center text-sm">
+            <Link to="/" className="font-semibold text-muted hover:text-ink">
+              ← Retour au site
+            </Link>
           </p>
         </div>
+      </div>
+    );
+  }
 
-        <div className="card mt-6 p-6">
-          <AuthForm />
-
-          <div className="mt-6 border-t border-line pt-5 text-center">
-            <span className="text-xs font-medium text-muted">Évaluation / Démonstration :</span>
-            <div className="mt-2.5 flex flex-col gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                block
-                onClick={() => handleSwitchDemoRole('admin')}
-                icon={<Sparkles className="h-4 w-4 text-brand" />}
-              >
-                Explorer en tant que Super Admin HQ
-              </Button>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="subtle"
-                  size="sm"
-                  onClick={() => handleSwitchDemoRole('transitaire')}
-                >
-                  Vue Transitaire
-                </Button>
-                <Button
-                  variant="subtle"
-                  size="sm"
-                  onClick={() => handleSwitchDemoRole('groupage_manager')}
-                >
-                  Vue Groupages
-                </Button>
-              </div>
-            </div>
+  if (user.role === 'client') {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-paper px-4">
+        <div className="card max-w-md p-6 text-center sm:p-8">
+          <ShieldAlert className="mx-auto h-10 w-10 text-brand" />
+          <h1 className="mt-4 text-xl font-semibold">Accès réservé à l’équipe</h1>
+          <p className="mt-2 text-sm text-muted">Votre compte est un compte client. Si vous faites partie de l’équipe, demandez une invitation à l’administrateur.</p>
+          <div className="mt-6 flex justify-center gap-2">
+            <Button to="/compte">Mon espace client</Button>
+            <Button to="/" variant="secondary">
+              Accueil
+            </Button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Navigation selon le rôle
-  const navItems = [
-    { to: '/espace-pro', label: 'Tableau de bord', icon: LayoutDashboard, exact: true, roles: ['admin', 'transitaire', 'groupage_manager'] },
-    { to: '/espace-pro/commandes', label: 'Commandes & Fret', icon: Truck, roles: ['admin', 'transitaire', 'groupage_manager'] },
-    { to: '/espace-pro/sourcing', label: 'Sourcing Chine & B2B', icon: Search, roles: ['admin', 'transitaire'] },
-    { to: '/espace-pro/groupages', label: 'Gestion Groupages', icon: Users, roles: ['admin', 'groupage_manager'] },
-    { to: '/espace-pro/produits', label: 'Catalogue Import', icon: ShoppingBag, roles: ['admin', 'transitaire'] },
-    { to: '/espace-pro/equipe', label: 'Équipe & Rôles', icon: ShieldCheck, roles: ['admin'] },
-    { to: '/espace-pro/clients', label: 'Clients', icon: UserCheck, roles: ['admin'] },
-    { to: '/espace-pro/paiements', label: 'Paiements', icon: CreditCard, roles: ['admin'] }
-  ].filter(item => item.roles.includes(activeRole));
+  let content: React.ReactNode = <NotFound />;
+  for (const r of ROUTES) {
+    const params = matchPattern(r.pattern, path);
+    if (params) {
+      content = r.roles.includes(user.role) ? (
+        r.render(params)
+      ) : (
+        <EmptyState icon={<ShieldAlert className="h-5 w-5" />} title="Accès non autorisé" description="Cette section ne fait pas partie de votre rôle." action={<Button to="/espace-pro">Tableau de bord</Button>} />
+      );
+      break;
+    }
+  }
 
-  let page: React.ReactNode = null;
-  if (path === '/espace-pro' || path === '/espace-pro/dashboard') page = <ProOverview />;
-  else if (path === '/espace-pro/commandes') page = <ProOrders />;
-  else if (path === '/espace-pro/produits') page = <ProProducts />;
-  else if (path === '/espace-pro/groupages') page = <ProGroupages />;
-  else if (path === '/espace-pro/sourcing') page = <ProSourcing />;
-  else if (path === '/espace-pro/equipe') page = <ProTeam />;
-  else if (path === '/espace-pro/clients') page = <ProCustomers />;
-  else if (path === '/espace-pro/paiements') page = <ProPayments />;
-  else page = <NotFoundPage />;
-
+  const nav = PRO_NAV.filter(n => n.roles.includes(user.role));
   const isActive = (to: string, exact?: boolean) => (exact ? path === to : path === to || path.startsWith(to + '/'));
 
-  return (
-    <div className="min-h-[85vh] bg-paper">
-      {/* Bannière de sélection de rôle / simulation */}
-      <div className="border-b border-line bg-ink text-white">
-        <div className="container-page flex flex-col justify-between gap-3 py-2.5 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2.5 text-xs">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
-            <span className="font-semibold text-white/90">Espace Opérationnel DALUCHE</span>
-            <span className="text-white/40">·</span>
-            <span className="text-white/70">
-              Rôle actif : <strong className="text-white">{
-                activeRole === 'admin' ? 'Super Admin HQ' :
-                activeRole === 'transitaire' ? 'Transitaire & Sourceur Chine' :
-                'Gestionnaire Groupages'
-              }</strong>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            <span className="text-[11px] text-white/60 mr-1 hidden lg:inline">Aperçu rôle :</span>
-            {[
-              { id: 'admin' as const, label: 'Admin HQ' },
-              { id: 'transitaire' as const, label: 'Transitaire' },
-              { id: 'groupage_manager' as const, label: 'Groupages' }
-            ].map(r => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => handleSwitchDemoRole(r.id)}
-                className={`rounded-lg px-2.5 py-1 text-[11.5px] font-semibold transition ${
-                  activeRole === r.id
-                    ? 'bg-brand text-white shadow-sm'
-                    : 'bg-white/10 text-white/80 hover:bg-white/20'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-
-            <Link
-              to="/compte"
-              className="ml-2 rounded-lg bg-white/10 px-2.5 py-1 text-[11.5px] font-semibold text-white/80 hover:bg-white/20"
-            >
-              Vue Client
-            </Link>
+  const sidebar = (
+    <div className="flex h-full flex-col">
+      <div className="flex h-16 items-center justify-between px-5">
+        <Link to="/espace-pro">
+          <Logo inverted />
+        </Link>
+        <button type="button" className="rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden" onClick={() => setMenuOpen(false)} aria-label="Fermer le menu">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="mx-3 mb-3 rounded-2xl bg-white/5 p-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-[12px] font-bold text-white">{initials(user.fullName || user.email)}</span>
+          <div className="min-w-0">
+            <p className="truncate text-[13.5px] font-semibold text-white">{user.fullName || user.email}</p>
+            <p className="truncate text-[11.5px] text-white/55">{ROLE_LABEL[user.role]}</p>
           </div>
         </div>
       </div>
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3" aria-label="Espace professionnel">
+        {nav.map(item => {
+          const active = isActive(item.to, item.exact);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`flex h-10 items-center gap-3 rounded-xl px-3 text-[13.5px] font-semibold transition-colors ${
+                active ? 'bg-white text-ink' : 'text-white/70 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <item.icon className="h-[18px] w-[18px]" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="space-y-0.5 border-t border-white/10 p-3">
+        <Link to="/" className="flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold text-white/60 hover:bg-white/10 hover:text-white">
+          <ExternalLink className="h-4 w-4" /> Voir le site
+        </Link>
+        <button type="button" onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-[13px] font-semibold text-white/60 hover:bg-white/10 hover:text-white">
+          <LogOut className="h-4 w-4" /> Se déconnecter
+        </button>
+      </div>
+    </div>
+  );
 
-      {/* Contenu principal avec barre latérale */}
-      <div className="container-page py-6 sm:py-8">
-        <div className="grid gap-6 lg:grid-cols-[240px_1fr] lg:gap-8">
-          {/* Menu latéral */}
-          <aside>
-            <nav className="scrollbar-none -mx-4 flex gap-1.5 overflow-x-auto px-4 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:gap-1 lg:px-0" aria-label="Espace professionnel">
-              {navItems.map(item => {
-                const active = isActive(item.to, item.exact);
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={`flex h-10 shrink-0 items-center gap-2.5 rounded-xl px-3.5 text-[13px] font-semibold transition-colors ${
-                      active
-                        ? 'bg-ink text-white shadow-sm'
-                        : 'bg-white text-muted ring-1 ring-line hover:text-ink lg:bg-transparent lg:ring-0 lg:hover:bg-white'
-                    }`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </aside>
+  return (
+    <div className="min-h-dvh bg-paper lg:grid lg:grid-cols-[256px_1fr]">
+      <aside className="sticky top-0 hidden h-dvh bg-ink lg:block">{sidebar}</aside>
 
-          {/* Page active */}
-          <div className="min-w-0">{page}</div>
+      {menuOpen && (
+        <div className="fixed inset-0 z-[70] lg:hidden" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-ink/50" onClick={() => setMenuOpen(false)} aria-hidden />
+          <aside className="animate-fade-in-up absolute inset-y-0 left-0 w-[82%] max-w-[300px] bg-ink">{sidebar}</aside>
         </div>
+      )}
+
+      <div className="min-w-0">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-line bg-paper/95 px-4 backdrop-blur lg:hidden">
+          <button type="button" onClick={() => setMenuOpen(true)} className="rounded-xl p-2 hover:bg-ink/5" aria-label="Ouvrir le menu">
+            <Menu className="h-5 w-5" />
+          </button>
+          <Logo compact />
+          <span className="truncate text-[13px] font-semibold text-muted">{ROLE_LABEL[user.role]}</span>
+        </header>
+        <main className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{content}</main>
       </div>
     </div>
   );

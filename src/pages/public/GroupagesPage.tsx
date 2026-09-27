@@ -16,7 +16,7 @@ export default function GroupagesPage() {
 
   return (
     <div className="container-page py-8 sm:py-10">
-      <div className="grid gap-8 lg:grid-cols-[1fr_420px] lg:items-end">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_420px] lg:items-end">
         <div>
           <p className="eyebrow">Achats groupés</p>
           <h1 className="mt-2 text-[30px] font-semibold leading-tight sm:text-[42px]">Le prix usine, à plusieurs.</h1>
@@ -58,7 +58,7 @@ export default function GroupagesPage() {
         {error ? (
           <ErrorState message={error} onRetry={reload} />
         ) : loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map(i => (
               <div key={i} className="skeleton h-[400px] rounded-[var(--radius-card)]" />
             ))}
@@ -80,7 +80,7 @@ export default function GroupagesPage() {
             />
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {list.map(g => (
               <GroupageCard key={g.id} groupage={g} />
             ))}
@@ -88,7 +88,7 @@ export default function GroupagesPage() {
         )}
       </div>
 
-      <section className="mt-14 grid gap-4 rounded-[var(--radius-card)] border border-line bg-white p-6 sm:grid-cols-3 sm:p-8">
+      <section className="mt-14 grid grid-cols-1 gap-4 rounded-[var(--radius-card)] border border-line bg-white p-6 sm:grid-cols-3 sm:p-8">
         <div>
           <h2 className="text-lg font-semibold">Bon à savoir</h2>
           <p className="mt-1.5 text-sm text-muted">Tout est visible dans votre espace client, à chaque étape.</p>

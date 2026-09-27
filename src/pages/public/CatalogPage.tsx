@@ -184,7 +184,7 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[240px_1fr]">
+      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
         <aside className="hidden lg:block">
           <div className="sticky top-24">{filters}</div>
         </aside>

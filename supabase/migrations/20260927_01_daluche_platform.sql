@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
-  SELECT EXISTS (
+  SELECT auth.role() = 'service_role' OR EXISTS (
     SELECT 1 FROM public.profiles
     WHERE id = auth.uid()
       AND status = 'active'
@@ -151,6 +151,10 @@ BEGIN
 END;
 $$;
 
+-- Remplace l'ancien déclencheur prevent_role_escalation : il annulait silencieusement les
+-- changements de rôle effectués par les fonctions sécurisées (acceptation d'invitation).
+DROP TRIGGER IF EXISTS trg_prevent_role_escalation ON public.profiles;
+
 DROP TRIGGER IF EXISTS trg_profiles_guard_privileges ON public.profiles;
 CREATE TRIGGER trg_profiles_guard_privileges
   BEFORE INSERT OR UPDATE ON public.profiles
@@ -186,6 +190,23 @@ BEGIN
                      'create_sourcing_quote', 'get_customer_kpi', 'get_b2b_client_kpi', 'check_user_permission') THEN
       EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM authenticated', r.sig);
     END IF;
+  END LOOP;
+END $$;
+
+-- Anciennes fonctions acceptant un identifiant utilisateur fourni par l'appelant (usurpation
+-- possible) et remplacées par submit_* / respond_to_quote : réservées au service_role.
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN ('accept_b2b_quote', 'accept_sourcing_quote', 'reject_b2b_quote', 'reject_sourcing_quote',
+                        'create_b2b_request', 'create_sourcing_request')
+  LOOP
+    EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', r.sig);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', r.sig);
   END LOOP;
 END $$;
 

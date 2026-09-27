@@ -13,7 +13,7 @@ export function Link({ to, replace, onClick, children, ...rest }: LinkProps) {
   return (
     <a
       href={to}
-      {...(external ? { target: rest.target || '_blank', rel: 'noopener noreferrer' } : {})}
+      {...(/^https?:\/\//.test(to) ? { target: rest.target || '_blank', rel: 'noopener noreferrer' } : {})}
       {...rest}
       onClick={e => {
         onClick?.(e);

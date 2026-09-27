@@ -96,7 +96,7 @@ export default function OverviewPage() {
         </section>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="card p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold">Commandes récentes</h2>

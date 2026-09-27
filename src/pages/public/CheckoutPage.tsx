@@ -143,13 +143,13 @@ export default function CheckoutPage() {
       <h1 className="text-[28px] font-semibold sm:text-4xl">Finaliser ma commande</h1>
       <p className="mt-1 text-[15px] text-muted">Vérifiez vos informations puis payez en toute sécurité.</p>
 
-      <form onSubmit={submit} className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]" noValidate>
+      <form onSubmit={submit} className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]" noValidate>
         <div className="space-y-4">
           <section className="card space-y-4 p-5 sm:p-6">
             <h2 className="flex items-center gap-2 text-base font-semibold">
               <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-white">1</span> Vos coordonnées
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input label="Nom complet" required value={name} onChange={e => setName(e.target.value)} error={errors.name} autoComplete="name" />
               <Input label="Téléphone" required type="tel" value={phone} onChange={e => setPhone(e.target.value)} error={errors.phone} autoComplete="tel" />
               <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} hint="Pour recevoir la confirmation de paiement." autoComplete="email" />
@@ -182,7 +182,7 @@ export default function CheckoutPage() {
                 <InlineAlert tone="warning">Aucun point de retrait disponible pour le moment : choisissez la livraison à domicile.</InlineAlert>
               )
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Input label="Adresse" required value={street} onChange={e => setStreet(e.target.value)} error={errors.street} wrapperClassName="sm:col-span-2" autoComplete="street-address" />
                 <Input label="Quartier" value={district} onChange={e => setDistrict(e.target.value)} />
                 <Input label="Indications" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Repère, étage…" />

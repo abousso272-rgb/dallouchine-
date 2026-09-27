@@ -113,10 +113,10 @@ export default function SourcingPage() {
       </div>
 
       <div className="card mt-8 p-5 sm:p-6">
-        <Stepper steps={SOURCING_STEPS} current={0} />
+        <Stepper steps={SOURCING_STEPS} current={0} mobile="scroll" />
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
         <form onSubmit={submit} className="card space-y-5 p-5 sm:p-7" noValidate>
           <Input label="Produit recherché" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex. Chaises pliantes en métal pour événements" error={errors.title} />
           <Textarea
@@ -149,7 +149,7 @@ export default function SourcingPage() {
             prefix={<Link2 className="h-4 w-4" />}
             error={errors.link}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input label="Quantité souhaitée" required inputMode="numeric" value={quantity} onChange={e => setQuantity(e.target.value.replace(/\D/g, ''))} placeholder="Ex. 200" error={errors.quantity} />
             <Input label="Budget total (optionnel)" inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value.replace(/\D/g, ''))} placeholder="Ex. 500000" suffix="FCFA" />
           </div>

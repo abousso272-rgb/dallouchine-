@@ -43,7 +43,7 @@ export default function VehiclePage({ slug }: { slug: string }) {
         <span className="truncate text-ink">{v.title}</span>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12">
         <div>
           <div className="relative aspect-[16/10] overflow-hidden rounded-[24px] bg-ink-3">
             <img src={images[imageIndex]} alt={v.title} className="h-full w-full object-cover" />
@@ -96,7 +96,7 @@ export default function VehiclePage({ slug }: { slug: string }) {
             <section className="card mt-4 p-5 sm:p-6">
               {v.description && <p className="whitespace-pre-line text-[15px] leading-relaxed text-muted">{v.description}</p>}
               {v.features.length > 0 && (
-                <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {v.features.map(f => (
                     <li key={f} className="flex gap-2.5 text-[14px]">
                       <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" /> {f}

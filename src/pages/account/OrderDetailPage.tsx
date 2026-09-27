@@ -116,7 +116,7 @@ export default function OrderDetailPage({ id }: { id: string }) {
         </InlineAlert>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.3fr_1fr]">
         <Card>
           <CardTitle>Articles</CardTitle>
           <ul className="divide-y divide-line">

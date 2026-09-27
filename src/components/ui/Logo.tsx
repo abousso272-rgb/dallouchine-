@@ -1,13 +1,21 @@
 import React from 'react';
 
-/** Marque DALUCHE : deux rives (Chine / Afrique) reliées par une arche. */
+/** Marque DALUCHE : deux rives (Chine / Afrique) reliées par une arche aux couleurs du logo. */
 export function LogoMark({ className = 'h-8 w-8', inverted }: { className?: string; inverted?: boolean }) {
+  const id = inverted ? 'dlc-arch-inv' : 'dlc-arch';
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
-      <rect width="64" height="64" rx="16" fill={inverted ? '#F6F4EF' : '#0E1726'} />
-      <path d="M14 42c6-15 30-15 36 0" fill="none" stroke="#D9412B" strokeWidth="5.5" strokeLinecap="round" />
-      <circle cx="14" cy="42" r="5.2" fill={inverted ? '#0E1726' : '#F6F4EF'} />
-      <circle cx="50" cy="42" r="5.2" fill={inverted ? '#0E1726' : '#F6F4EF'} />
+      <defs>
+        <linearGradient id={id} x1="10" y1="44" x2="54" y2="30" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#FC920C" />
+          <stop offset="0.55" stopColor="#F2560F" />
+          <stop offset="1" stopColor="#E3180A" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="16" fill={inverted ? '#F7F5F2' : '#0B1620'} />
+      <path d="M14 42c6-15 30-15 36 0" fill="none" stroke={`url(#${id})`} strokeWidth="5.5" strokeLinecap="round" />
+      <circle cx="14" cy="42" r="5.2" fill={inverted ? '#0B1620' : '#F7F5F2'} />
+      <circle cx="50" cy="42" r="5.2" fill={inverted ? '#0B1620' : '#F7F5F2'} />
     </svg>
   );
 }

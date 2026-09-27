@@ -69,6 +69,7 @@ export interface ProductQuery {
   maxPrice?: number | null;
   inStockOnly?: boolean;
   transportMode?: 'air' | 'sea' | null;
+  autoMobilityOnly?: boolean;
   sort?: ProductSort;
   page?: number;
   pageSize?: number;
@@ -95,6 +96,7 @@ export async function listProducts(q: ProductQuery = {}): Promise<{ items: Produ
   if (q.maxPrice) query = query.lte('price_xof', q.maxPrice);
   if (q.inStockOnly) query = query.gt('stock_quantity', 0);
   if (q.transportMode) query = query.eq('default_transport_mode', q.transportMode);
+  if (q.autoMobilityOnly) query = query.eq('is_auto_mobility', true);
 
   switch (q.sort) {
     case 'newest':

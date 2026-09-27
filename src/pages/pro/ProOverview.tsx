@@ -146,7 +146,7 @@ export default function ProOverview() {
         </div>
 
         {/* KPIs Financiers Opérationnels */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="card p-5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-muted">Chiffre d'Affaires</span>
@@ -217,7 +217,7 @@ export default function ProOverview() {
         </div>
 
         {/* Section d'action rapide & flux d'activité */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Colonne Actions & Raccourcis */}
           <div className="card p-5 lg:col-span-1">
             <h2 className="text-base font-semibold text-ink">Pilotage Rapide</h2>
@@ -361,7 +361,7 @@ export default function ProOverview() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="card p-5">
             <span className="text-xs font-medium uppercase tracking-wider text-muted">Demandes Sourcing</span>
             <div className="mt-3 flex items-baseline justify-between">
@@ -390,7 +390,7 @@ export default function ProOverview() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
             to="/espace-pro/sourcing"
             className="card p-6 transition hover:border-brand hover:shadow-md"
@@ -437,7 +437,7 @@ export default function ProOverview() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="card p-5">
           <span className="text-xs font-medium uppercase tracking-wider text-muted">Groupages Actifs</span>
           <div className="mt-3 flex items-baseline justify-between">

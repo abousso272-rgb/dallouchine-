@@ -181,7 +181,7 @@ export default function ProTeam() {
       </div>
 
       {/* Guide des rôles DALUCHE */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {Object.entries(ROLE_LABELS).map(([k, v]) => (
           <div key={k} className="card p-4 space-y-1.5 border-line bg-paper-2">
             <div className="flex items-center gap-2">

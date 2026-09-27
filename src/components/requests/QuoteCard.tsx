@@ -145,7 +145,7 @@ export function QuoteCard({ quote, viewer, onChanged }: { quote: Quote; viewer: 
           )}
         </dl>
 
-        <div className="mt-4 grid gap-2 text-[13px] text-muted sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-2 text-[13px] text-muted sm:grid-cols-2">
           {quote.leadTime && (
             <p>
               <span className="font-semibold text-ink">Délai : </span>

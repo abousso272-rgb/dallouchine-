@@ -61,7 +61,7 @@ export default function ProfilePage() {
       <PageHeader title="Profil" description={`Compte ${ROLE_LABEL[user!.role] || 'client'}${user!.email ? ` · ${user!.email}` : ''}`} />
       <Card>
         <CardTitle>Informations personnelles</CardTitle>
-        <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={save} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input label="Nom complet" required value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" />
           <Input label="Téléphone / WhatsApp" type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel" />
           <Input label="Ville" value={city} onChange={e => setCity(e.target.value)} />
@@ -76,7 +76,7 @@ export default function ProfilePage() {
       </Card>
       <Card>
         <CardTitle>Sécurité</CardTitle>
-        <form onSubmit={changePassword} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={changePassword} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input label="Nouveau mot de passe" type="password" value={pw} onChange={e => setPw(e.target.value)} autoComplete="new-password" />
           <Input label="Confirmer" type="password" value={pw2} onChange={e => setPw2(e.target.value)} autoComplete="new-password" />
           {pwError && (

@@ -7,7 +7,7 @@ import { CONTACT, whatsappLink } from '../../lib/config';
 export function SiteFooter() {
   return (
     <footer className="mt-20 bg-ink text-white/80">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="container-page grid grid-cols-1 gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <Logo inverted />
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">

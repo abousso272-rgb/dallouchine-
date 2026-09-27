@@ -232,7 +232,7 @@ export default function ProSourcing() {
               </div>
 
               {/* Détails client & exigences */}
-              <div className="grid gap-3 sm:grid-cols-4 rounded-xl bg-paper-2 p-3.5 text-xs">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 rounded-xl bg-paper-2 p-3.5 text-xs">
                 <div>
                   <span className="text-muted block text-[11px]">Client & Contact</span>
                   <span className="font-semibold text-ink">{req.contactName}</span>
@@ -287,7 +287,7 @@ export default function ProSourcing() {
                 />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted">
                     Fret maritime / aérien (FCFA)

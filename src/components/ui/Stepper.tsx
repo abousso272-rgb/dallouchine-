@@ -11,7 +11,20 @@ export interface StepItem {
  * Parcours par étapes. `current` = index de l'étape en cours (les précédentes sont terminées).
  * current >= steps.length : parcours terminé. `stopped` : parcours interrompu (annulé/refusé).
  */
-export function Stepper({ steps, current, stopped, orientation = 'auto' }: { steps: StepItem[]; current: number; stopped?: boolean; orientation?: 'auto' | 'vertical' }) {
+export function Stepper({
+  steps,
+  current,
+  stopped,
+  orientation = 'auto',
+  mobile = 'vertical'
+}: {
+  steps: StepItem[];
+  current: number;
+  stopped?: boolean;
+  orientation?: 'auto' | 'vertical';
+  /** Sur mobile : liste verticale (suivi détaillé) ou bande horizontale défilante (présentation) */
+  mobile?: 'vertical' | 'scroll';
+}) {
   const state = (i: number) => (i < current ? 'done' : i === current && !stopped ? 'current' : 'todo');
 
   const vertical = (
@@ -35,6 +48,32 @@ export function Stepper({ steps, current, stopped, orientation = 'auto' }: { ste
   );
 
   if (orientation === 'vertical') return vertical;
+
+  const horizontal = (scroll: boolean) => (
+    <ol className={`items-start ${scroll ? 'scrollbar-none -mx-5 flex overflow-x-auto px-5' : 'hidden md:flex'}`}>
+      {steps.map((s, i) => {
+        const st = state(i);
+        return (
+          <li key={s.key} className={`relative flex flex-1 flex-col items-center text-center ${scroll ? 'min-w-[92px]' : ''}`}>
+            {i > 0 && <span className={`absolute right-1/2 top-3 h-0.5 w-full ${i <= current ? 'bg-ink' : 'bg-line'}`} aria-hidden />}
+            <span className="relative z-10">
+              <StepDot state={st} index={i} />
+            </span>
+            <span className={`mt-2.5 px-1 text-[12.5px] font-semibold leading-tight ${st === 'todo' ? 'text-subtle' : 'text-ink'}`}>{s.label}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+
+  if (mobile === 'scroll') {
+    return (
+      <>
+        <div className="md:hidden">{horizontal(true)}</div>
+        {horizontal(false)}
+      </>
+    );
+  }
 
   return (
     <>

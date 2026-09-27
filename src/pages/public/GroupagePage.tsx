@@ -107,7 +107,7 @@ export default function GroupagePage({ id }: { id: string }) {
         <span className="truncate text-ink">{g.code}</span>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
         <div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] border border-line bg-white">
             <img src={images[imageIndex] || PLACEHOLDER_IMAGE} alt={g.title} className="h-full w-full object-cover" />
@@ -130,7 +130,7 @@ export default function GroupagePage({ id }: { id: string }) {
             <h1 className="mt-2 text-[26px] font-semibold leading-tight sm:text-[32px]">{g.product?.name || g.title}</h1>
             {g.description && <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-muted">{g.description}</p>}
             {g.highlights.length > 0 && (
-              <ul className="mt-5 grid gap-2 sm:grid-cols-2">
+              <ul className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {g.highlights.map(h => (
                   <li key={h} className="flex gap-2.5 text-[14px]">
                     <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" /> {h}
@@ -158,7 +158,7 @@ export default function GroupagePage({ id }: { id: string }) {
             )}
           </section>
 
-          <section className="card mt-4 grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+          <section className="card mt-4 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6">
             <Detail icon={<TransportIcon className="h-4 w-4" />} label="Transport" value={TRANSPORT_LABEL[g.transportMode]} />
             <Detail icon={<MapPin className="h-4 w-4" />} label="Trajet" value={g.route || 'Chine → Dakar'} />
             <Detail icon={<CalendarClock className="h-4 w-4" />} label="Date limite de participation" value={formatDate(g.deadline)} />

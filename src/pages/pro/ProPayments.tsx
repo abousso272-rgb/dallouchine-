@@ -102,7 +102,7 @@ export default function ProPayments() {
       </div>
 
       {/* KPI Encaissements */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="card p-5">
           <span className="text-xs font-medium uppercase tracking-wider text-muted">Volume Total Encaissé</span>
           <div className="mt-3">

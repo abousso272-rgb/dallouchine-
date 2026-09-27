@@ -67,7 +67,7 @@ export default function RequestDetailPage({ type, id }: { type: RequestType; id:
         </section>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1fr]">
         <Card>
           <CardTitle>Votre demande</CardTitle>
           {r.description && <p className="mb-4 whitespace-pre-line text-[14px] leading-relaxed text-muted">{r.description}</p>}

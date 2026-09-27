@@ -106,7 +106,7 @@ export default function ProGroupages() {
           <p className="mt-1 text-sm text-muted">Toutes les campagnes sont clôturées ou archivées.</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {groupages.map(g => {
             const pct = Math.min(100, Math.round(((g.reservedQuantity || 0) / (g.targetQuantity || 1)) * 100));
             const isFull = pct >= 100;
@@ -215,7 +215,7 @@ export default function ProGroupages() {
                 <StatusBadge map={GROUPAGE_STATUS} status={selectedGroupage.status} />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-semibold text-muted">Nouveau jalon</label>
                   <select

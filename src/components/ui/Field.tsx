@@ -151,7 +151,7 @@ export function Checkbox({
     <label className={`flex cursor-pointer items-start gap-3 ${disabled ? 'opacity-50' : ''}`}>
       <input
         type="checkbox"
-        className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer rounded-[5px] accent-[#d9412b]"
+        className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer rounded-[5px] accent-[#d9440f]"
         checked={checked}
         disabled={disabled}
         onChange={e => onChange(e.target.checked)}

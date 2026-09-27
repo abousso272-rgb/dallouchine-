@@ -4,6 +4,8 @@ import { useAsync, useDebounced } from '../../lib/hooks';
 import { listVehicles } from '../../services/vehicles';
 import { VehicleCard } from '../../components/commerce/VehicleCard';
 import { VehicleRequestForm } from '../../components/commerce/VehicleRequestForm';
+import { ProductCard } from '../../components/commerce/ProductCard';
+import { listProducts } from '../../services/catalog';
 import { EmptyState, ErrorState } from '../../components/ui/States';
 import { VEHICLE_TYPE_LABEL } from '../../lib/status';
 
@@ -24,6 +26,7 @@ export default function VehiclesPage() {
   const q = useDebounced(search, 350);
   const { data, loading, error, reload } = useAsync(() => listVehicles({ type: type || null, search: q, featuredFirst: true }), [type, q]);
   const items = data?.items || [];
+  const autoProducts = useAsync(() => listProducts({ autoMobilityOnly: true, pageSize: 8 }).then(r => r.items), []);
 
   return (
     <div>
@@ -65,7 +68,7 @@ export default function VehiclesPage() {
         {error ? (
           <ErrorState message={error} onRetry={reload} />
         ) : loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map(i => (
               <div key={i} className="skeleton h-[360px] rounded-[var(--radius-card)]" />
             ))}
@@ -76,7 +79,7 @@ export default function VehiclesPage() {
               {items.length} véhicule{items.length > 1 ? 's' : ''}
               {type ? ` · ${VEHICLE_TYPE_LABEL[type]}` : ''}
             </p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {items.map(v => (
                 <VehicleCard key={v.id} vehicle={v} />
               ))}
@@ -92,7 +95,22 @@ export default function VehiclesPage() {
           </div>
         )}
 
-        <section id="recherche" className="mt-12 grid scroll-mt-24 gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        {(autoProducts.data || []).length > 0 && (
+          <section className="mt-12">
+            <div className="mb-5 flex flex-col gap-1">
+              <p className="eyebrow">Disponibles à l’achat</p>
+              <h2 className="text-[24px] font-semibold sm:text-3xl">Deux-roues & mobilité électrique</h2>
+              <p className="text-[15px] text-muted">Commandez en ligne ces modèles du catalogue, paiement sécurisé et livraison à Dakar.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              {(autoProducts.data || []).map(p => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section id="recherche" className="mt-12 grid grid-cols-1 scroll-mt-24 gap-8 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
             <p className="eyebrow">Recherche personnalisée</p>
             <h2 className="mt-2 text-[26px] font-semibold leading-tight sm:text-3xl">Vous cherchez un véhicule précis ?</h2>

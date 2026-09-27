@@ -58,7 +58,7 @@ export default function AccountRoutes({ path }: { path: string }) {
 
   return (
     <div className="container-page py-6 sm:py-10">
-      <div className="grid gap-6 lg:grid-cols-[230px_1fr] lg:gap-10">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[230px_1fr] lg:gap-10">
         <aside>
           <nav className="scrollbar-none -mx-4 flex gap-1.5 overflow-x-auto px-4 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:gap-0.5 lg:px-0" aria-label="Espace client">
             {NAV.map(item => {

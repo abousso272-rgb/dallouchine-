@@ -3,7 +3,7 @@ import { percent, formatNumber } from '../../lib/format';
 
 export function ProgressBar({ value, max, tone = 'brand', size = 'md' }: { value: number; max: number; tone?: 'brand' | 'ink' | 'jade'; size?: 'sm' | 'md' }) {
   const pct = percent(value, max);
-  const color = tone === 'ink' ? 'bg-ink' : tone === 'jade' ? 'bg-jade' : 'bg-brand';
+  const color = tone === 'ink' ? 'bg-ink' : tone === 'jade' ? 'bg-jade' : 'bg-brand-gradient';
   return (
     <div
       className={`w-full overflow-hidden rounded-full bg-paper-2 ${size === 'sm' ? 'h-1.5' : 'h-2.5'}`}

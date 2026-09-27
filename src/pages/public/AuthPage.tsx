@@ -5,7 +5,7 @@ import { Logo } from '../../components/ui/Logo';
 
 export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   return (
-    <div className="container-page grid gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:items-center">
+    <div className="container-page grid grid-cols-1 gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:items-center">
       <div className="hidden lg:block">
         <Logo />
         <h1 className="mt-8 text-4xl font-semibold leading-tight">Votre espace DALUCHE</h1>

@@ -80,7 +80,7 @@ export default function ProductPage({ slug }: { slug: string }) {
         <span className="truncate text-ink">{product.name}</span>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
         {/* Galerie */}
         <div>
           <div className="relative aspect-square overflow-hidden rounded-[24px] border border-line bg-white">
@@ -177,14 +177,14 @@ export default function ProductPage({ slug }: { slug: string }) {
       </div>
 
       {/* Détails */}
-      <div className="mt-12 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
         <section className="card p-5 sm:p-7">
           <h2 className="text-lg font-semibold">Description</h2>
           <div className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-muted">{product.description || product.shortDescription || 'Description à venir.'}</div>
           {product.features.length > 0 && (
             <>
               <h3 className="mt-7 text-base font-semibold">Points forts</h3>
-              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {product.features.map(f => (
                   <li key={f} className="flex gap-2.5 text-[14px] text-ink">
                     <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" /> {f}

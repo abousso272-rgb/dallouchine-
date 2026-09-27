@@ -85,7 +85,7 @@ export function VehicleRequestForm({ vehicle }: { vehicle?: Vehicle | null }) {
     <form onSubmit={submit} className="space-y-4" noValidate>
       {!vehicle && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Select
               label="Type de véhicule"
               value={type}
@@ -100,7 +100,7 @@ export function VehicleRequestForm({ vehicle }: { vehicle?: Vehicle | null }) {
           <Input label="Budget maximum" inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value.replace(/\D/g, ''))} suffix="FCFA" />
         </>
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input label="Nom complet" required value={name} onChange={e => setName(e.target.value)} error={errors.name} autoComplete="name" />
         <Input label="Téléphone / WhatsApp" required type="tel" value={phone} onChange={e => setPhone(e.target.value)} error={errors.phone} autoComplete="tel" />
         <Input label="Ville de livraison" value={city} onChange={e => setCity(e.target.value)} placeholder="Dakar" />

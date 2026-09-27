@@ -52,7 +52,7 @@ export default function MyGroupagesPage() {
                 </div>
               </div>
               {p.groupage && (
-                <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <GroupageMeter reserved={p.groupage.reservedQuantity} target={p.groupage.targetQuantity} compact />
                   <div className="flex gap-2">
                     {p.status === 'reserved' && p.orderId && (

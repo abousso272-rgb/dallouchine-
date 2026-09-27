@@ -12,8 +12,8 @@ export function PaymentLogos({ className = '' }: { className?: string }) {
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
       {LOGOS.map(l => (
-        <span key={l.alt} className="flex h-8 items-center rounded-lg border border-line bg-white px-2">
-          <img src={l.src} alt={l.alt} className="h-4 w-auto" loading="lazy" />
+        <span key={l.alt} className="flex h-9 items-center rounded-lg border border-line bg-white px-2.5">
+          <img src={l.src} alt={l.alt} className="h-5 w-auto" loading="lazy" />
         </span>
       ))}
     </div>

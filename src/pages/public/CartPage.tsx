@@ -46,7 +46,7 @@ export default function CartPage() {
       <p className="mt-1 text-[15px] text-muted">
         {cartCount} article{cartCount > 1 ? 's' : ''}
       </p>
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <ul className="card divide-y divide-line">
           {cart.map(line => (
             <li key={line.key} className="flex gap-3 p-4 sm:gap-4 sm:p-5">

@@ -103,7 +103,7 @@ export default function ProPage() {
   return (
     <div>
       <section className="bg-ink text-white">
-        <div className="container-page grid gap-10 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="container-page grid grid-cols-1 gap-10 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">DALUCHE Pro · B2B</p>
             <h1 className="mt-3 text-[30px] font-semibold leading-tight text-white sm:text-[44px]">Approvisionnez votre entreprise directement en Chine.</h1>
@@ -136,10 +136,10 @@ export default function ProPage() {
       <div className="container-page py-10">
         <div className="card p-5 sm:p-6">
           <p className="mb-5 text-sm font-semibold">Le parcours d’une commande professionnelle</p>
-          <Stepper steps={B2B_STEPS} current={0} />
+          <Stepper steps={B2B_STEPS} current={0} mobile="scroll" />
         </div>
 
-        <form id="demande-pro" onSubmit={submit} className="mt-8 grid scroll-mt-24 gap-6 lg:grid-cols-[1fr_1.3fr]" noValidate>
+        <form id="demande-pro" onSubmit={submit} className="mt-8 grid grid-cols-1 scroll-mt-24 gap-6 lg:grid-cols-[1fr_1.3fr]" noValidate>
           <section className="card space-y-4 self-start p-5 sm:p-7">
             <div className="flex items-center gap-2.5">
               <Building2 className="h-5 w-5 text-brand" />
@@ -148,7 +148,7 @@ export default function ProPage() {
             <Input label="Entreprise" required value={company} onChange={e => setCompany(e.target.value)} error={errors.company} autoComplete="organization" />
             <Input label="Secteur d’activité" value={sector} onChange={e => setSector(e.target.value)} placeholder="Ex. BTP, distribution, restauration…" />
             <Input label="Nom du contact" required value={contact} onChange={e => setContact(e.target.value)} error={errors.contact} autoComplete="name" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <Input label="Téléphone" required type="tel" value={phone} onChange={e => setPhone(e.target.value)} error={errors.phone} autoComplete="tel" />
               <Input label="Email professionnel" required type="email" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} autoComplete="email" />
             </div>
@@ -165,7 +165,7 @@ export default function ProPage() {
               error={errors.products}
               rows={5}
             />
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input label="Quantité totale" required inputMode="numeric" value={quantity} onChange={e => setQuantity(e.target.value.replace(/\D/g, ''))} error={errors.quantity} suffix="unités" />
               <Input label="Budget indicatif" inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value.replace(/\D/g, ''))} suffix="FCFA" />
             </div>

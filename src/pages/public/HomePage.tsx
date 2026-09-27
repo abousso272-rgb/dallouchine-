@@ -53,13 +53,13 @@ export function HomePage() {
           link={{ to: '/groupages', label: 'Tous les groupages' }}
         />
         {groupages.loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map(i => (
               <div key={i} className="skeleton h-[380px] rounded-[var(--radius-card)]" />
             ))}
           </div>
         ) : openGroupages.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {openGroupages.slice(0, 3).map(g => (
               <GroupageCard key={g.id} groupage={g} />
             ))}
@@ -109,13 +109,13 @@ function Hero({ groupage, openCount }: { groupage?: Groupage; openCount: number 
   return (
     <section className="relative overflow-hidden border-b border-line">
       <div className="route-line pointer-events-none absolute inset-0 opacity-50 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" aria-hidden />
-      <div className="container-page relative grid items-center gap-10 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:py-20">
+      <div className="container-page relative grid grid-cols-1 items-center gap-10 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:py-20">
         <div className="animate-fade-in-up">
           <p className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 text-[12px] font-semibold text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-brand" /> Chine → Afrique de l’Ouest, de l’usine à votre porte
           </p>
           <h1 className="mt-5 text-[38px] font-semibold leading-[1.05] sm:text-5xl lg:text-[58px]">
-            Votre passerelle entre la <span className="text-brand">Chine</span> et l’<span className="text-brand">Afrique</span>.
+            Votre passerelle entre la <span className="text-brand-gradient">Chine</span> et l’<span className="text-brand-gradient">Afrique</span>.
           </h1>
           <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-muted sm:text-lg">
             Achetez des produits sélectionnés, rejoignez des commandes groupées, confiez-nous la recherche de vos fournisseurs et importez véhicules et motos. Nous gérons l’achat, le contrôle et le transport — vous suivez chaque étape.
@@ -248,7 +248,7 @@ function Services() {
   ];
   return (
     <section className="container-page mt-14 sm:mt-20" aria-label="Nos services">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(4,1fr)_1.15fr]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(4,1fr)_1.15fr]">
         {items.map(it => (
           <Link key={it.to} to={it.to} className="group flex flex-col rounded-[var(--radius-card)] border border-line bg-white p-5 transition-shadow hover:shadow-[var(--shadow-soft)]">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-paper-2 text-ink">
@@ -281,7 +281,7 @@ function SourcingBand() {
   return (
     <section className="container-page mt-20 sm:mt-24">
       <div className="overflow-hidden rounded-[28px] border border-line bg-white">
-        <div className="grid lg:grid-cols-[1fr_1.1fr]">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr]">
           <div className="p-6 sm:p-10">
             <p className="eyebrow">Sourcing personnalisé</p>
             <h2 className="mt-3 text-[28px] font-semibold leading-tight sm:text-4xl">Vous ne trouvez pas votre produit ? Nous le trouvons pour vous.</h2>
@@ -297,7 +297,7 @@ function SourcingBand() {
               </Button>
             </div>
           </div>
-          <ol className="grid gap-px bg-line sm:grid-cols-2">
+          <ol className="grid grid-cols-1 gap-px bg-line sm:grid-cols-2">
             {steps.map((s, i) => (
               <li key={s} className="flex flex-col justify-between gap-6 bg-paper p-6 sm:p-7">
                 <span className="num font-display text-[34px] font-semibold leading-none text-brand">0{i + 1}</span>
@@ -345,13 +345,13 @@ function AutomobileSection({ vehicles, loading }: { vehicles: import('../../lib/
         </div>
 
         {loading ? (
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map(i => (
               <div key={i} className="h-[340px] animate-pulse rounded-[var(--radius-card)] bg-white/5" />
             ))}
           </div>
         ) : vehicles.length ? (
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {vehicles.map(v => (
               <VehicleCard key={v.id} vehicle={v} dark />
             ))}
@@ -380,7 +380,7 @@ function HowItWorks() {
   return (
     <section id="fonctionnement" className="container-page scroll-mt-24 pt-20 sm:pt-24" aria-labelledby="home-how">
       <SectionHead eyebrow="Fonctionnement" id="home-how" title="Comment ça marche" text="Un seul interlocuteur, de la commande à la livraison." />
-      <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((s, i) => (
           <li key={s.title} className="relative rounded-[var(--radius-card)] border border-line bg-white p-5">
             <div className="flex items-center justify-between">
@@ -408,8 +408,8 @@ function TrustAndTracking() {
     { icon: PackageSearch, title: 'Suivi transparent', text: 'Statuts, historique et échanges au même endroit.' }
   ];
   return (
-    <section className="container-page mt-20 grid gap-4 sm:mt-24 lg:grid-cols-[1.4fr_1fr]">
-      <div className="grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2">
+    <section className="container-page mt-20 grid grid-cols-1 gap-4 sm:mt-24 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2">
         {perks.map(p => (
           <div key={p.title} className="bg-white p-5 sm:p-6">
             <p.icon className="h-5 w-5 text-brand" />
