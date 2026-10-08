@@ -112,7 +112,9 @@ export class GeniusPayProvider implements PaymentProvider {
           paymentId: params.orderId,
           checkoutUrl: '',
           errorMessage:
-            json?.message || json?.error || `La passerelle de paiement a refusé la demande (HTTP ${response.status}).`
+            response.status >= 500 || response.status === 405 || response.status === 429
+              ? 'GeniusPay est momentanément indisponible. Votre commande est bien enregistrée : relancez le paiement depuis « Mes commandes » dans quelques minutes.'
+              : json?.message || json?.error || `La passerelle de paiement a refusé la demande (HTTP ${response.status}).`
         };
       }
 

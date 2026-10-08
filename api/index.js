@@ -596,7 +596,7 @@ var GeniusPayProvider = class {
           success: false,
           paymentId: params.orderId,
           checkoutUrl: "",
-          errorMessage: json?.message || json?.error || `La passerelle de paiement a refus\xE9 la demande (HTTP ${response.status}).`
+          errorMessage: response.status >= 500 || response.status === 405 || response.status === 429 ? "GeniusPay est momentan\xE9ment indisponible. Votre commande est bien enregistr\xE9e : relancez le paiement depuis \xAB Mes commandes \xBB dans quelques minutes." : json?.message || json?.error || `La passerelle de paiement a refus\xE9 la demande (HTTP ${response.status}).`
         };
       }
       return {

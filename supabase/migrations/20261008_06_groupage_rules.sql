@@ -379,17 +379,17 @@ DECLARE
     'validated', 'Validé', 'supplier_ordered', 'Commandé à l''usine', 'preparing', 'En préparation',
     'shipped', 'Expédié', 'arrived', 'Arrivé', 'completed', 'Terminé', 'cancelled', 'Annulé');
   v_allowed jsonb := jsonb_build_object(
-    'draft', '["open","cancelled"]',
-    'open', '["validated","cancelled","draft"]',
-    'almost_full', '["validated","cancelled"]',
-    'full', '["validated","cancelled"]',
-    'validated', '["supplier_ordered","cancelled"]',
-    'supplier_ordered', '["preparing","shipped"]',
-    'preparing', '["shipped"]',
-    'shipped', '["arrived"]',
-    'arrived', '["completed"]',
-    'completed', '[]',
-    'cancelled', '[]');
+    'draft', '["open","cancelled"]'::jsonb,
+    'open', '["validated","cancelled","draft"]'::jsonb,
+    'almost_full', '["validated","cancelled"]'::jsonb,
+    'full', '["validated","cancelled"]'::jsonb,
+    'validated', '["supplier_ordered","cancelled"]'::jsonb,
+    'supplier_ordered', '["preparing","shipped"]'::jsonb,
+    'preparing', '["shipped"]'::jsonb,
+    'shipped', '["arrived"]'::jsonb,
+    'arrived', '["completed"]'::jsonb,
+    'completed', '[]'::jsonb,
+    'cancelled', '[]'::jsonb);
 BEGIN
   IF NOT (public.is_admin() OR public.manages_groupage(p_groupage_id)) THEN
     RAISE EXCEPTION 'PERMISSION_DENIED' USING ERRCODE = '42501';
