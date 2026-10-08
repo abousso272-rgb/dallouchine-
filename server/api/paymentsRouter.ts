@@ -148,6 +148,31 @@ paymentsRouter.post('/staff-link', requireRole('admin', 'transitaire'), async (r
   }
 });
 
+/** Réseaux mobile money disponibles (équipe) */
+paymentsRouter.get('/networks', requireRole('admin', 'transitaire'), async (_req: Request, res: Response): Promise<void> => {
+  try {
+    res.json({ success: true, networks: await paymentService.listNetworks() });
+  } catch {
+    res.json({ success: true, networks: [] });
+  }
+});
+
+/** POST /api/payments/refund  { orderId, participantId?, networkCode, msisdn } — remboursement automatique (administration) */
+paymentsRouter.post('/refund', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { orderId, participantId, networkCode, msisdn } = req.body || {};
+    if (typeof orderId !== 'string' || typeof networkCode !== 'string' || typeof msisdn !== 'string') {
+      res.status(400).json({ success: false, errorMessage: 'Commande, réseau et numéro requis.' });
+      return;
+    }
+    const result = await paymentService.refundOrder(req.db!, { orderId, participantId: typeof participantId === 'string' ? participantId : undefined, networkCode, msisdn });
+    res.status(result.success ? 200 : result.errorCode === 'ip_not_whitelisted' || result.errorCode === 'payout_not_enabled' ? 409 : 400).json(result);
+  } catch (error: any) {
+    console.error('[payments] refund:', error?.message || error);
+    res.status(500).json({ success: false, errorMessage: 'Erreur interne lors du remboursement.' });
+  }
+});
+
 /** Journal des paiements (administration générale) */
 paymentsRouter.get('/admin/list', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {

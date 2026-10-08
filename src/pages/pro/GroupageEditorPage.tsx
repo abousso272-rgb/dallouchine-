@@ -26,6 +26,7 @@ import { GroupageMeter } from '../../components/ui/Progress';
 import { Button } from '../../components/ui/Button';
 import { Checkbox, Input, Select, Textarea } from '../../components/ui/Field';
 import { Modal } from '../../components/ui/Modal';
+import { RefundModal } from '../../components/pro/RefundModal';
 import { MediaGalleryInput } from '../../components/ui/Uploads';
 import { EmptyState, ErrorState, InlineAlert, PageLoader, Skeleton } from '../../components/ui/States';
 import { Link } from '../../components/ui/Link';
@@ -599,24 +600,21 @@ export default function GroupageEditorPage({ id }: { id: string }) {
         <Textarea label="Motif (envoyé au client)" value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Ex. : doublon, demande du client, coordonnées invalides…" />
       </Modal>
 
-      <Modal
-        open={Boolean(refundTarget)}
-        onClose={() => setRefundTarget(null)}
-        title="Enregistrer le remboursement"
-        description={refundTarget ? `${refundTarget.full_name} · ${formatXOF(refundTarget.total_xof)}` : undefined}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setRefundTarget(null)}>
-              Retour
-            </Button>
-            <Button loading={actionBusy} onClick={confirmRefund}>
-              Confirmer
-            </Button>
-          </>
-        }
-      >
-        <Input label="Référence du remboursement" value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex. ID de transaction Wave / Orange Money" />
-      </Modal>
+      {refundTarget && refundTarget.order_id && (
+        <RefundModal
+          open
+          onClose={() => setRefundTarget(null)}
+          onDone={() => {
+            participants.reload();
+            events.reload();
+          }}
+          orderId={refundTarget.order_id}
+          participantId={refundTarget.participant_id}
+          amountXOF={Number(refundTarget.total_xof)}
+          customerName={refundTarget.full_name}
+          customerPhone={refundTarget.phone || ''}
+        />
+      )}
     </div>
   );
 }

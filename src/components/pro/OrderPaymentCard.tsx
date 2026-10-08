@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Banknote, Copy, Link2, MessageCircle, ReceiptText } from 'lucide-react';
+import { Banknote, Copy, Link2, MessageCircle, ReceiptText, Undo2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAsync } from '../../lib/hooks';
 import { createStaffPaymentLink, type StaffPaymentLink } from '../../lib/api';
@@ -14,6 +14,7 @@ import { Button } from '../ui/Button';
 import { Input, Select, Textarea } from '../ui/Field';
 import { Modal } from '../ui/Modal';
 import { InlineAlert } from '../ui/States';
+import { RefundModal } from './RefundModal';
 
 /**
  * Encaissement d'une commande côté équipe :
@@ -35,6 +36,7 @@ export function OrderPaymentCard({ order, onChanged }: { order: Order; onChanged
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
 
   async function generate() {
     setLinkBusy(true);
@@ -101,6 +103,8 @@ export function OrderPaymentCard({ order, onChanged }: { order: Order; onChanged
         ) : (
           <p className="text-sm text-muted">Paiement confirmé le {order.paidAt ? formatDateTime(order.paidAt) : '—'}.</p>
         )
+      ) : order.paymentStatus === 'refunded' ? (
+        <InlineAlert tone="info">Commande remboursée.</InlineAlert>
       ) : cancelled ? (
         <InlineAlert tone="info">Commande annulée : aucun encaissement possible.</InlineAlert>
       ) : (
@@ -141,6 +145,23 @@ export function OrderPaymentCard({ order, onChanged }: { order: Order; onChanged
           )}
         </div>
       )}
+
+      {paid && isAdmin && (
+        <div className="mt-4 border-t border-dashed border-line pt-4">
+          <Button size="sm" variant="danger" onClick={() => setRefundOpen(true)} icon={<Undo2 className="h-3.5 w-3.5" />}>
+            Rembourser le client…
+          </Button>
+        </div>
+      )}
+      <RefundModal
+        open={refundOpen}
+        onClose={() => setRefundOpen(false)}
+        onDone={onChanged}
+        orderId={order.id}
+        amountXOF={order.totalXOF}
+        customerName={order.customerName}
+        customerPhone={order.customerPhone}
+      />
 
       <Modal
         open={manualOpen}

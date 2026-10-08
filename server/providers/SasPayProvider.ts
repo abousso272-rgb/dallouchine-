@@ -1,7 +1,15 @@
 import crypto from 'crypto';
 import { PaymentProvider, WebhookVerificationResult } from './PaymentProvider';
 import { CreatePaymentSessionParams, CreatePaymentSessionResult, PaymentStatus, ProviderPaymentStatusResult } from '../types/payment';
+import { ProxyAgent } from 'undici';
 import { config } from '../config';
+
+let proxyAgent: ProxyAgent | null = null;
+function proxyDispatcher() {
+  if (!config.saspayProxyUrl) return undefined;
+  if (!proxyAgent) proxyAgent = new ProxyAgent(config.saspayProxyUrl);
+  return proxyAgent;
+}
 
 /**
  * Connecteur SasPay (https://docs.saspay.me).
@@ -22,12 +30,15 @@ export class SasPayProvider implements PaymentProvider {
     return { Authorization: `Bearer ${config.saspaySecretKey}`, 'Content-Type': 'application/json', Accept: 'application/json', ...extra };
   }
 
-  private async call(method: 'GET' | 'POST', path: string, body?: unknown, extraHeaders: Record<string, string> = {}) {
+  private async call(method: 'GET' | 'POST', path: string, body?: unknown, extraHeaders: Record<string, string> = {}, viaFixedIp = false) {
+    const dispatcher = viaFixedIp ? proxyDispatcher() : undefined;
     const res = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers: this.headers(extraHeaders),
       body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(20_000)
+      signal: AbortSignal.timeout(20_000),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(dispatcher ? ({ dispatcher } as any) : {})
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const json: any = await res.json().catch(() => ({}));
@@ -163,6 +174,70 @@ export class SasPayProvider implements PaymentProvider {
       }
     }
     return null;
+  }
+
+  /** Réseaux disponibles (encaissement / envoi) pour un pays, d'après les tarifs du compte. */
+  async listNetworks(country = 'SN'): Promise<{ code: string; name: string; payin: boolean; payout: boolean; otpRequired: boolean; payinPercent?: number }[]> {
+    const r = await this.call('GET', '/pricing/my-rates/');
+    if (!r.res.ok) return [];
+    const rows: any[] = Array.isArray(r.data) ? r.data : Array.isArray(r.data?.results) ? r.data.results : Array.isArray(r.json?.results) ? r.json.results : [];
+    return rows
+      .filter(x => !country || String(x.country_code || '').toUpperCase() === country)
+      .map(x => ({
+        code: String(x.network_code),
+        name: String(x.network_name || x.network_code),
+        payin: Boolean(x.payin?.available ?? x.payin),
+        payout: Boolean(x.payout?.available ?? x.payout),
+        otpRequired: Boolean(x.otp_required),
+        payinPercent: x.payin?.tiers?.[0]?.percent !== undefined ? Number(x.payin.tiers[0].percent) : undefined
+      }));
+  }
+
+  /**
+   * Envoi d'argent (remboursement) vers un compte mobile money. SasPay exige une adresse IP en liste
+   * blanche : l'appel passe par SASPAY_PROXY_URL (relais à IP fixe) s'il est configuré.
+   */
+  async payout(p: {
+    idempotencyKey: string;
+    amount: number;
+    networkCode: string;
+    msisdn: string;
+    customer: { firstName: string; lastName: string; email: string; phone: string };
+    description: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<{ success: boolean; payoutId?: string; errorCode?: string; errorMessage?: string }> {
+    try {
+      const { res, json, data } = await this.call(
+        'POST',
+        '/payouts/initialize/',
+        {
+          amount: Math.round(p.amount).toFixed(2),
+          currency: 'XOF',
+          country: 'SN',
+          method: p.networkCode,
+          recipient: { msisdn: p.msisdn },
+          customer: { email: p.customer.email, first_name: p.customer.firstName, last_name: p.customer.lastName, phone: p.customer.phone },
+          description: p.description,
+          metadata: p.metadata || {},
+          fee_charge_mode: 'ADD_ON'
+        },
+        { 'Idempotency-Key': p.idempotencyKey },
+        true
+      );
+      if (res.ok && (data?.id || json?.id)) return { success: true, payoutId: String(data?.id || json?.id) };
+      const code = json?.error?.code || json?.code || `HTTP_${res.status}`;
+      const messages: Record<string, string> = {
+        ip_not_whitelisted: 'SasPay refuse l’envoi : l’adresse IP du serveur n’est pas autorisée (liste blanche). Configurez un relais à IP fixe ou remboursez depuis le tableau de bord SasPay.',
+        payout_not_enabled: 'Les envois d’argent ne sont pas activés sur votre compte SasPay.',
+        insufficient_balance: 'Solde SasPay insuffisant pour ce remboursement.',
+        invalid_method: 'Réseau mobile money non pris en charge pour l’envoi.',
+        invalid_customer: 'Coordonnées du bénéficiaire invalides.',
+        no_route_available: 'Aucune route disponible actuellement pour ce réseau.'
+      };
+      return { success: false, errorCode: String(code), errorMessage: messages[code] || json?.error?.message || json?.message || `Envoi refusé (HTTP ${res.status}).` };
+    } catch (err) {
+      return { success: false, errorCode: 'UNREACHABLE', errorMessage: 'SasPay est injoignable pour le moment.' };
+    }
   }
 
   async verifyWebhook(rawBody: string | Buffer, headers: Record<string, string | string[] | undefined>): Promise<WebhookVerificationResult> {

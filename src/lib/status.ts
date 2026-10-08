@@ -307,7 +307,9 @@ export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   wave: 'Wave',
   orange_money: 'Orange Money',
   mtn_money: 'MTN MoMo',
-  card: 'Carte bancaire'
+  card: 'Carte bancaire',
+  geniuspay: 'Paiement en ligne',
+  saspay: 'Paiement en ligne'
 };
 
 export const PAYMENT_PROVIDER_LABEL: Record<string, string> = { saspay: 'SasPay', geniuspay: 'GeniusPay', manual: 'Encaissement manuel' };

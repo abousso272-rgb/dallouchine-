@@ -220,6 +220,9 @@ export interface ClientRequest {
   internalNotes: string | null;
   assignedTo: string | null;
   extra: Record<string, string | number | boolean | null>;
+  /** Analyse IA jointe par le client (sourcing) */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  aiAnalysis?: any;
   createdAt: string;
   updatedAt: string;
 }

@@ -66,3 +66,20 @@ export async function createStaffPaymentLink(orderId: string): Promise<StaffPaym
   if (!res.checkoutUrl) throw new AppError('Le lien de paiement n’a pas pu être créé.');
   return res;
 }
+
+export interface PayoutNetwork {
+  code: string;
+  name: string;
+  payin: boolean;
+  payout: boolean;
+}
+
+export async function listPaymentNetworks(): Promise<PayoutNetwork[]> {
+  const res = await apiFetch<{ networks: PayoutNetwork[] }>('/api/payments/networks');
+  return res.networks || [];
+}
+
+/** Administration : remboursement automatique par envoi mobile money (SasPay). */
+export function refundByPayout(input: { orderId: string; participantId?: string; networkCode: string; msisdn: string }) {
+  return apiFetch<{ success: boolean; payoutId?: string; warning?: string }>('/api/payments/refund', { method: 'POST', body: input });
+}

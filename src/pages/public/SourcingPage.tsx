@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, CheckCircle2, FileSearch, Link2, MessageSquareText, ShieldCheck, Wallet } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { submitSourcing } from '../../services/requests';
+import { attachSourcingAnalysis, submitSourcing } from '../../services/requests';
+import { uploadClientFile } from '../../lib/storage';
 import { friendlyError } from '../../lib/db';
 import { Button } from '../../components/ui/Button';
 import { Input, Select, Textarea } from '../../components/ui/Field';
@@ -9,7 +10,7 @@ import { ClientFilesInput } from '../../components/ui/Uploads';
 import { InlineAlert } from '../../components/ui/States';
 import { Stepper } from '../../components/ui/Stepper';
 import { SOURCING_STEPS } from '../../lib/status';
-import { ProductAnalyzer } from '../../components/requests/ProductAnalyzer';
+import { ProductAnalyzer, type AnalyzerContext } from '../../components/requests/ProductAnalyzer';
 import { analysisToNotes, type ProductAnalysis } from '../../services/ai';
 
 export default function SourcingPage() {
@@ -26,27 +27,35 @@ export default function SourcingPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ id: string; code: string } | null>(null);
+  const [analysis, setAnalysis] = useState<ProductAnalysis | null>(null);
+  const analyzerPhotos = useRef<File[]>([]);
+  const touched = useRef<Set<string>>(new Set());
+  const touch = (field: string) => touched.current.add(field);
+  const onPhotosChange = useCallback((files: File[]) => {
+    analyzerPhotos.current = files;
+  }, []);
 
   useEffect(() => {
     if (user && !phone) setPhone(user.phone);
   }, [user, phone]);
 
-  function applyAnalysis(a: ProductAnalysis, ctx: { url?: string }) {
-    setTitle(a.productName);
-    setDescription(prev => prev || a.description);
-    if (ctx.url) setLink(ctx.url);
+  /** Résultat de l'analyse automatique : remplit les champs que le client n'a pas modifiés lui-même. */
+  function applyAnalysis(a: ProductAnalysis, ctx: AnalyzerContext) {
+    setAnalysis(a);
+    if (!touched.current.has('title')) setTitle(a.productName);
+    if (!touched.current.has('description')) setDescription(a.description);
+    if (ctx.url && !touched.current.has('link')) setLink(ctx.url);
     const match = categories.find(c => a.category && c.name.toLowerCase().includes(a.category.toLowerCase().split(' ')[0]));
-    if (match) setCategory(match.name);
-    if (a.listing.moq && !quantity) setQuantity(String(a.listing.moq));
-    setNotes(prev => [prev, analysisToNotes(a)].filter(Boolean).join('\n\n'));
-    toast('success', 'Formulaire prérempli', 'Vérifiez les informations, indiquez la quantité puis envoyez.');
-    document.getElementById('formulaire')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (match && !touched.current.has('category')) setCategory(match.name);
+    if (a.listing.moq && !touched.current.has('quantity')) setQuantity(String(a.listing.moq));
+    if (!touched.current.has('notes')) setNotes(analysisToNotes(a));
+    toast('success', 'Demande préremplie par l’IA', 'Vérifiez, ajustez la quantité puis envoyez.');
   }
 
   function validate() {
     const e: Record<string, string> = {};
     if (title.trim().length < 2) e.title = 'Indiquez le nom du produit recherché.';
-    if (description.trim().length < 10 && images.length === 0 && !link.trim()) e.description = 'Décrivez le produit (au moins quelques mots) ou ajoutez une photo / un lien.';
+    if (description.trim().length < 10 && images.length === 0 && analyzerPhotos.current.length === 0 && !link.trim()) e.description = 'Décrivez le produit (au moins quelques mots) ou ajoutez une photo / un lien.';
     if (!Number(quantity) || Number(quantity) <= 0) e.quantity = 'Quantité requise.';
     if (link.trim() && !/^https?:\/\//i.test(link.trim())) e.link = 'Le lien doit commencer par https://';
     if (user && phone.replace(/\D/g, '').length < 8) e.phone = 'Numéro nécessaire pour vous recontacter.';
@@ -60,12 +69,23 @@ export default function SourcingPage() {
     if (!requireAuth({ reason: 'Créez votre compte (30 s) pour envoyer votre demande et suivre la réponse de notre équipe.', mode: 'register' })) return;
     setSubmitting(true);
     try {
+      // Les photos de l'étape 1 sont jointes à la demande (stockage privé du client)
+      const uploaded: string[] = [];
+      if (user) {
+        for (const f of analyzerPhotos.current.slice(0, Math.max(0, 5 - images.length))) {
+          try {
+            uploaded.push(await uploadClientFile(user.id, f));
+          } catch {
+            /* une photo refusée n'empêche pas l'envoi */
+          }
+        }
+      }
       const res = await submitSourcing({
         title: title.trim(),
         description: description.trim(),
         quantity: Number(quantity),
         productUrl: link.trim() || undefined,
-        images,
+        images: [...uploaded, ...images].slice(0, 5),
         budgetXOF: budget ? Number(budget) : null,
         category: category || undefined,
         notes: notes.trim() || undefined,
@@ -73,8 +93,9 @@ export default function SourcingPage() {
         phone: phone.trim() || user?.phone,
         email: user?.email
       });
+      if (analysis) await attachSourcingAnalysis(res.id, analysis);
       setDone(res);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     } catch (err) {
       toast('error', 'Demande non envoyée', friendlyError(err));
     } finally {
@@ -127,7 +148,7 @@ export default function SourcingPage() {
       </div>
 
       <div className="mt-8">
-        <ProductAnalyzer onUse={applyAnalysis} />
+        <ProductAnalyzer onResult={applyAnalysis} onPhotosChange={onPhotosChange} />
       </div>
 
       <div className="card mt-6 p-5 sm:p-6">
@@ -136,18 +157,22 @@ export default function SourcingPage() {
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
         <form id="formulaire" onSubmit={submit} className="card scroll-mt-24 space-y-5 p-5 sm:p-7" noValidate>
-          <Input label="Produit recherché" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex. Chaises pliantes en métal pour événements" error={errors.title} />
+          <div>
+            <h2 className="text-lg font-bold">2. Détails de la demande</h2>
+            <p className="mt-0.5 text-[13.5px] text-muted">{analysis ? 'Prérempli par l’IA : vérifiez et ajustez si besoin.' : 'Remplis automatiquement après l’analyse, ou à compléter vous-même.'}</p>
+          </div>
+          <Input label="Produit recherché" required value={title} onChange={e => { touch('title'); setTitle(e.target.value); }} placeholder="Ex. Chaises pliantes en métal pour événements" error={errors.title} />
           <Textarea
             label="Description"
             required
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={e => { touch('description'); setDescription(e.target.value); }}
             placeholder="Dimensions, matière, couleur, usage, qualité attendue…"
             error={errors.description}
             rows={4}
           />
           <div>
-            <p className="mb-1.5 text-[13px] font-semibold">Photos ou documents</p>
+            <p className="mb-1.5 text-[13px] font-semibold">Documents complémentaires (facultatif)</p>
             <ClientFilesInput
               userId={user?.id || null}
               value={images}
@@ -155,30 +180,30 @@ export default function SourcingPage() {
               onError={m => toast('error', 'Fichier refusé', m)}
               requireAuth={() => requireAuth({ reason: 'Connectez-vous pour joindre des photos à votre demande.', mode: 'register' })}
             />
-            <p className="mt-1.5 text-[12.5px] text-muted">Jusqu’à 5 fichiers (JPG, PNG, PDF · 10 Mo). Visibles uniquement par vous et notre équipe.</p>
+            <p className="mt-1.5 text-[12.5px] text-muted">Fiche technique, plan, autres photos (JPG, PNG, PDF · 10 Mo). Les photos de l’étape 1 sont jointes automatiquement. Visibles uniquement par vous et notre équipe.</p>
           </div>
           <Input
             label="Lien du produit (Alibaba, 1688, autre)"
             type="url"
             inputMode="url"
             value={link}
-            onChange={e => setLink(e.target.value)}
+            onChange={e => { touch('link'); setLink(e.target.value); }}
             placeholder="https://"
             prefix={<Link2 className="h-4 w-4" />}
             error={errors.link}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input label="Quantité souhaitée" required inputMode="numeric" value={quantity} onChange={e => setQuantity(e.target.value.replace(/\D/g, ''))} placeholder="Ex. 200" error={errors.quantity} />
+            <Input label="Quantité souhaitée" required inputMode="numeric" value={quantity} onChange={e => { touch('quantity'); setQuantity(e.target.value.replace(/\D/g, '')); }} placeholder="Ex. 200" error={errors.quantity} />
             <Input label="Budget total (optionnel)" inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value.replace(/\D/g, ''))} placeholder="Ex. 500000" suffix="FCFA" />
           </div>
           <Select
             label="Catégorie"
             value={category}
-            onChange={e => setCategory(e.target.value)}
+            onChange={e => { touch('category'); setCategory(e.target.value); }}
             placeholder="Choisir (optionnel)"
             options={[...categories.map(c => ({ value: c.name, label: c.name })), { value: 'Autre', label: 'Autre' }]}
           />
-          <Textarea label="Informations complémentaires" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Délai souhaité, personnalisation, destination finale…" rows={3} />
+          <Textarea label="Informations complémentaires" value={notes} onChange={e => { touch('notes'); setNotes(e.target.value); }} placeholder="Délai souhaité, personnalisation, destination finale…" rows={3} />
           {user && (
             <Input
               label="Téléphone / WhatsApp pour vous recontacter"

@@ -17,6 +17,7 @@ import { Link } from '../../components/ui/Link';
 import { QuoteCard } from '../../components/requests/QuoteCard';
 import { MessageThread } from '../../components/requests/MessageThread';
 import { QuoteBuilder } from '../../components/pro/QuoteBuilder';
+import { AiAnalysisCard } from '../../components/pro/AiAnalysisCard';
 
 // Statuts que le personnel peut positionner manuellement (les autres découlent du devis et du paiement)
 const MANUAL_STATUSES: Record<RequestType, string[]> = {
@@ -167,6 +168,29 @@ export default function StaffRequestDetailPage({ type, id }: { type: RequestType
               </div>
             )}
           </Card>
+
+          {r.aiAnalysis && (
+            <AiAnalysisCard
+              analysis={r.aiAnalysis}
+              onAddFinding={async c => {
+                try {
+                  await addFinding(type, r.id, user!.id, {
+                    supplierName: c.supplier || c.title.slice(0, 80),
+                    supplierUrl: c.url,
+                    unitPriceCNY: null,
+                    unitPriceXOF: null,
+                    moq: c.moq ? Number(String(c.moq).replace(/\D/g, '')) || null : null,
+                    leadTimeDays: null,
+                    notes: [c.title, c.price && `Prix affiché : ${c.price}`, 'Trouvé par l’analyse IA'].filter(Boolean).join(' · ')
+                  });
+                  toast('success', 'Ajouté aux résultats fournisseurs');
+                  findings.reload();
+                } catch (err) {
+                  toast('error', 'Ajout impossible', friendlyError(err));
+                }
+              }}
+            />
+          )}
 
           <Card>
             <CardTitle>Résultats fournisseurs (interne)</CardTitle>

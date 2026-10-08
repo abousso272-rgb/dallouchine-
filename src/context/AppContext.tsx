@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useLayoutEffect, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { friendlyError, AppError } from '../lib/db';
@@ -138,27 +138,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   // ---- Navigation
+  // Défilement géré par l'application : haut de page à chaque nouvelle page (instantané, jamais animé),
+  // position d'origine restaurée sur « retour », ancre (#section) respectée.
+  const pendingScroll = useRef<{ top?: number; hash?: string } | null>(null);
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+  }, []);
+
   const navigate = useCallback((to: string, opts: { replace?: boolean; keepScroll?: boolean } = {}) => {
     const url = new URL(to, window.location.origin);
     if (url.origin !== window.location.origin) {
       window.location.assign(to);
       return;
     }
-    if (opts.replace) window.history.replaceState({}, '', url.pathname + url.search + url.hash);
-    else window.history.pushState({}, '', url.pathname + url.search + url.hash);
+    // Mémorise la position de la page quittée (pour le bouton « retour »)
+    window.history.replaceState({ ...(window.history.state || {}), scrollY: window.scrollY }, '');
+    if (opts.replace) window.history.replaceState({ scrollY: opts.keepScroll ? window.scrollY : 0 }, '', url.pathname + url.search + url.hash);
+    else window.history.pushState({ scrollY: 0 }, '', url.pathname + url.search + url.hash);
+    pendingScroll.current = url.hash ? { hash: url.hash.slice(1) } : opts.keepScroll ? null : { top: 0 };
     setLocation({ path: url.pathname, search: url.search });
-    if (url.hash) {
-      window.setTimeout(() => document.getElementById(url.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-    } else if (!opts.keepScroll) {
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    }
   }, []);
 
   useEffect(() => {
-    const onPop = () => setLocation({ path: window.location.pathname, search: window.location.search });
+    const onPop = () => {
+      pendingScroll.current = { top: Number(window.history.state?.scrollY) || 0 };
+      setLocation({ path: window.location.pathname, search: window.location.search });
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
+
+  useLayoutEffect(() => {
+    const target = pendingScroll.current;
+    if (!target) return;
+    pendingScroll.current = null;
+    let frame = 0;
+    let tries = 0;
+    const apply = () => {
+      if (target.hash) {
+        const el = document.getElementById(target.hash);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          return;
+        }
+      } else {
+        const top = target.top || 0;
+        window.scrollTo({ top, left: 0, behavior: 'instant' as ScrollBehavior });
+        // la page (chargée à la demande) peut ne pas être encore assez haute : on réessaie brièvement
+        if (Math.abs(window.scrollY - top) < 2) return;
+      }
+      if (++tries < 40) frame = window.requestAnimationFrame(apply);
+    };
+    apply();
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.path, location.search]);
 
   const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
 

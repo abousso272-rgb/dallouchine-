@@ -21,6 +21,8 @@ export interface ServerConfig {
   saspayFeeMode: 'ADD_ON' | 'DEDUCTED';
   /** Fournisseur utilisé pour les nouveaux paiements */
   paymentProvider: 'saspay' | 'geniuspay';
+  /** Relais HTTP(S) à IP fixe pour les appels SasPay soumis à liste blanche (remboursements). Optionnel. */
+  saspayProxyUrl: string;
 }
 
 // Clé publique du projet Supabase Dallou Chine (non secrète : déjà embarquée dans le front).
@@ -48,6 +50,7 @@ export const config: ServerConfig = {
   saspayWebhookSecret: process.env.SASPAY_WEBHOOK_SECRET || '',
   saspayBaseUrl: (process.env.SASPAY_BASE_URL || 'https://api.saspay.me/api/v1').replace(/\/+$/, ''),
   saspayFeeMode: process.env.SASPAY_FEE_MODE === 'ADD_ON' ? 'ADD_ON' : 'DEDUCTED',
+  saspayProxyUrl: process.env.SASPAY_PROXY_URL || process.env.FIXIE_URL || process.env.QUOTAGUARDSTATIC_URL || '',
   paymentProvider: process.env.PAYMENT_PROVIDER === 'geniuspay' || (!process.env.SASPAY_SECRET_KEY && process.env.PAYMENT_PROVIDER !== 'saspay') ? 'geniuspay' : 'saspay'
 };
 

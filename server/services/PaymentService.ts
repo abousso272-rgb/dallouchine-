@@ -358,6 +358,51 @@ export class PaymentService {
     }));
   }
 
+  /** Réseaux mobile money disponibles sur le compte SasPay (Sénégal). */
+  async listNetworks() {
+    return hasSasPayCredentials ? this.saspay.listNetworks('SN') : [];
+  }
+
+  /**
+   * Remboursement automatique (administration) : envoi SasPay vers le mobile money du client,
+   * puis enregistrement en base (commande ou participation de groupage) avec la référence d'envoi.
+   */
+  async refundOrder(
+    db: SupabaseClient,
+    p: { orderId: string; participantId?: string; networkCode: string; msisdn: string }
+  ): Promise<{ success: boolean; payoutId?: string; errorCode?: string; errorMessage?: string; warning?: string }> {
+    if (!hasSasPayCredentials) return { success: false, errorCode: 'PROVIDER_NOT_CONFIGURED', errorMessage: 'SasPay n’est pas configuré.' };
+    const { data: order, error } = await db
+      .from('orders')
+      .select('id, tracking_code, total_xof, payment_status, customer_name, customer_email, customer_phone')
+      .eq('id', p.orderId)
+      .maybeSingle();
+    if (error || !order) return { success: false, errorCode: 'ORDER_NOT_FOUND', errorMessage: 'Commande introuvable.' };
+    if (order.payment_status !== 'paid') return { success: false, errorCode: 'NOT_REFUNDABLE', errorMessage: 'Seule une commande payée peut être remboursée.' };
+    const msisdn = p.msisdn.replace(/\D/g, '').replace(/^221(?=\d{9}$)/, '');
+    if (!/^\d{9}$/.test(msisdn)) return { success: false, errorCode: 'INVALID_PHONE', errorMessage: 'Numéro mobile money invalide (9 chiffres).' };
+    const [firstName, ...rest] = String(order.customer_name || 'Client').trim().split(/\s+/);
+    const out = await this.saspay.payout({
+      idempotencyKey: `refund_${order.id}`,
+      amount: Number(order.total_xof),
+      networkCode: p.networkCode,
+      msisdn,
+      customer: { firstName: firstName || 'Client', lastName: rest.join(' ') || '-', email: order.customer_email || `client+${String(order.tracking_code).toLowerCase()}@dallouchine.vercel.app`, phone: `+221${msisdn}` },
+      description: `Remboursement commande ${order.tracking_code}`,
+      metadata: { order_id: order.id, participant_id: p.participantId || null }
+    });
+    if (!out.success) return out;
+    const reference = `SasPay ${out.payoutId}`;
+    const { error: markError } = p.participantId
+      ? await db.rpc('admin_mark_participant_refunded', { p_participant_id: p.participantId, p_reference: reference })
+      : await db.rpc('admin_mark_order_refunded', { p_order_id: order.id, p_reference: reference, p_note: null });
+    if (markError) {
+      console.error('[PaymentService] remboursement envoyé mais non enregistré :', markError.message);
+      return { success: true, payoutId: out.payoutId, warning: `Envoi ${out.payoutId} effectué, mais l’enregistrement a échoué : saisissez cette référence manuellement.` };
+    }
+    return { success: true, payoutId: out.payoutId };
+  }
+
   async getGeniusPayBalance() {
     return this.geniuspay.getAccountBalance();
   }

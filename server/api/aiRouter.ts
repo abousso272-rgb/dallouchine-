@@ -17,7 +17,13 @@ aiRouter.post('/analyze-product', requireAuth, async (req: Request, res: Respons
       req.body.image && typeof req.body.image.data === 'string' && typeof req.body.image.mediaType === 'string'
         ? { mediaType: req.body.image.mediaType, data: req.body.image.data }
         : undefined;
-    const analysis = await analyzeProduct({ url, image });
+    const images = Array.isArray(req.body.images)
+      ? req.body.images
+          .filter((i: any) => i && typeof i.data === 'string' && typeof i.mediaType === 'string')
+          .slice(0, 3)
+          .map((i: any) => ({ mediaType: i.mediaType, data: i.data }))
+      : [];
+    const analysis = await analyzeProduct({ url, image, images });
     res.json({ success: true, analysis });
   } catch (err) {
     if (err instanceof AnalysisError) {

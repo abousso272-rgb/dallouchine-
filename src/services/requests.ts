@@ -45,6 +45,7 @@ function mapRequest(type: RequestType, r: any): ClientRequest {
       internalNotes: r.internal_notes || null,
       assignedTo: r.assigned_to || null,
       extra: {},
+      aiAnalysis: r.ai_analysis || null,
       createdAt: r.created_at,
       updatedAt: r.updated_at
     };
@@ -148,6 +149,15 @@ export function submitSourcing(i: SourcingInput) {
     p_client_phone: i.phone || null,
     p_client_email: i.email || null
   });
+}
+
+/** Joint l'analyse IA à la demande de sourcing qui vient d'être envoyée (visible par l'équipe). */
+export async function attachSourcingAnalysis(requestId: string, analysis: unknown) {
+  try {
+    await rpc('attach_sourcing_analysis', { p_request_id: requestId, p_analysis: analysis });
+  } catch {
+    /* facultatif : la demande reste valide sans l'analyse */
+  }
 }
 
 export interface B2BInput {

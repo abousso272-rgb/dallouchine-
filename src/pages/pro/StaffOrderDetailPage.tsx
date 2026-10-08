@@ -226,7 +226,7 @@ export default function StaffOrderDetailPage({ id }: { id: string }) {
                   </p>
                 </div>
               </div>
-              <form onSubmit={addCost} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[160px_150px_1fr_auto] sm:items-end">
+              <form onSubmit={addCost} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end 2xl:grid-cols-[160px_150px_1fr_auto]">
                 <Select label="Type" value={costType} onChange={e => setCostType(e.target.value)} options={Object.entries(COST_TYPE_LABEL).filter(([k]) => k !== 'payment_fee').map(([value, label]) => ({ value, label }))} />
                 <Input label="Montant" inputMode="numeric" value={costAmount} onChange={e => setCostAmount(e.target.value.replace(/\D/g, ''))} suffix="F" />
                 <Input label="Détail" value={costDesc} onChange={e => setCostDesc(e.target.value)} placeholder="Fournisseur, facture…" />

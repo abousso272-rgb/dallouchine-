@@ -23,6 +23,9 @@ export interface ProductAnalysis {
   supplierQuestions: string[];
   warnings: string[];
   confidence: 'low' | 'medium' | 'high';
+  comparables: { title: string; url: string; price: string | null; moq: string | null; supplier: string | null }[];
+  sources: { title: string; url: string }[];
+  webSearchUsed: boolean;
   source: 'image' | 'link' | 'both';
   pageStatus: 'ok' | 'thin' | 'unreachable' | 'not_requested';
 }
@@ -30,7 +33,9 @@ export interface ProductAnalysis {
 /** Réduit la photo (1280 px max, JPEG) avant envoi : plus rapide et sous la limite du serveur. */
 export function prepareImage(file: File): Promise<{ mediaType: string; data: string; previewUrl: string }> {
   return new Promise((resolve, reject) => {
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return reject(new AppError('Format non pris en charge : utilisez une photo JPG, PNG ou WebP.'));
+    // Tout format que le navigateur sait afficher (JPG, PNG, WebP, HEIC sur iPhone…) est converti en JPEG
+    if (file.type && !file.type.startsWith('image/')) return reject(new AppError('Ce fichier n’est pas une image.'));
+    if (file.size > 25 * 1024 * 1024) return reject(new AppError('Photo trop lourde (25 Mo maximum).'));
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
@@ -48,15 +53,16 @@ export function prepareImage(file: File): Promise<{ mediaType: string; data: str
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new AppError('Image illisible.'));
+      reject(new AppError('Format de photo non lisible ici : exportez-la en JPG ou PNG.'));
     };
     img.src = url;
   });
 }
 
-export async function analyzeProduct(input: { url?: string; image?: { mediaType: string; data: string } }): Promise<ProductAnalysis> {
+export async function analyzeProduct(input: { url?: string; images?: { mediaType: string; data: string }[] }): Promise<ProductAnalysis> {
   const res = await apiFetch<{ analysis: ProductAnalysis }>('/api/ai/analyze-product', { method: 'POST', body: input });
-  return res.analysis;
+  const a = res.analysis;
+  return { ...a, comparables: a.comparables || [], sources: a.sources || [], webSearchUsed: Boolean(a.webSearchUsed) };
 }
 
 /** Liens de recherche fournisseurs prêts à ouvrir (recherches publiques, aucune donnée inventée). */
@@ -81,5 +87,6 @@ export function analysisToNotes(a: ProductAnalysis): string {
   const facts = [price && `Prix affiché sur le lien : ${price}`, l.moq != null && `MOQ : ${l.moq}`, l.supplierName && `Fournisseur : ${l.supplierName}`, l.leadTime && `Délai : ${l.leadTime}`].filter(Boolean);
   if (facts.length) lines.push(facts.join(' · '));
   if (a.searchKeywords.zh.length) lines.push(`Mots-clés 1688 : ${a.searchKeywords.zh.join(' / ')}`);
+  if (a.comparables?.length) lines.push(`Offres comparables : ${a.comparables.slice(0, 3).map(c => `${c.title}${c.price ? ` (${c.price})` : ''} ${c.url}`).join(' | ')}`);
   return lines.join('\n');
 }
