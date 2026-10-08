@@ -608,7 +608,7 @@ function TrustAndTracking() {
   const [code, setCode] = React.useState('');
   const perks = [
     { icon: Factory, title: 'Prix usine', text: 'Achat direct fournisseur, sans intermédiaires superflus.' },
-    { icon: ShieldCheck, title: 'Paiement protégé', text: 'Passerelle GeniusPay, confirmation instantanée.' },
+    { icon: ShieldCheck, title: 'Paiement protégé', text: 'Paiement sécurisé, confirmation instantanée.' },
     { icon: BadgeCheck, title: 'Qualité vérifiée', text: 'Contrôle avant expédition, photos sur demande.' },
     { icon: PackageSearch, title: 'Suivi transparent', text: 'Statuts, historique et échanges au même endroit.' }
   ];

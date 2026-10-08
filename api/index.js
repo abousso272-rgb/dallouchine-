@@ -26,10 +26,16 @@ var config = {
   port: parseInt(process.env.PORT || "3000", 10),
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
   anthropicModel: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
-  anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, "")
+  anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, ""),
+  saspaySecretKey: process.env.SASPAY_SECRET_KEY || "",
+  saspayWebhookSecret: process.env.SASPAY_WEBHOOK_SECRET || "",
+  saspayBaseUrl: (process.env.SASPAY_BASE_URL || "https://api.saspay.me/api/v1").replace(/\/+$/, ""),
+  saspayFeeMode: process.env.SASPAY_FEE_MODE === "ADD_ON" ? "ADD_ON" : "DEDUCTED",
+  paymentProvider: process.env.PAYMENT_PROVIDER === "geniuspay" || !process.env.SASPAY_SECRET_KEY && process.env.PAYMENT_PROVIDER !== "saspay" ? "geniuspay" : "saspay"
 };
 var hasServiceRole = Boolean(config.supabaseServiceRoleKey);
 var hasAiProvider = Boolean(config.anthropicApiKey);
+var hasSasPayCredentials = Boolean(config.saspaySecretKey);
 var hasGeniusPayCredentials = Boolean(config.geniusPayApiKey && config.geniusPayApiSecret);
 
 // server/middleware/auth.ts
@@ -517,7 +523,7 @@ shipmentsRouter.post("/:id/events", requireAdmin, async (req, res) => {
 import { Router as Router2 } from "express";
 
 // server/services/PaymentService.ts
-import crypto2 from "crypto";
+import crypto3 from "crypto";
 
 // server/providers/GeniusPayProvider.ts
 import crypto from "crypto";
@@ -840,227 +846,414 @@ var GeniusPayProvider = class {
   }
 };
 
-// server/services/PaymentService.ts
-var PaymentService = class {
-  constructor(customProvider) {
-    this.provider = customProvider || new GeniusPayProvider();
+// server/providers/SasPayProvider.ts
+import crypto2 from "crypto";
+var SasPayProvider = class _SasPayProvider {
+  constructor() {
+    this.name = "saspay";
+  }
+  get baseUrl() {
+    return config.saspayBaseUrl;
+  }
+  headers(extra = {}) {
+    return { Authorization: `Bearer ${config.saspaySecretKey}`, "Content-Type": "application/json", Accept: "application/json", ...extra };
+  }
+  async call(method, path2, body, extraHeaders = {}) {
+    const res = await fetch(`${this.baseUrl}${path2}`, {
+      method,
+      headers: this.headers(extraHeaders),
+      body: body !== void 0 ? JSON.stringify(body) : void 0,
+      signal: AbortSignal.timeout(2e4)
+    });
+    const json = await res.json().catch(() => ({}));
+    return { res, json, data: json?.data ?? json };
+  }
+  static mapStatus(raw) {
+    switch ((raw || "").toUpperCase()) {
+      case "SUCCESS":
+      case "PAID":
+        return "paid";
+      case "FAILED":
+        return "failed";
+      case "CANCELLED":
+      case "CANCELED":
+        return "cancelled";
+      case "EXPIRED":
+        return "expired";
+      default:
+        return "pending";
+    }
+  }
+  async createPaymentSession(params) {
+    const email = params.customer.email || `client+${params.orderCode.toLowerCase()}@dallouchine.vercel.app`;
+    const payload = {
+      amount: Math.round(params.amount).toFixed(2),
+      currency: params.currency || "XOF",
+      description: `${params.description || `Commande ${params.orderCode}`} \xB7 ${params.merchantReference || ""}`.trim(),
+      country: "SN",
+      customer_name: params.customer.name || "Client Dallou Chine",
+      customer_email: email,
+      customer_phone: params.customer.phone || "",
+      return_url: params.returnUrl,
+      expires_at: new Date(Date.now() + 48 * 3600 * 1e3).toISOString(),
+      fee_charge_mode: config.saspayFeeMode,
+      metadata: {
+        order_id: params.orderId,
+        order_code: params.orderCode,
+        merchant_reference: params.merchantReference,
+        user_id: params.userId || null,
+        platform: "dallouchine",
+        ...params.metadata || {}
+      }
+    };
+    try {
+      const { res, json, data } = await this.call("POST", "/checkout-sessions/", payload);
+      if (!res.ok || !data?.checkout_url) {
+        console.warn("[SasPay] cr\xE9ation de session refus\xE9e", res.status, JSON.stringify(json).slice(0, 400));
+        const unavailable = res.status >= 500 || res.status === 429;
+        return {
+          success: false,
+          paymentId: params.orderId,
+          checkoutUrl: "",
+          errorMessage: unavailable ? "Le service de paiement est momentan\xE9ment indisponible. Votre commande est enregistr\xE9e : relancez le paiement depuis \xAB Mes commandes \xBB dans quelques minutes." : res.status === 401 || res.status === 403 ? "Le paiement en ligne est en cours de configuration. Contactez-nous pour finaliser votre commande." : json?.error?.message || json?.message || `Le paiement a \xE9t\xE9 refus\xE9 par la passerelle (HTTP ${res.status}).`
+        };
+      }
+      return {
+        success: true,
+        paymentId: params.orderId,
+        checkoutUrl: data.checkout_url,
+        providerTransactionId: String(data.id),
+        providerReference: params.merchantReference,
+        expiresAt: data.expires_at || payload.expires_at
+      };
+    } catch (err) {
+      console.error("[SasPay] passerelle injoignable:", err?.message);
+      return {
+        success: false,
+        paymentId: params.orderId,
+        checkoutUrl: "",
+        errorMessage: "La passerelle de paiement est momentan\xE9ment inaccessible. R\xE9essayez dans quelques instants."
+      };
+    }
+  }
+  /** Statut certifié d'une session de paiement (identifiant de session SasPay). */
+  async getPaymentStatus(sessionId) {
+    const fallback = { providerTransactionId: sessionId, status: "pending", amount: 0, currency: "XOF" };
+    try {
+      const st = await this.call("GET", `/checkout-sessions/${encodeURIComponent(sessionId)}/status/`);
+      if (!st.res.ok) return fallback;
+      const sessionStatus = String(st.data?.status || "").toUpperCase();
+      const txId = st.data?.transaction_id;
+      if (sessionStatus !== "PAID" || !txId) {
+        return { ...fallback, status: sessionStatus === "EXPIRED" ? "expired" : sessionStatus === "CANCELLED" ? "cancelled" : "pending" };
+      }
+      const tx = await this.verifyTransaction(txId);
+      return tx || fallback;
+    } catch (err) {
+      console.warn("[SasPay] statut indisponible:", err?.message);
+      return fallback;
+    }
+  }
+  /** Relecture d'une transaction d'encaissement auprès de l'API (source de vérité). */
+  async verifyTransaction(txId) {
+    const v = await this.call("GET", `/payments/${encodeURIComponent(txId)}/verify/`);
+    if (!v.res.ok) return null;
+    const d = v.data || {};
+    if (d.flow_direction && String(d.flow_direction).toUpperCase() !== "INBOUND") return null;
+    return {
+      providerTransactionId: String(d.id || txId),
+      status: _SasPayProvider.mapStatus(d.status),
+      amount: Number(d.requested_amount || 0),
+      currency: d.currency || "XOF",
+      paidAt: d.updated_at,
+      netAmount: d.net_amount !== void 0 ? Number(d.net_amount) : void 0,
+      chargedAmount: d.debited_amount !== void 0 ? Number(d.debited_amount) : void 0,
+      feeChargeMode: d.fee_charge_mode,
+      network: typeof d.network === "string" && !/^[0-9a-f-]{36}$/i.test(d.network) ? d.network : void 0,
+      txReference: d.reference,
+      rawResponse: d
+    };
   }
   /**
-   * 1. Initialise une tentative de paiement certifiée et sécurisée
-   * Exécute les 10 vérifications strictes via la fonction PostgreSQL atomique create_payment_attempt.
-   * Le montant serveur fait foi ; aucun montant client n'est accepté.
+   * Retrouve, parmi les sessions payées récemment, celle qui correspond à la transaction :
+   * elle porte notre numéro de commande et notre référence dans ses métadonnées.
+   */
+  async findSessionForTransaction(txId) {
+    const l = await this.call("GET", "/checkout-sessions/?status=PAID&page_size=100");
+    if (!l.res.ok) return null;
+    const rows = Array.isArray(l.json?.results) ? l.json.results : Array.isArray(l.data?.results) ? l.data.results : Array.isArray(l.data) ? l.data : [];
+    for (const s of rows) {
+      const t = typeof s.transaction === "object" && s.transaction ? s.transaction.id : s.transaction;
+      if (t && String(t) === String(txId)) {
+        return { id: String(s.id), orderId: s.metadata?.order_id, merchantReference: s.metadata?.merchant_reference };
+      }
+    }
+    return null;
+  }
+  async verifyWebhook(rawBody, headers) {
+    const raw = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
+    const h = (n) => {
+      const v = headers[n] ?? headers[n.toLowerCase()];
+      return Array.isArray(v) ? v[0] : v;
+    };
+    if (!config.saspayWebhookSecret) return { isValid: false, reason: "SASPAY_WEBHOOK_SECRET non configur\xE9 sur le serveur." };
+    const signature = (h("x-webhook-signature") || "").trim().toLowerCase();
+    const timestamp = h("x-webhook-timestamp") || "";
+    if (!signature || !/^\d{9,11}$/.test(timestamp)) return { isValid: false, reason: "En-t\xEAtes de signature manquants." };
+    if (Math.abs(Date.now() / 1e3 - Number(timestamp)) > 300) return { isValid: false, reason: "Horodatage hors tol\xE9rance (anti-rejeu)." };
+    const expected = crypto2.createHmac("sha256", config.saspayWebhookSecret).update(`${timestamp}.${raw}`).digest("hex");
+    const a = Buffer.from(expected);
+    const b = Buffer.from(signature);
+    if (a.length !== b.length || !crypto2.timingSafeEqual(a, b)) return { isValid: false, reason: "Signature cryptographique invalide." };
+    let payload;
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      return { isValid: false, reason: "Payload JSON malform\xE9." };
+    }
+    const event = String(payload.event || h("x-webhook-event") || "");
+    const data = payload.data || {};
+    const type = String(data.type || "").toUpperCase();
+    const relevant = event.startsWith("transaction.") && (!type || type === "PAYIN" || type === "PAIEMENT");
+    return {
+      isValid: true,
+      eventType: event,
+      eventId: `saspay_${data.id}_${event}`,
+      providerTransactionId: data.id ? String(data.id) : void 0,
+      status: relevant ? _SasPayProvider.mapStatus(event.replace("transaction.", "")) : "pending",
+      amount: Number(data.amount || 0),
+      currency: data.currency || "XOF",
+      rawPayload: payload
+    };
+  }
+};
+
+// server/services/PaymentService.ts
+var PaymentService = class {
+  constructor() {
+    this.geniuspay = new GeniusPayProvider();
+    this.saspay = new SasPayProvider();
+  }
+  /** Fournisseur utilisé pour les nouveaux paiements. */
+  get activeProvider() {
+    return config.paymentProvider;
+  }
+  get isConfigured() {
+    return this.activeProvider === "saspay" ? hasSasPayCredentials : hasGeniusPayCredentials;
+  }
+  providerFor(name) {
+    return name === "saspay" ? this.saspay : this.geniuspay;
+  }
+  baseUrl() {
+    return config.appUrl && !config.appUrl.includes("localhost") ? config.appUrl.replace(/\/+$/, "") : "https://dallouchine.vercel.app";
+  }
+  /**
+   * Crée la tentative de paiement (identité imposée par la base : client connecté, ou équipe pour un lien
+   * de paiement) puis la session chez le fournisseur actif. Le montant vient toujours de la commande en base.
    */
   async createPaymentForOrder(params) {
-    if (!hasGeniusPayCredentials) {
+    if (!this.isConfigured) {
       return {
         success: false,
         errorCode: "PROVIDER_NOT_CONFIGURED",
         errorMessage: "Le paiement en ligne n'est pas encore configur\xE9. Contactez Dallou Chine pour finaliser votre commande."
       };
     }
-    const { data: attemptResult, error: attemptError } = await params.db.rpc("create_payment_attempt_secure", {
-      p_order_id: params.orderId,
-      p_ip: params.clientIp || null,
-      p_user_agent: params.userAgent || null
-    });
-    if (attemptError || !attemptResult?.success) {
-      console.warn("[PaymentService] Payment attempt creation rejected:", attemptError || attemptResult);
+    const provider = this.activeProvider;
+    const { data: attempt, error: attemptError } = params.asStaff ? await params.db.rpc("staff_create_payment_attempt", { p_order_id: params.orderId, p_provider: provider, p_ip: params.clientIp || null, p_user_agent: params.userAgent || null }) : await params.db.rpc("create_payment_attempt_secure", { p_order_id: params.orderId, p_ip: params.clientIp || null, p_user_agent: params.userAgent || null, p_provider: provider });
+    if (attemptError || !attempt?.success) {
+      console.warn("[PaymentService] tentative refus\xE9e :", attemptError?.message || attempt?.error_code);
       return {
         success: false,
-        errorCode: attemptResult?.error_code || "ATTEMPT_CREATION_FAILED",
-        errorMessage: attemptResult?.error_message || attemptError?.message || "Impossible d'initialiser la tentative de paiement."
+        errorCode: attempt?.error_code || "ATTEMPT_CREATION_FAILED",
+        errorMessage: attempt?.error_message || attemptError?.message || "Impossible d'initialiser la tentative de paiement."
       };
     }
-    console.log("[PaymentService] Payment attempt initiated in Supabase:", {
-      orderId: attemptResult.order_id,
-      trackingCode: attemptResult.tracking_code,
-      merchantReference: attemptResult.merchant_reference,
-      amount: attemptResult.amount_xof
-    });
-    const defaultAppUrl = config.appUrl && !config.appUrl.includes("localhost") ? config.appUrl.replace(/\/+$/, "") : "https://dallouchine.vercel.app";
-    const returnUrl = params.returnUrl || `${defaultAppUrl}/paiement/retour?orderId=${attemptResult.order_id}`;
-    const cancelUrl = params.cancelUrl || `${defaultAppUrl}/paiement/retour?orderId=${attemptResult.order_id}&cancelled=1`;
-    const sessionResult = await this.provider.createPaymentSession({
-      orderId: attemptResult.order_id,
-      orderCode: attemptResult.tracking_code,
+    const base = this.baseUrl();
+    const returnUrl = params.returnUrl || `${base}/paiement/retour?orderId=${attempt.order_id}`;
+    const cancelUrl = params.cancelUrl || `${base}/paiement/retour?orderId=${attempt.order_id}&cancelled=1`;
+    const session = await this.providerFor(provider).createPaymentSession({
+      orderId: attempt.order_id,
+      orderCode: attempt.tracking_code,
       userId: params.userId,
-      merchantReference: attemptResult.merchant_reference,
-      amount: attemptResult.amount_xof,
-      currency: attemptResult.currency || "XOF",
+      merchantReference: attempt.merchant_reference,
+      amount: attempt.amount_xof,
+      currency: attempt.currency || "XOF",
       paymentMethod: params.paymentMethod,
-      description: `Commande ${attemptResult.tracking_code} - Dallou Chine`,
-      customer: {
-        name: attemptResult.customer_name || "Client Dallou Chine",
-        email: attemptResult.customer_email || "",
-        phone: attemptResult.customer_phone || ""
-      },
+      description: `Commande ${attempt.tracking_code} - Dallou Chine`,
+      customer: { name: attempt.customer_name || "Client Dallou Chine", email: attempt.customer_email || "", phone: attempt.customer_phone || "" },
       returnUrl,
       cancelUrl,
-      metadata: {
-        payment_id: attemptResult.payment_id,
-        attempt_id: attemptResult.attempt_id,
-        merchant_reference: attemptResult.merchant_reference
-      }
+      metadata: { payment_id: attempt.payment_id, attempt_id: attempt.attempt_id }
     });
-    if (!sessionResult.success || !sessionResult.checkoutUrl) {
-      console.error("[PaymentService] Provider session creation failed:", sessionResult.errorMessage);
-      return {
-        success: false,
-        errorCode: "PROVIDER_SESSION_FAILED",
-        errorMessage: sessionResult.errorMessage || "Le paiement n'a pas pu \xEAtre initialis\xE9 aupr\xE8s de la passerelle GeniusPay."
-      };
+    if (!session.success || !session.checkoutUrl) {
+      console.error("[PaymentService] session refus\xE9e :", session.errorMessage);
+      return { success: false, errorCode: "PROVIDER_SESSION_FAILED", errorMessage: session.errorMessage || "Le paiement n'a pas pu \xEAtre initialis\xE9." };
     }
     const { error: attachError } = await params.db.rpc("attach_payment_checkout", {
-      p_payment_id: attemptResult.payment_id,
-      p_attempt_id: attemptResult.attempt_id,
-      p_checkout_url: sessionResult.checkoutUrl,
-      p_provider_payment_id: sessionResult.providerTransactionId || null,
-      p_provider_reference: sessionResult.providerReference || attemptResult.merchant_reference
+      p_payment_id: attempt.payment_id,
+      p_attempt_id: attempt.attempt_id,
+      p_checkout_url: session.checkoutUrl,
+      p_provider_payment_id: session.providerTransactionId || null,
+      p_provider_reference: session.providerReference || attempt.merchant_reference
     });
     if (attachError) console.warn("[PaymentService] attach_payment_checkout:", attachError.message);
     return {
       success: true,
-      checkoutUrl: sessionResult.checkoutUrl,
-      paymentId: attemptResult.payment_id,
-      attemptId: attemptResult.attempt_id,
-      merchantReference: attemptResult.merchant_reference,
-      providerTransactionId: sessionResult.providerTransactionId,
-      amount: attemptResult.amount_xof,
-      currency: "XOF"
+      checkoutUrl: session.checkoutUrl,
+      paymentId: attempt.payment_id,
+      attemptId: attempt.attempt_id,
+      merchantReference: attempt.merchant_reference,
+      providerTransactionId: session.providerTransactionId,
+      provider,
+      amount: attempt.amount_xof,
+      currency: "XOF",
+      orderCode: attempt.tracking_code,
+      customerName: attempt.customer_name,
+      customerPhone: attempt.customer_phone
     };
   }
+  // -------------------------------------------------------------------------------------------
+  // Confirmations
+  // -------------------------------------------------------------------------------------------
   /**
-   * 2. Traitement sécurisé, transactionnel et idempotent des Webhooks GeniusPay
-   * Valide la signature cryptographique sur le payload brut, compare les montants au centime près,
-   * garantit l'idempotence et applique les transitions d'état en une seule transaction PostgreSQL.
+   * Transmet à la base un événement de paiement dont les données ont été relues auprès de l'API du
+   * fournisseur. L'événement est signé avec le secret partagé (stocké dans Vault côté base) : seul le
+   * serveur peut donc marquer une commande payée.
    */
-  async handleWebhook(rawBody, headers) {
-    console.log("[PaymentService] Processing incoming webhook...");
-    const supabase = getSupabaseServerClient();
-    const verification = await this.provider.verifyWebhook(rawBody, headers);
+  async confirmInDatabase(provider, tx, orderId, merchantReference, eventId) {
+    const secret = provider === "saspay" ? config.saspayWebhookSecret : "";
+    if (!secret) return { ok: false, error: "Secret de signature non configur\xE9." };
+    const body = JSON.stringify({
+      id: eventId,
+      event: `transaction.${tx.status}`,
+      data: {
+        transaction: {
+          id: tx.providerTransactionId,
+          reference: merchantReference || "",
+          amount: tx.amount,
+          currency: tx.currency || "XOF",
+          status: tx.status,
+          net_amount: tx.netAmount,
+          charged: tx.chargedAmount,
+          fee_charge_mode: tx.feeChargeMode,
+          network: tx.network,
+          tx_reference: tx.txReference,
+          metadata: { order_id: orderId || "" }
+        }
+      }
+    });
+    const timestamp = String(Math.floor(Date.now() / 1e3));
+    const signature = crypto3.createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
+    const { data, error } = await getSupabaseServerClient().rpc("payment_ingest", { p_provider: provider, p_raw_body: body, p_signature: signature, p_timestamp: timestamp });
+    if (error) return { ok: false, error: error.message };
+    return { ok: Boolean(data?.success), result: data };
+  }
+  /**
+   * Notification SasPay : signature vérifiée, puis transaction relue auprès de l'API, retrouvée
+   * dans les sessions payées (métadonnées = notre commande) et confirmée en base.
+   */
+  async handleSasPayWebhook(rawBody, headers) {
+    const verification = await this.saspay.verifyWebhook(rawBody, headers);
     if (!verification.isValid) {
-      console.warn("[PaymentService] Webhook rejected (invalid signature):", verification.reason);
-      return {
-        status: 400,
-        errorCode: "INVALID_SIGNATURE",
-        message: verification.reason || "Signature de webhook invalide."
-      };
+      console.warn("[PaymentService] webhook SasPay rejet\xE9 :", verification.reason);
+      return { status: 400, errorCode: "INVALID_SIGNATURE", message: verification.reason || "Signature invalide." };
+    }
+    if (!verification.providerTransactionId || verification.status === "pending") {
+      return { status: 200, message: "\xC9v\xE9nement ignor\xE9." };
+    }
+    const tx = await this.saspay.verifyTransaction(verification.providerTransactionId);
+    if (!tx) return { status: 502, errorCode: "VERIFY_FAILED", message: "Transaction introuvable chez le fournisseur : nouvelle tentative attendue." };
+    if (tx.status === "pending") return { status: 200, message: "Transaction encore en cours." };
+    const session = await this.saspay.findSessionForTransaction(tx.providerTransactionId);
+    const description = tx.rawResponse?.description || "";
+    const merchantReference = session?.merchantReference || description.match(/DALLOU-\d{6}-[A-Z0-9]{8}/)?.[0];
+    if (!session?.orderId && !merchantReference) {
+      console.warn("[PaymentService] transaction SasPay sans commande associ\xE9e :", tx.providerTransactionId);
+      return { status: 404, errorCode: "ORDER_NOT_FOUND", message: "Aucune commande associ\xE9e \xE0 cette transaction." };
+    }
+    const confirmed = await this.confirmInDatabase("saspay", tx, session?.orderId, merchantReference, `saspay_${tx.providerTransactionId}_${tx.status}`);
+    if (!confirmed.ok) {
+      const code = confirmed.result?.error_code;
+      console.warn("[PaymentService] confirmation SasPay refus\xE9e :", code || confirmed.error);
+      return { status: code === "AMOUNT_MISMATCH" ? 422 : code === "PAYMENT_ATTEMPT_NOT_FOUND" ? 404 : 400, errorCode: code, message: "Confirmation refus\xE9e par la base." };
+    }
+    return { status: 200, message: "Webhook trait\xE9 avec succ\xE8s.", data: confirmed.result };
+  }
+  /** Webhook GeniusPay (conservé pour les paiements déjà en cours chez cet ancien fournisseur). */
+  async handleWebhook(rawBody, headers) {
+    const supabase = getSupabaseServerClient();
+    const verification = await this.geniuspay.verifyWebhook(rawBody, headers);
+    if (!verification.isValid) {
+      console.warn("[PaymentService] webhook GeniusPay rejet\xE9 :", verification.reason);
+      return { status: 400, errorCode: "INVALID_SIGNATURE", message: verification.reason || "Signature de webhook invalide." };
     }
     const rawString = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
     const header = (name) => {
       const v = headers[name];
       return Array.isArray(v) ? v[0] : v;
     };
-    let { data: rpcResult, error: rpcError } = await supabase.rpc("geniuspay_ingest", {
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("geniuspay_ingest", {
       p_raw_body: rawString,
       p_signature: header("x-webhook-signature") || header("x-geniuspay-signature") || header("x-signature") || header("signature") || "",
       p_timestamp: header("x-webhook-timestamp") || header("x-geniuspay-timestamp") || header("x-timestamp") || header("timestamp") || null,
       p_event_header: header("x-webhook-event") || header("x-geniuspay-event") || null
     });
-    if (!rpcError && rpcResult?.error_code === "SECRET_NOT_CONFIGURED") {
-      console.warn("[PaymentService] Secret Vault absent : traitement via process_geniuspay_webhook" + (hasServiceRole ? "" : " (cl\xE9 publique, \xE0 s\xE9curiser)"));
-      ({ data: rpcResult, error: rpcError } = await supabase.rpc("process_geniuspay_webhook", {
-        p_event_id: verification.eventId || null,
-        p_event_type: verification.eventType || "payment_intent.confirmed",
-        p_provider_payment_id: verification.providerTransactionId || null,
-        p_merchant_reference: verification.providerReference || null,
-        p_order_id: verification.orderId || null,
-        p_status: verification.status || "paid",
-        p_amount_xof: verification.amount,
-        p_currency: verification.currency || "XOF",
-        p_payload: verification.rawPayload || {},
-        p_signature_verified: true
-      }));
-    }
     if (rpcError) {
-      console.error("[PaymentService] PostgreSQL transaction error during webhook processing:", rpcError);
-      return {
-        status: 500,
-        message: "Erreur interne de base de donn\xE9es lors du traitement du webhook."
-      };
+      console.error("[PaymentService] erreur base (webhook GeniusPay):", rpcError);
+      return { status: 500, message: "Erreur interne de base de donn\xE9es lors du traitement du webhook." };
     }
-    if (rpcResult.already_processed || rpcResult.ignored) {
-      console.log(`[PaymentService] [Idempotence] Event ${verification.eventId} was already processed.`);
-      return {
-        status: 200,
-        message: "\xC9v\xE9nement d\xE9j\xE0 trait\xE9 avec succ\xE8s (idempotence).",
-        data: rpcResult
-      };
-    }
+    if (rpcResult.already_processed || rpcResult.ignored) return { status: 200, message: "\xC9v\xE9nement d\xE9j\xE0 trait\xE9 ou ignor\xE9.", data: rpcResult };
     if (!rpcResult.success) {
       const code = rpcResult.error_code;
-      console.warn("[PaymentService] [Security Rejection] Webhook validation failed in database:", {
-        errorCode: code,
-        errorMessage: rpcResult.error_message
-      });
-      let statusCode = 400;
-      if (code === "AMOUNT_MISMATCH" || code === "REFERENCE_MISMATCH" || code === "CURRENCY_MISMATCH") {
-        statusCode = 422;
-      } else if (code === "PAYMENT_ATTEMPT_NOT_FOUND" || code === "ORDER_NOT_FOUND") {
-        statusCode = 404;
-      } else if (code === "ORDER_CANCELLED") {
-        statusCode = 409;
-      }
-      return {
-        status: statusCode,
-        errorCode: code,
-        message: rpcResult.error_message || "\xC9chec de traitement du webhook.",
-        data: rpcResult
-      };
+      const statusCode = ["AMOUNT_MISMATCH", "REFERENCE_MISMATCH", "CURRENCY_MISMATCH"].includes(code) ? 422 : ["PAYMENT_ATTEMPT_NOT_FOUND", "ORDER_NOT_FOUND"].includes(code) ? 404 : code === "ORDER_CANCELLED" ? 409 : 400;
+      return { status: statusCode, errorCode: code, message: rpcResult.error_message || "\xC9chec de traitement du webhook.", data: rpcResult };
     }
-    console.log(`[PaymentService] [payment_confirmed] Order ${rpcResult.tracking_code} payment status updated to: ${rpcResult.payment_status}`);
-    return {
-      status: 200,
-      message: "Webhook trait\xE9 avec succ\xE8s.",
-      data: rpcResult
-    };
+    return { status: 200, message: "Webhook trait\xE9 avec succ\xE8s.", data: rpcResult };
   }
-  /**
-   * 3. Récupération et synchronisation certifiée du statut d'un paiement
-   * La source de vérité est la base de données PostgreSQL certifiée.
-   */
-  async getPaymentStatus(db, paymentIdOrOrderId) {
-    const { data, error } = await db.rpc("get_my_order_payment", { p_order_id: paymentIdOrOrderId });
-    if (error || !data || !data.found) {
-      return { found: false };
-    }
+  // -------------------------------------------------------------------------------------------
+  // Statut
+  // -------------------------------------------------------------------------------------------
+  /** Statut d'un paiement (propriétaire ou équipe, contrôlé en base) ; synchronise les paiements en attente. */
+  async getPaymentStatus(db, orderRef) {
+    const { data, error } = await db.rpc("get_my_order_payment", { p_order_id: orderRef });
+    if (error || !data || !data.found) return { found: false };
+    const provider = data.payment?.provider || "geniuspay";
     const ref = data.payment?.provider_payment_id || data.payment?.provider_reference;
-    if (data.order && data.order.payment_status !== "paid" && ref && config.geniusPayWebhookSecret) {
+    if (data.order && data.order.payment_status !== "paid" && ref) {
       try {
-        const provStatus = await this.provider.getPaymentStatus(ref);
-        if (provStatus && provStatus.status === "paid" && provStatus.amount > 0) {
-          const body = JSON.stringify({
-            id: `sync_${provStatus.providerTransactionId || ref}_paid`,
-            event: "payment.success",
-            data: {
-              transaction: {
-                id: provStatus.providerTransactionId || ref,
-                reference: data.payment?.provider_reference || ref,
-                amount: provStatus.amount,
-                currency: provStatus.currency || "XOF",
-                status: "completed",
-                metadata: { order_id: data.order.id }
+        if (provider === "saspay" && config.saspayWebhookSecret) {
+          const tx = await this.saspay.getPaymentStatus(ref);
+          if (tx.status !== "pending" && tx.amount > 0) {
+            const merchantReference = data.payment?.provider_reference || data.attempt?.merchant_reference;
+            const done = await this.confirmInDatabase("saspay", tx, data.order.id, merchantReference, `saspay_${tx.providerTransactionId}_${tx.status}`);
+            if (done.ok && tx.status === "paid") {
+              data.order.payment_status = "paid";
+              if (data.payment) {
+                data.payment.status = "paid";
+                data.payment.paid_at = tx.paidAt || (/* @__PURE__ */ new Date()).toISOString();
               }
             }
-          });
-          const timestamp = String(Math.floor(Date.now() / 1e3));
-          const signature = crypto2.createHmac("sha256", config.geniusPayWebhookSecret).update(`${timestamp}.${body}`).digest("hex");
-          const { data: synced } = await getSupabaseServerClient().rpc("geniuspay_ingest", {
-            p_raw_body: body,
-            p_signature: signature,
-            p_timestamp: timestamp,
-            p_event_header: "payment.success"
-          });
-          if (synced?.success && !synced.ignored) {
-            data.order.payment_status = "paid";
-            if (data.payment) {
-              data.payment.status = "paid";
-              data.payment.paid_at = provStatus.paidAt || (/* @__PURE__ */ new Date()).toISOString();
+          }
+        } else if (provider === "geniuspay" && config.geniusPayWebhookSecret) {
+          const prov = await this.geniuspay.getPaymentStatus(ref);
+          if (prov.status === "paid" && prov.amount > 0) {
+            const body = JSON.stringify({
+              id: `sync_${prov.providerTransactionId || ref}_paid`,
+              event: "payment.success",
+              data: { transaction: { id: prov.providerTransactionId || ref, reference: data.payment?.provider_reference || ref, amount: prov.amount, currency: prov.currency || "XOF", status: "completed", metadata: { order_id: data.order.id } } }
+            });
+            const timestamp = String(Math.floor(Date.now() / 1e3));
+            const signature = crypto3.createHmac("sha256", config.geniusPayWebhookSecret).update(`${timestamp}.${body}`).digest("hex");
+            const { data: synced } = await getSupabaseServerClient().rpc("geniuspay_ingest", { p_raw_body: body, p_signature: signature, p_timestamp: timestamp, p_event_header: "payment.success" });
+            if (synced?.success && !synced.ignored) {
+              data.order.payment_status = "paid";
+              if (data.payment) data.payment.status = "paid";
             }
           }
         }
-      } catch (syncErr) {
-        console.warn("[PaymentService] Synchronisation GeniusPay :", syncErr.message || syncErr);
+      } catch (err) {
+        console.warn("[PaymentService] synchronisation :", err?.message || err);
       }
     }
     return {
@@ -1068,14 +1261,13 @@ var PaymentService = class {
       payment: data.payment ? {
         id: data.payment.id,
         orderId: data.payment.order_id,
-        orderCode: data.order?.tracking_code || "AWP-N/A",
+        orderCode: data.order?.tracking_code || "",
         amount: Number(data.payment.amount),
         currency: data.payment.currency,
         status: data.payment.status,
         paymentMethod: data.payment.payment_method,
         provider: data.payment.provider,
-        providerTransactionId: data.payment.provider_transaction_id,
-        providerReference: data.payment.provider_reference,
+        checkoutUrl: data.payment.status === "pending" ? data.payment.checkout_url : void 0,
         paidAt: data.payment.paid_at,
         createdAt: data.payment.created_at,
         updatedAt: data.payment.updated_at
@@ -1093,27 +1285,26 @@ var PaymentService = class {
       } : void 0
     };
   }
-  /**
-   * 4. Journal des paiements pour l'administration
-   */
+  /** Journal des paiements pour l'administration (RLS : administrateurs uniquement). */
   async getAdminPayments(db) {
-    const { data, error } = await db.from("payments").select("*, orders(tracking_code, customer_name, customer_email, total_xof)").order("created_at", { ascending: false });
-    if (error || !data) {
-      return [];
-    }
+    const { data, error } = await db.from("payments").select("*, orders(tracking_code, customer_name, customer_email, total_xof)").order("created_at", { ascending: false }).limit(1e3);
+    if (error || !data) return [];
     return data.map((d) => ({
       id: d.id,
       orderId: d.order_id,
-      orderCode: d.orders?.tracking_code || d.metadata?.order_code || "AWP-N/A",
+      orderCode: d.orders?.tracking_code || d.metadata?.order_code || "",
       userId: d.user_id,
       provider: d.provider,
-      providerTransactionId: d.provider_payment_id || d.provider_transaction_id,
-      providerReference: d.provider_reference,
+      providerTransactionId: d.provider_payment_id || void 0,
+      providerReference: d.provider_reference || void 0,
       amount: Number(d.amount_xof),
+      feeXOF: Number(d.fee_xof || 0),
+      netXOF: d.net_xof !== null && d.net_xof !== void 0 ? Number(d.net_xof) : null,
+      feeChargeMode: d.fee_charge_mode,
+      network: d.network,
       currency: d.currency,
       status: d.status,
       paymentMethod: d.payment_method,
-      checkoutUrl: d.checkout_url,
       customerName: d.customer_name || d.orders?.customer_name || "",
       customerEmail: d.customer_email || d.orders?.customer_email || "",
       customerPhone: d.customer_phone || "",
@@ -1122,23 +1313,11 @@ var PaymentService = class {
       updatedAt: d.updated_at
     }));
   }
-  /**
-   * 5. Consultation du solde marchand GeniusPay (GET /account/balance)
-   */
   async getGeniusPayBalance() {
-    if (this.provider instanceof GeniusPayProvider) {
-      return await this.provider.getAccountBalance();
-    }
-    return { success: false, error: "Fournisseur GeniusPay non actif" };
+    return this.geniuspay.getAccountBalance();
   }
-  /**
-   * 6. Consultation des informations du compte marchand GeniusPay (GET /account)
-   */
   async getGeniusPayAccount() {
-    if (this.provider instanceof GeniusPayProvider) {
-      return await this.provider.getAccountInfo();
-    }
-    return { success: false, error: "Fournisseur GeniusPay non actif" };
+    return this.geniuspay.getAccountInfo();
   }
 };
 var paymentService = new PaymentService();
@@ -1216,6 +1395,45 @@ var handleGeniusPayWebhookRoute = async (req, res) => {
   }
 };
 paymentsRouter.post("/webhooks/geniuspay", handleGeniusPayWebhookRoute);
+var handleSasPayWebhookRoute = async (req, res) => {
+  try {
+    const rawBody = req.rawBody || JSON.stringify(req.body);
+    const result = await paymentService.handleSasPayWebhook(rawBody, req.headers);
+    res.status(result.status).json(result);
+  } catch (error) {
+    console.error("[payments] webhook saspay:", error?.message || error);
+    res.status(500).json({ status: 500, message: "Erreur interne lors du traitement du webhook." });
+  }
+};
+paymentsRouter.post("/webhooks/saspay", handleSasPayWebhookRoute);
+paymentsRouter.post("/staff-link", requireRole("admin", "transitaire"), async (req, res) => {
+  try {
+    const orderId = req.body.orderId;
+    if (!orderId || typeof orderId !== "string") {
+      res.status(400).json({ success: false, errorCode: "MISSING_ORDER_ID", errorMessage: "Identifiant de commande manquant." });
+      return;
+    }
+    const base = appBaseUrl(req);
+    const result = await paymentService.createPaymentForOrder({
+      db: req.db,
+      orderId,
+      asStaff: true,
+      clientIp: req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.socket.remoteAddress,
+      userAgent: req.headers["user-agent"],
+      returnUrl: `${base}/paiement/retour?orderId=${encodeURIComponent(orderId)}`,
+      cancelUrl: `${base}/paiement/retour?orderId=${encodeURIComponent(orderId)}&cancelled=1`
+    });
+    if (!result.success) {
+      const code = result.errorCode;
+      res.status(code === "ALREADY_PAID" || code === "ORDER_CANCELLED" ? 409 : code === "PROVIDER_NOT_CONFIGURED" ? 503 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error) {
+    console.error("[payments] staff-link:", error?.message || error);
+    res.status(500).json({ success: false, errorCode: "INTERNAL_ERROR", errorMessage: "Erreur lors de la cr\xE9ation du lien de paiement." });
+  }
+});
 paymentsRouter.get("/admin/list", requireAdmin, async (req, res) => {
   try {
     const payments = await paymentService.getAdminPayments(req.db);
@@ -1603,9 +1821,10 @@ function createApiApp() {
     res.json({
       status: "online",
       service: "Dallou Chine API",
-      gateway: "GeniusPay",
-      paymentsConfigured: hasGeniusPayCredentials,
-      paymentsEnvironment: config.geniusPayEnvironment,
+      gateway: config.paymentProvider === "saspay" ? "SasPay" : "GeniusPay",
+      paymentProvider: config.paymentProvider,
+      paymentsConfigured: config.paymentProvider === "saspay" ? hasSasPayCredentials && Boolean(config.saspayWebhookSecret) : hasGeniusPayCredentials,
+      paymentsEnvironment: config.paymentProvider === "saspay" ? config.saspaySecretKey.startsWith("sk_live_") ? "production" : "sandbox" : config.geniusPayEnvironment,
       serviceRoleConfigured: hasServiceRole,
       aiConfigured: hasAiProvider,
       timestamp: (/* @__PURE__ */ new Date()).toISOString()

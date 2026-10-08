@@ -27,10 +27,14 @@ export interface PaymentItem {
   orderId: string;
   orderCode: string;
   userId?: string;
-  provider: 'geniuspay' | 'mock_sandbox';
+  provider: 'geniuspay' | 'saspay' | 'manual' | 'mock_sandbox';
   providerTransactionId?: string;
   providerReference?: string;
   amount: number;
+  feeXOF?: number;
+  netXOF?: number | null;
+  feeChargeMode?: string | null;
+  network?: string | null;
   currency: 'XOF' | 'USD' | 'EUR';
   status: PaymentStatus;
   paymentMethod?: string;
@@ -118,6 +122,14 @@ export interface ProviderPaymentStatusResult {
   paymentMethod?: string;
   paidAt?: string;
   rawResponse?: any;
+  /** Détails comptables (si fournis par la passerelle) */
+  netAmount?: number;
+  chargedAmount?: number;
+  feeChargeMode?: string;
+  network?: string;
+  txReference?: string;
+  merchantReference?: string;
+  orderId?: string;
 }
 
 export interface GeniusPayAccountInfo {

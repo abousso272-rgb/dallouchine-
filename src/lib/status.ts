@@ -295,8 +295,22 @@ export const COST_TYPE_LABEL: Record<string, string> = {
   consolidation: 'Consolidation',
   transport: 'Transport',
   customs: 'Douane',
+  payment_fee: 'Frais de paiement',
   other: 'Autre'
 };
+
+export const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  bank_transfer: 'Virement bancaire',
+  cash: 'Espèces',
+  cheque: 'Chèque',
+  mobile_money_manual: 'Mobile money (hors passerelle)',
+  wave: 'Wave',
+  orange_money: 'Orange Money',
+  mtn_money: 'MTN MoMo',
+  card: 'Carte bancaire'
+};
+
+export const PAYMENT_PROVIDER_LABEL: Record<string, string> = { saspay: 'SasPay', geniuspay: 'GeniusPay', manual: 'Encaissement manuel' };
 
 export const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrateur général',

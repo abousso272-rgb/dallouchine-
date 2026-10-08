@@ -11,8 +11,8 @@ import { AuthForm } from '../../components/auth/AuthForm';
 type State = 'checking' | 'paid' | 'pending' | 'failed';
 
 /**
- * Retour de la page de paiement GeniusPay. Le statut affiché provient du serveur
- * (webhook signé ou vérification directe auprès de GeniusPay), jamais des paramètres d'URL.
+ * Retour de la page de paiement sécurisée. Le statut affiché provient du serveur
+ * (webhook signé ou vérification directe auprès de la passerelle), jamais des paramètres d'URL.
  */
 export default function PaymentReturnPage() {
   const { query, user, authLoading, toast, refreshUnread } = useApp();
@@ -94,7 +94,7 @@ export default function PaymentReturnPage() {
           <>
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-line border-t-brand" />
             <h1 className="mt-5 text-2xl font-bold">Confirmation du paiement…</h1>
-            <p className="mt-2 text-muted">Nous vérifions votre paiement auprès de GeniusPay. Cela prend quelques secondes.</p>
+            <p className="mt-2 text-muted">Nous vérifions votre paiement auprès de l’opérateur. Cela prend quelques secondes.</p>
           </>
         )}
         {state === 'paid' && (

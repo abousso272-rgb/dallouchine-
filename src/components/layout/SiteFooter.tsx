@@ -55,7 +55,7 @@ export function SiteFooter() {
       <div className="relative border-t border-white/10">
         <div className="container-page flex flex-col gap-2 py-5 text-[12.5px] text-white/45 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Dallou Chine · {CONTACT.city}</p>
-          <p>Paiements sécurisés via GeniusPay · Wave · Orange Money · MTN · Carte</p>
+          <p>Paiements sécurisés · Wave · Orange Money · MTN · Carte</p>
         </div>
       </div>
     </footer>

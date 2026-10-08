@@ -278,3 +278,45 @@ export function addOrderCost(orderId: string, type: string, amountXOF: number, d
 export async function deleteOrderCost(id: string): Promise<void> {
   unwrap(await supabase.from('order_costs').delete().eq('id', id));
 }
+
+export type ManualPaymentMethod = 'bank_transfer' | 'cash' | 'cheque' | 'mobile_money_manual';
+
+/** Administration : enregistre un règlement reçu hors ligne (virement, espèces, chèque…). */
+export function recordManualPayment(orderId: string, method: ManualPaymentMethod, reference: string, note?: string) {
+  return rpc<{ success: boolean }>('staff_record_manual_payment', { p_order_id: orderId, p_method: method, p_reference: reference, p_note: note || null });
+}
+
+export interface OrderPaymentInfo {
+  provider: string;
+  method: string | null;
+  network: string | null;
+  amountXOF: number;
+  feeXOF: number;
+  netXOF: number | null;
+  reference: string | null;
+  paidAt: string | null;
+  status: string;
+}
+
+/** Administration : détail comptable du paiement d'une commande (RLS : administrateurs). */
+export async function getOrderPaymentInfo(orderId: string): Promise<OrderPaymentInfo | null> {
+  const { data } = await supabase
+    .from('payments')
+    .select('provider, payment_method, network, amount_xof, fee_xof, net_xof, provider_reference, paid_at, status')
+    .eq('order_id', orderId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    provider: data.provider,
+    method: data.payment_method,
+    network: data.network,
+    amountXOF: Number(data.amount_xof),
+    feeXOF: Number(data.fee_xof || 0),
+    netXOF: data.net_xof === null ? null : Number(data.net_xof),
+    reference: data.provider_reference,
+    paidAt: data.paid_at,
+    status: data.status
+  };
+}

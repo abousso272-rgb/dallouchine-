@@ -286,7 +286,7 @@ export default function GroupagePage({ id }: { id: string }) {
                   </Button>
                   <p className="flex items-start gap-2 text-[12px] leading-relaxed text-muted">
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    Votre place est réservée dès maintenant et confirmée au paiement (à régler sous {g.reservationHours} h). Paiement sécurisé GeniusPay.
+                    Votre place est réservée dès maintenant et confirmée au paiement (à régler sous {g.reservationHours} h). Paiement 100 % sécurisé.
                   </p>
                   <PaymentLogos />
                 </div>

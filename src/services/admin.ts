@@ -179,6 +179,12 @@ export interface AdminPaymentRow {
   amount: number;
   status: string;
   paymentMethod: string;
+  provider?: string;
+  feeXOF?: number;
+  netXOF?: number | null;
+  feeChargeMode?: string | null;
+  network?: string | null;
+  providerReference?: string;
   customerName: string;
   customerEmail: string;
   createdAt: string;

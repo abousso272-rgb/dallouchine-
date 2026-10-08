@@ -15,6 +15,7 @@ import { Input, Select, Textarea } from '../../components/ui/Field';
 import { EmptyState, ErrorState, InlineAlert, PageLoader } from '../../components/ui/States';
 import { MessageThread } from '../../components/requests/MessageThread';
 import { Link } from '../../components/ui/Link';
+import { OrderPaymentCard } from '../../components/pro/OrderPaymentCard';
 
 const FULFILLMENT = ['supplier_ordered', 'preparing', 'shipped', 'in_transit', 'arrived', 'ready_for_delivery', 'delivered'];
 
@@ -226,7 +227,7 @@ export default function StaffOrderDetailPage({ id }: { id: string }) {
                 </div>
               </div>
               <form onSubmit={addCost} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[160px_150px_1fr_auto] sm:items-end">
-                <Select label="Type" value={costType} onChange={e => setCostType(e.target.value)} options={Object.entries(COST_TYPE_LABEL).map(([value, label]) => ({ value, label }))} />
+                <Select label="Type" value={costType} onChange={e => setCostType(e.target.value)} options={Object.entries(COST_TYPE_LABEL).filter(([k]) => k !== 'payment_fee').map(([value, label]) => ({ value, label }))} />
                 <Input label="Montant" inputMode="numeric" value={costAmount} onChange={e => setCostAmount(e.target.value.replace(/\D/g, ''))} suffix="F" />
                 <Input label="Détail" value={costDesc} onChange={e => setCostDesc(e.target.value)} placeholder="Fournisseur, facture…" />
                 <Button type="submit" variant="dark" loading={addingCost} icon={<Plus className="h-4 w-4" />}>
@@ -238,6 +239,7 @@ export default function StaffOrderDetailPage({ id }: { id: string }) {
         </div>
 
         <div className="space-y-5">
+          {(isAdmin || user?.role === 'transitaire') && <OrderPaymentCard order={order} onChanged={reload} />}
           <Card>
             <CardTitle>Client & livraison</CardTitle>
             <DefinitionList

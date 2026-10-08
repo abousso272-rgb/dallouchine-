@@ -29,7 +29,7 @@ export async function apiFetch<T = unknown>(path: string, init: { method?: strin
 }
 
 /**
- * Démarre le paiement GeniusPay d'une commande et redirige vers la page de paiement sécurisée.
+ * Démarre le paiement en ligne d'une commande et redirige vers la page de paiement sécurisée.
  * Le montant est fixé par le serveur à partir de la commande en base.
  */
 export async function startPayment(orderId: string): Promise<void> {
@@ -49,4 +49,20 @@ export interface PaymentStatusResponse {
 
 export function getPaymentStatus(orderId: string) {
   return apiFetch<PaymentStatusResponse>(`/api/payments/order/${encodeURIComponent(orderId)}`);
+}
+
+export interface StaffPaymentLink {
+  checkoutUrl: string;
+  amount: number;
+  orderCode: string;
+  customerName?: string;
+  customerPhone?: string;
+  provider: string;
+}
+
+/** Équipe : génère un lien de paiement pour la commande d'un client (à envoyer par WhatsApp, SMS, email). */
+export async function createStaffPaymentLink(orderId: string): Promise<StaffPaymentLink> {
+  const res = await apiFetch<StaffPaymentLink>('/api/payments/staff-link', { method: 'POST', body: { orderId } });
+  if (!res.checkoutUrl) throw new AppError('Le lien de paiement n’a pas pu être créé.');
+  return res;
 }

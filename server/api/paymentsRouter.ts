@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { paymentService } from '../services/PaymentService';
 import { config } from '../config';
-import { requireAuth, requireAdmin } from '../middleware/auth';
+import { requireAuth, requireAdmin, requireRole } from '../middleware/auth';
 
 export const paymentsRouter = Router();
 
@@ -100,6 +100,53 @@ const handleGeniusPayWebhookRoute = async (req: Request, res: Response): Promise
 };
 
 paymentsRouter.post('/webhooks/geniuspay', handleGeniusPayWebhookRoute);
+
+/** POST /api/webhooks/saspay : notification signée (HMAC) ; le paiement est relu auprès de l'API avant confirmation. */
+const handleSasPayWebhookRoute = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+    const result = await paymentService.handleSasPayWebhook(rawBody, req.headers);
+    res.status(result.status).json(result);
+  } catch (error: any) {
+    console.error('[payments] webhook saspay:', error?.message || error);
+    res.status(500).json({ status: 500, message: 'Erreur interne lors du traitement du webhook.' });
+  }
+};
+paymentsRouter.post('/webhooks/saspay', handleSasPayWebhookRoute);
+
+/**
+ * POST /api/payments/staff-link  { orderId }
+ * L'équipe (administration ou transitaire) génère un lien de paiement pour la commande d'un client :
+ * à envoyer par WhatsApp, SMS ou email. Le client paie sur la page sécurisée du fournisseur.
+ */
+paymentsRouter.post('/staff-link', requireRole('admin', 'transitaire'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const orderId = req.body.orderId;
+    if (!orderId || typeof orderId !== 'string') {
+      res.status(400).json({ success: false, errorCode: 'MISSING_ORDER_ID', errorMessage: 'Identifiant de commande manquant.' });
+      return;
+    }
+    const base = appBaseUrl(req);
+    const result = await paymentService.createPaymentForOrder({
+      db: req.db!,
+      orderId,
+      asStaff: true,
+      clientIp: req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+      returnUrl: `${base}/paiement/retour?orderId=${encodeURIComponent(orderId)}`,
+      cancelUrl: `${base}/paiement/retour?orderId=${encodeURIComponent(orderId)}&cancelled=1`
+    });
+    if (!result.success) {
+      const code = result.errorCode;
+      res.status(code === 'ALREADY_PAID' || code === 'ORDER_CANCELLED' ? 409 : code === 'PROVIDER_NOT_CONFIGURED' ? 503 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (error: any) {
+    console.error('[payments] staff-link:', error?.message || error);
+    res.status(500).json({ success: false, errorCode: 'INTERNAL_ERROR', errorMessage: 'Erreur lors de la création du lien de paiement.' });
+  }
+});
 
 /** Journal des paiements (administration générale) */
 paymentsRouter.get('/admin/list', requireAdmin, async (req: Request, res: Response): Promise<void> => {

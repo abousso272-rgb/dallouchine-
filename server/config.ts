@@ -14,6 +14,13 @@ export interface ServerConfig {
   anthropicApiKey: string;
   anthropicModel: string;
   anthropicBaseUrl: string;
+  saspaySecretKey: string;
+  saspayWebhookSecret: string;
+  saspayBaseUrl: string;
+  /** ADD_ON : le client paie les frais en plus ; DEDUCTED : frais prélevés sur notre encaissement */
+  saspayFeeMode: 'ADD_ON' | 'DEDUCTED';
+  /** Fournisseur utilisé pour les nouveaux paiements */
+  paymentProvider: 'saspay' | 'geniuspay';
 }
 
 // Clé publique du projet Supabase Dallou Chine (non secrète : déjà embarquée dans le front).
@@ -36,11 +43,17 @@ export const config: ServerConfig = {
   port: parseInt(process.env.PORT || '3000', 10),
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
   anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
-  anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/+$/, '')
+  anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/+$/, ''),
+  saspaySecretKey: process.env.SASPAY_SECRET_KEY || '',
+  saspayWebhookSecret: process.env.SASPAY_WEBHOOK_SECRET || '',
+  saspayBaseUrl: (process.env.SASPAY_BASE_URL || 'https://api.saspay.me/api/v1').replace(/\/+$/, ''),
+  saspayFeeMode: process.env.SASPAY_FEE_MODE === 'ADD_ON' ? 'ADD_ON' : 'DEDUCTED',
+  paymentProvider: process.env.PAYMENT_PROVIDER === 'geniuspay' || (!process.env.SASPAY_SECRET_KEY && process.env.PAYMENT_PROVIDER !== 'saspay') ? 'geniuspay' : 'saspay'
 };
 
 export const hasServiceRole = Boolean(config.supabaseServiceRoleKey);
 export const hasAiProvider = Boolean(config.anthropicApiKey);
+export const hasSasPayCredentials = Boolean(config.saspaySecretKey);
 export const hasGeniusPayCredentials = Boolean(config.geniusPayApiKey && config.geniusPayApiSecret);
 
 // Journalisation sans jamais afficher de secret
@@ -48,6 +61,9 @@ export function logServerConfig(): void {
   console.log('[Server Config]', {
     geniusPayEnvironment: config.geniusPayEnvironment,
     geniusPayBaseUrl: config.geniusPayBaseUrl,
+    paymentProvider: config.paymentProvider,
+    hasSasPayCredentials,
+    hasSasPayWebhookSecret: Boolean(config.saspayWebhookSecret),
     hasGeniusPayCredentials,
     hasWebhookSecret: Boolean(config.geniusPayWebhookSecret),
     supabaseUrl: config.supabaseUrl,

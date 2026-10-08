@@ -10,7 +10,7 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { Link } from '../../components/ui/Link';
 import { EmptyState, ErrorState, Skeleton } from '../../components/ui/States';
 
-const METHOD: Record<string, string> = { wave: 'Wave', orange_money: 'Orange Money', mtn_money: 'MTN MoMo', card: 'Carte', geniuspay: 'GeniusPay' };
+const METHOD: Record<string, string> = { wave: 'Wave', orange_money: 'Orange Money', mtn_money: 'MTN MoMo', card: 'Carte', geniuspay: 'Paiement en ligne', saspay: 'Paiement en ligne' };
 
 export default function PaymentsPage() {
   const { user } = useApp();
@@ -19,7 +19,7 @@ export default function PaymentsPage() {
 
   return (
     <div>
-      <PageHeader title="Mes paiements" description="Historique des transactions effectuées via GeniusPay." />
+      <PageHeader title="Mes paiements" description="Historique de vos transactions." />
       <div className="mb-5 grid grid-cols-2 gap-3">
         <Stat label="Total payé" value={formatXOF(paid.reduce((s, p) => s + p.amountXOF, 0))} />
         <Stat label="Transactions réussies" value={paid.length} />
@@ -44,7 +44,7 @@ export default function PaymentsPage() {
                   <div className="min-w-0 flex-1">
                     <p className="num text-sm font-semibold">{p.orderCode || 'Commande'}</p>
                     <p className="text-[12.5px] text-muted">
-                      {formatDateTime(p.paidAt || p.createdAt)} · {METHOD[p.method] || p.method || 'GeniusPay'}
+                      {formatDateTime(p.paidAt || p.createdAt)} · {METHOD[p.method] || p.method || 'Paiement en ligne'}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">

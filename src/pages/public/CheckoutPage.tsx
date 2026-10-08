@@ -333,7 +333,7 @@ export default function CheckoutPage() {
             </Button>
             <PaymentLogos className="mt-4 justify-center" />
             <p className="mt-3 text-center text-[12px] text-muted">
-              Paiement sécurisé par GeniusPay. <Link to="/panier" className="font-semibold text-ink hover:underline">Modifier le panier</Link>
+              Paiement 100 % sécurisé. <Link to="/panier" className="font-semibold text-ink hover:underline">Modifier le panier</Link>
             </p>
           </div>
         </aside>
