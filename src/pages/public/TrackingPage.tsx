@@ -53,7 +53,7 @@ export default function TrackingPage() {
   return (
     <div className="container-page max-w-4xl py-8 sm:py-12">
       <p className="eyebrow">Suivi</p>
-      <h1 className="mt-2 text-[30px] font-semibold sm:text-4xl">Suivre une commande</h1>
+      <h1 className="mt-2 text-[30px] font-bold sm:text-4xl">Suivre une commande</h1>
       <p className="mt-2 text-[15px] text-muted">Votre numéro de suivi figure dans votre espace client et dans la confirmation de commande.</p>
 
       <form
@@ -70,7 +70,7 @@ export default function TrackingPage() {
             value={code}
             onChange={e => setCode(e.target.value.toUpperCase())}
             placeholder="AWP-XXXXXXXX"
-            className="num h-13 w-full rounded-2xl border border-line-2 bg-white pl-11 pr-4 text-[16px] font-semibold tracking-wide focus:border-ink focus:outline-none"
+            className="num h-13 w-full rounded-2xl border border-line-2 bg-white pl-11 pr-4 text-[16px] font-semibold tracking-wide focus:border-brand/60 focus:outline-none focus:ring-4 focus:ring-brand/10"
             aria-label="Numéro de suivi"
             autoCapitalize="characters"
           />

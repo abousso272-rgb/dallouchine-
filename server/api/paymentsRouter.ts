@@ -33,6 +33,7 @@ paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response):
 
     const base = appBaseUrl(req);
     const result = await paymentService.createPaymentForOrder({
+      db: req.db!,
       orderId,
       userId: req.user!.id,
       clientIp: req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress,
@@ -45,7 +46,7 @@ paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response):
     if (!result.success) {
       const code = result.errorCode;
       const status =
-        code === 'FORBIDDEN' ? 403 : code === 'ORDER_NOT_FOUND' ? 404 : code === 'ALREADY_PAID' || code === 'ORDER_CANCELLED' ? 409 : code === 'PROVIDER_NOT_CONFIGURED' ? 503 : 400;
+        code === 'FORBIDDEN' ? 403 : code === 'ORDER_NOT_FOUND' ? 404 : code === 'ALREADY_PAID' || code === 'ORDER_CANCELLED' ? 409 : code === 'TOO_MANY_ATTEMPTS' ? 429 : code === 'PROVIDER_NOT_CONFIGURED' ? 503 : 400;
       res.status(status).json(result);
       return;
     }
@@ -64,7 +65,7 @@ paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response):
 async function handleStatus(req: Request, res: Response): Promise<void> {
   try {
     const id = req.params.orderId || req.params.id;
-    const statusData = await paymentService.getPaymentStatus(id);
+    const statusData = await paymentService.getPaymentStatus(req.db!, id);
     if (!statusData.found || !statusData.order) {
       res.status(404).json({ success: false, errorMessage: 'Paiement ou commande introuvable.' });
       return;

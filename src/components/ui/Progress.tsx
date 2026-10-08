@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { percent, formatNumber } from '../../lib/format';
 
 export function ProgressBar({ value, max, tone = 'brand', size = 'md' }: { value: number; max: number; tone?: 'brand' | 'ink' | 'jade'; size?: 'sm' | 'md' }) {
   const pct = percent(value, max);
+  // La barre se remplit à l'affichage pour donner une sensation de progression
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
   const color = tone === 'ink' ? 'bg-ink' : tone === 'jade' ? 'bg-jade' : 'bg-brand-gradient';
   return (
     <div
@@ -12,7 +18,7 @@ export function ProgressBar({ value, max, tone = 'brand', size = 'md' }: { value
       aria-valuemin={0}
       aria-valuemax={max}
     >
-      <div className={`h-full rounded-full ${color} transition-[width] duration-500`} style={{ width: `${Math.max(pct, value > 0 ? 3 : 0)}%` }} />
+      <div className={`h-full rounded-full ${color} transition-[width] duration-1000 ease-out`} style={{ width: shown ? `${Math.max(pct, value > 0 ? 3 : 0)}%` : '0%' }} />
     </div>
   );
 }

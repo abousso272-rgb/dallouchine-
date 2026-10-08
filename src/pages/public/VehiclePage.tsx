@@ -14,7 +14,7 @@ import { formatNumber } from '../../lib/format';
 import { PLACEHOLDER_IMAGE } from '../../services/catalog';
 
 export default function VehiclePage({ slug }: { slug: string }) {
-  const { data: v, loading, error, reload } = useAsync(() => getVehicle(slug), [slug]);
+  const { data: v, loading, error, reload } = useAsync(() => getVehicle(slug), [slug], { cacheKey: `vehicle:${slug}` });
   const [imageIndex, setImageIndex] = useState(0);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function VehiclePage({ slug }: { slug: string }) {
             <p className="text-[12px] font-semibold uppercase tracking-wide text-subtle">
               {VEHICLE_TYPE_LABEL[v.vehicleType]} · {CONDITION_LABEL[v.condition]}
             </p>
-            <h1 className="mt-2 text-[26px] font-semibold leading-tight sm:text-[34px]">{v.title}</h1>
+            <h1 className="mt-2 text-[26px] font-bold leading-tight sm:text-[34px]">{v.title}</h1>
             <p className="num mt-3 font-display text-[28px] font-semibold">{vehiclePriceLabel(v)}</p>
             {!v.priceOnRequest && v.priceXOF ? <p className="text-[13px] text-muted">Prix indicatif hors transport et dédouanement — confirmé par devis.</p> : null}
           </div>

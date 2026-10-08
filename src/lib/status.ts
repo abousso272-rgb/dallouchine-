@@ -74,6 +74,21 @@ export const GROUPAGE_STEPS = [
   { key: 'arrived', label: 'Distribution', statuses: ['arrived', 'completed'] }
 ];
 
+/** Transitions autorisées (identiques aux règles appliquées en base). */
+export const GROUPAGE_NEXT: Record<string, string[]> = {
+  draft: ['open'],
+  open: ['validated'],
+  almost_full: ['validated'],
+  full: ['validated'],
+  validated: ['supplier_ordered'],
+  supplier_ordered: ['preparing', 'shipped'],
+  preparing: ['shipped'],
+  shipped: ['arrived'],
+  arrived: ['completed'],
+  completed: [],
+  cancelled: []
+};
+
 export const GROUPAGE_STATUS_FLOW = [
   'draft',
   'open',

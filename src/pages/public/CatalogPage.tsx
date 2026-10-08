@@ -143,7 +143,7 @@ export default function CatalogPage() {
     <div className="container-page py-8 sm:py-10">
       <div className="flex flex-col gap-2">
         <p className="eyebrow">Catalogue</p>
-        <h1 className="text-[28px] font-semibold sm:text-4xl">{category ? category.name : 'Tous les produits'}</h1>
+        <h1 className="text-[28px] font-bold sm:text-4xl">{category ? category.name : 'Tous les produits'}</h1>
         <p className="text-[15px] text-muted">{category?.description || 'Produits sélectionnés en Chine, prix en FCFA, livrés à Dakar.'}</p>
       </div>
 
@@ -156,7 +156,7 @@ export default function CatalogPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher un produit…"
-              className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-9 focus:border-ink focus:outline-none"
+              className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-9 focus:border-brand/60 focus:outline-none focus:ring-4 focus:ring-brand/10"
               enterKeyHint="search"
               aria-label="Rechercher un produit"
             />

@@ -9,6 +9,8 @@ import { ClientFilesInput } from '../../components/ui/Uploads';
 import { InlineAlert } from '../../components/ui/States';
 import { Stepper } from '../../components/ui/Stepper';
 import { SOURCING_STEPS } from '../../lib/status';
+import { ProductAnalyzer } from '../../components/requests/ProductAnalyzer';
+import { analysisToNotes, type ProductAnalysis } from '../../services/ai';
 
 export default function SourcingPage() {
   const { user, requireAuth, query, categories, toast } = useApp();
@@ -28,6 +30,18 @@ export default function SourcingPage() {
   useEffect(() => {
     if (user && !phone) setPhone(user.phone);
   }, [user, phone]);
+
+  function applyAnalysis(a: ProductAnalysis, ctx: { url?: string }) {
+    setTitle(a.productName);
+    setDescription(prev => prev || a.description);
+    if (ctx.url) setLink(ctx.url);
+    const match = categories.find(c => a.category && c.name.toLowerCase().includes(a.category.toLowerCase().split(' ')[0]));
+    if (match) setCategory(match.name);
+    if (a.listing.moq && !quantity) setQuantity(String(a.listing.moq));
+    setNotes(prev => [prev, analysisToNotes(a)].filter(Boolean).join('\n\n'));
+    toast('success', 'Formulaire prérempli', 'Vérifiez les informations, indiquez la quantité puis envoyez.');
+    document.getElementById('formulaire')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function validate() {
     const e: Record<string, string> = {};
@@ -73,7 +87,7 @@ export default function SourcingPage() {
       <div className="container-page max-w-2xl py-12 sm:py-16">
         <div className="card p-6 text-center sm:p-10">
           <CheckCircle2 className="mx-auto h-12 w-12 text-jade" />
-          <h1 className="mt-4 text-2xl font-semibold sm:text-3xl">Demande envoyée</h1>
+          <h1 className="mt-4 text-2xl font-bold sm:text-3xl">Demande envoyée</h1>
           <p className="mt-2 text-muted">
             Référence <span className="num font-semibold text-ink">{done.code}</span>. Notre équipe analyse votre besoin et revient vers vous avec une proposition. Vous serez notifié à chaque étape.
           </p>
@@ -106,18 +120,22 @@ export default function SourcingPage() {
     <div className="container-page py-8 sm:py-10">
       <div className="max-w-3xl">
         <p className="eyebrow">Sourcing personnalisé</p>
-        <h1 className="mt-2 text-[30px] font-semibold leading-tight sm:text-[42px]">Décrivez le produit. Nous trouvons le fournisseur.</h1>
+        <h1 className="mt-2 text-[30px] font-bold leading-tight sm:text-[42px]">Décrivez le produit. Nous trouvons le fournisseur.</h1>
         <p className="mt-3 text-[15.5px] leading-relaxed text-muted">
           Une photo, un lien Alibaba/1688 ou une simple description suffit. Vous recevez une proposition chiffrée — produit, transport et frais — avant tout engagement.
         </p>
       </div>
 
-      <div className="card mt-8 p-5 sm:p-6">
+      <div className="mt-8">
+        <ProductAnalyzer onUse={applyAnalysis} />
+      </div>
+
+      <div className="card mt-6 p-5 sm:p-6">
         <Stepper steps={SOURCING_STEPS} current={0} mobile="scroll" />
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
-        <form onSubmit={submit} className="card space-y-5 p-5 sm:p-7" noValidate>
+        <form id="formulaire" onSubmit={submit} className="card scroll-mt-24 space-y-5 p-5 sm:p-7" noValidate>
           <Input label="Produit recherché" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex. Chaises pliantes en métal pour événements" error={errors.title} />
           <Textarea
             label="Description"

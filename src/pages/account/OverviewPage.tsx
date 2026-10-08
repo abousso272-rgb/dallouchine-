@@ -41,7 +41,7 @@ export default function OverviewPage() {
     <div className="space-y-6">
       <div>
         <p className="eyebrow">Mon espace</p>
-        <h1 className="mt-1 text-[26px] font-semibold sm:text-3xl">Bonjour{firstName ? ` ${firstName}` : ''} 👋</h1>
+        <h1 className="mt-1 text-[26px] font-bold sm:text-3xl">Bonjour{firstName ? ` ${firstName}` : ''} 👋</h1>
         <p className="mt-1 text-[15px] text-muted">Voici où en sont vos achats et vos demandes.</p>
       </div>
 
@@ -53,7 +53,7 @@ export default function OverviewPage() {
             <Stat label="Commandes en cours" value={activeOrders.length} icon={<Package className="h-4 w-4" />} to="/compte/commandes" />
             <Stat label="Groupages" value={activeGroupages.length} icon={<Users className="h-4 w-4" />} to="/compte/groupages" />
             <Stat label="Demandes en cours" value={openRequests.length} icon={<ClipboardList className="h-4 w-4" />} to="/compte/demandes" />
-            <Stat label="Total payé" value={formatXOF(paidTotal)} icon={<CreditCard className="h-4 w-4" />} to="/compte/paiements" />
+            <Stat tone="brand" label="Total payé" value={formatXOF(paidTotal)} icon={<CreditCard className="h-4 w-4" />} to="/compte/paiements" />
           </>
         )}
       </div>

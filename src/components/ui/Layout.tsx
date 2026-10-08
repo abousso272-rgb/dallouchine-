@@ -24,7 +24,7 @@ export function PageHeader({
           </Link>
         )}
         {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-        <h1 className="text-2xl font-semibold leading-tight sm:text-[28px]">{title}</h1>
+        <h1 className="text-[26px] font-bold leading-tight sm:text-[30px]">{title}</h1>
         {description && <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
@@ -39,7 +39,7 @@ export function Card({ children, className = '', padded = true }: { children: Re
 export function CardTitle({ children, action, className = '' }: { children: React.ReactNode; action?: React.ReactNode; className?: string }) {
   return (
     <div className={`mb-4 flex items-center justify-between gap-3 ${className}`}>
-      <h2 className="text-base font-semibold">{children}</h2>
+      <h2 className="text-[15.5px] font-bold">{children}</h2>
       {action}
     </div>
   );
@@ -61,16 +61,23 @@ export function Stat({
   to?: string;
 }) {
   const styles =
-    tone === 'dark' ? 'bg-ink text-white border-ink' : tone === 'brand' ? 'bg-brand text-white border-brand' : 'bg-white text-ink border-line';
+    tone === 'dark'
+      ? 'bg-ink text-white border-ink'
+      : tone === 'brand'
+        ? 'bg-brand-gradient text-white border-transparent shadow-[0_18px_40px_-20px_rgb(232_72_13/0.8)]'
+        : 'bg-white text-ink border-line shadow-[var(--shadow-soft)]';
   const content = (
-    <div className={`flex h-full flex-col justify-between gap-3 rounded-[var(--radius-card)] border p-4 sm:p-5 ${styles} ${to ? 'transition-shadow hover:shadow-[var(--shadow-soft)]' : ''}`}>
-      <div className="flex items-center justify-between gap-2">
-        <p className={`text-[12.5px] font-semibold ${tone === 'default' ? 'text-muted' : 'text-white/70'}`}>{label}</p>
-        {icon && <span className={tone === 'default' ? 'text-subtle' : 'text-white/60'}>{icon}</span>}
+    <div className={`relative flex h-full flex-col justify-between gap-4 overflow-hidden rounded-[var(--radius-card)] border p-4 sm:p-5 ${styles} ${to ? 'lift' : ''}`}>
+      {tone !== 'default' && <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/10 blur-xl" aria-hidden />}
+      <div className="relative flex items-center justify-between gap-2">
+        <p className={`text-[12.5px] font-semibold ${tone === 'default' ? 'text-muted' : 'text-white/80'}`}>{label}</p>
+        {icon && (
+          <span className={tone === 'default' ? 'icon-bubble h-8 w-8' : 'flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white'}>{icon}</span>
+        )}
       </div>
-      <div>
-        <p className="num font-display text-[22px] font-semibold leading-none sm:text-[26px]">{value}</p>
-        {hint && <p className={`mt-1.5 text-[12px] ${tone === 'default' ? 'text-muted' : 'text-white/70'}`}>{hint}</p>}
+      <div className="relative">
+        <p className="num font-display text-[24px] font-bold leading-none sm:text-[28px]">{value}</p>
+        {hint && <p className={`mt-1.5 text-[12px] ${tone === 'default' ? 'text-muted' : 'text-white/75'}`}>{hint}</p>}
       </div>
     </div>
   );

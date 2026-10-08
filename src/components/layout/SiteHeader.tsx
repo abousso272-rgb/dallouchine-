@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronRight, LayoutDashboard, LogOut, Menu, PackageSearch, Search, ShoppingBag, User, X } from 'lucide-react';
+import { ArrowRight, ChevronRight, LayoutDashboard, LogOut, Menu, PackageSearch, Search, ShoppingBag, User, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Link } from '../ui/Link';
 import { Logo } from '../ui/Logo';
@@ -10,7 +10,7 @@ export const MAIN_NAV = [
   { to: '/groupages', label: 'Groupages', match: ['/groupages'] },
   { to: '/sourcing', label: 'Sourcing', match: ['/sourcing'] },
   { to: '/automobile', label: 'Auto & Motos', match: ['/automobile'] },
-  { to: '/pro', label: 'Professionnels', match: ['/pro'] }
+  { to: '/pro', label: 'B2B', match: ['/pro'] }
 ];
 
 function isActive(path: string, match: string[]) {
@@ -36,6 +36,20 @@ export function SiteHeader() {
     if (searchOpen) searchRef.current?.focus();
   }, [searchOpen]);
 
+  // ⌘K / Ctrl+K : recherche
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const desk = document.getElementById('header-search') as HTMLInputElement | null;
+        if (desk && desk.offsetParent) desk.focus();
+        else setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   useEffect(() => {
     if (!accountOpen) return;
     const close = (e: MouseEvent) => {
@@ -59,52 +73,66 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line/80 bg-paper/90 backdrop-blur-md">
-      <div className="container-page flex h-16 items-center gap-3 lg:h-[72px]">
+    <header className="sticky top-0 z-50 px-2 pt-2 sm:px-4 sm:pt-3">
+      <div className="glass mx-auto flex h-[60px] max-w-7xl items-center gap-2 rounded-2xl pl-2.5 pr-2 shadow-[0_12px_32px_-18px_rgb(120_60_20/0.45)] sm:h-16 sm:rounded-full sm:pl-4 sm:pr-2.5">
         <Link to="/" className="shrink-0" aria-label="DALUCHE — accueil">
           <Logo />
         </Link>
 
-        <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Navigation principale">
-          {MAIN_NAV.map(item => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`rounded-xl px-3.5 py-2 text-[14px] font-semibold transition-colors ${
-                isActive(path, item.match) ? 'bg-ink/[0.06] text-ink' : 'text-muted hover:text-ink'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Navigation principale">
+          {MAIN_NAV.map(item => {
+            const active = isActive(path, item.match);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`rounded-full px-3.5 py-2 text-[13.5px] font-semibold transition-all ${
+                  active ? 'bg-brand-gradient text-white shadow-[var(--shadow-glow)]' : 'text-ink/75 hover:bg-white hover:text-ink'
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
+        <form onSubmit={submitSearch} className="relative ml-auto hidden xl:block" role="search">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            id="header-search"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Rechercher un produit…"
+            aria-label="Rechercher un produit"
+            className="h-10 w-56 rounded-full border border-line bg-white/80 pl-10 pr-12 text-[13.5px] transition-all focus:w-72 focus:border-brand/50 focus:bg-white focus:outline-none"
+            enterKeyHint="search"
+          />
+          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-line bg-paper px-1.5 py-0.5 text-[10.5px] font-semibold text-muted">⌘K</kbd>
+        </form>
+
+        <div className="ml-auto flex items-center gap-1 xl:ml-2">
           <button
             type="button"
             onClick={() => setSearchOpen(v => !v)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-ink/5"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-white xl:hidden"
             aria-label="Rechercher un produit"
           >
             <Search className="h-[19px] w-[19px]" />
           </button>
-          <Link
-            to="/suivi"
-            className="hidden h-10 items-center gap-2 rounded-xl px-3 text-[14px] font-semibold text-muted hover:text-ink md:flex"
-          >
-            <PackageSearch className="h-[18px] w-[18px]" /> Suivi
+          <Link to="/suivi" className="hidden h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-white md:flex" aria-label="Suivre une commande" title="Suivre une commande">
+            <PackageSearch className="h-[19px] w-[19px]" />
           </Link>
-          <Link to="/panier" className="relative flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-ink/5" aria-label={`Panier (${cartCount})`}>
+          <Link to="/panier" className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-white" aria-label={`Panier (${cartCount})`}>
             <ShoppingBag className="h-[19px] w-[19px]" />
             {cartCount > 0 && (
-              <span className="num absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand px-1 text-[10.5px] font-bold text-white">
+              <span className="num absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-gradient px-1 text-[10.5px] font-bold text-white ring-2 ring-white">
                 {cartCount > 99 ? '99+' : cartCount}
               </span>
             )}
           </Link>
 
           {isStaff && (
-            <Link to="/espace-pro" className="ml-1 hidden h-10 items-center gap-2 rounded-xl bg-ink px-3.5 text-[13px] font-semibold text-white hover:bg-ink-2 md:flex">
+            <Link to="/espace-pro" className="ml-1 hidden h-10 items-center gap-2 rounded-full bg-ink px-4 text-[13px] font-semibold text-white hover:bg-ink-2 md:flex">
               <LayoutDashboard className="h-4 w-4" /> Espace pro
             </Link>
           )}
@@ -114,15 +142,15 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={() => setAccountOpen(v => !v)}
-                className="relative ml-1 flex h-10 items-center gap-2 rounded-xl pl-1 pr-2.5 hover:bg-ink/5"
+                className="relative ml-1 flex h-10 items-center gap-2 rounded-full border border-line bg-white pl-1 pr-3 hover:border-brand/40"
                 aria-expanded={accountOpen}
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-white">{initials(user.fullName || user.email)}</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-[12px] font-bold text-white">{initials(user.fullName || user.email)}</span>
                 <span className="max-w-[120px] truncate text-[13px] font-semibold">{(user.fullName || 'Mon compte').split(' ')[0]}</span>
-                {unreadCount > 0 && <span className="absolute left-7 top-1 h-2.5 w-2.5 rounded-full border-2 border-paper bg-brand" />}
+                {unreadCount > 0 && <span className="absolute left-7 top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-brand" />}
               </button>
               {accountOpen && (
-                <div className="animate-fade-in-up absolute right-0 top-12 w-60 overflow-hidden rounded-2xl border border-line bg-white p-1.5 shadow-[var(--shadow-lift)]">
+                <div className="animate-fade-in-up absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-line bg-white p-1.5 shadow-[var(--shadow-lift)]">
                   <div className="px-3 py-2.5">
                     <p className="truncate text-sm font-semibold">{user.fullName || 'Mon compte'}</p>
                     <p className="truncate text-[12px] text-muted">{user.email || user.phone}</p>
@@ -130,6 +158,7 @@ export function SiteHeader() {
                   {[
                     { to: '/compte', label: 'Tableau de bord' },
                     { to: '/compte/commandes', label: 'Mes commandes' },
+                    { to: '/compte/groupages', label: 'Mes groupages' },
                     { to: '/compte/demandes', label: 'Mes demandes & devis' },
                     { to: '/compte/notifications', label: `Notifications${unreadCount ? ` (${unreadCount})` : ''}` },
                     { to: '/compte/profil', label: 'Profil' }
@@ -145,26 +174,33 @@ export function SiteHeader() {
               )}
             </div>
           ) : (
-            <Link to="/connexion" className="ml-1 hidden h-10 items-center gap-2 rounded-xl border border-line-2 bg-white px-3.5 text-[13px] font-semibold hover:border-ink/40 lg:flex">
-              <User className="h-4 w-4" /> Se connecter
+            <Link to="/connexion" className="ml-1 hidden h-10 items-center gap-2 rounded-full border border-brand/30 bg-white px-4 text-[13px] font-semibold text-brand-600 hover:border-brand hover:bg-brand-50 lg:flex">
+              <User className="h-4 w-4" /> Connexion
             </Link>
           )}
+
+          <Link
+            to="/pro"
+            className="ml-1 hidden h-10 items-center gap-1.5 rounded-full bg-brand-gradient px-4 text-[13px] font-semibold text-white shadow-[var(--shadow-glow)] transition-[filter] hover:brightness-105 2xl:flex"
+          >
+            Demander un devis <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
 
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-ink/5 lg:hidden"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-white lg:hidden"
             aria-label="Ouvrir le menu"
           >
             <Menu className="h-5 w-5" />
-            {unreadCount > 0 && <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-brand" />}
+            {unreadCount > 0 && <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-brand" />}
           </button>
         </div>
       </div>
 
       {searchOpen && (
-        <div className="animate-fade-in-up border-t border-line bg-paper">
-          <form onSubmit={submitSearch} className="container-page flex gap-2 py-3">
+        <div className="animate-fade-in-up mx-auto mt-2 max-w-7xl xl:hidden">
+          <form onSubmit={submitSearch} className="glass flex gap-2 rounded-2xl p-2 shadow-[var(--shadow-warm)]" role="search">
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <input
@@ -172,12 +208,12 @@ export function SiteHeader() {
                 value={q}
                 onChange={e => setQ(e.target.value)}
                 placeholder="Rechercher un produit, une catégorie…"
-                className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-3 focus:border-ink focus:outline-none"
+                className="h-11 w-full rounded-full border border-line bg-white pl-10 pr-3 focus:border-brand/50 focus:outline-none"
                 enterKeyHint="search"
               />
             </div>
-            <button type="submit" className="h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white">
-              Rechercher
+            <button type="submit" className="h-11 rounded-full bg-brand-gradient px-5 text-sm font-semibold text-white">
+              OK
             </button>
           </form>
         </div>
@@ -215,7 +251,7 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
               <Link to="/connexion" className="flex h-11 items-center justify-center rounded-xl border border-line-2 bg-white text-sm font-semibold">
                 Se connecter
               </Link>
-              <Link to="/inscription" className="flex h-11 items-center justify-center rounded-xl bg-ink text-sm font-semibold text-white">
+              <Link to="/inscription" className="flex h-11 items-center justify-center rounded-xl bg-brand-gradient text-sm font-semibold text-white">
                 Créer un compte
               </Link>
             </div>
@@ -233,7 +269,7 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center justify-between rounded-xl px-3 py-3 text-[15px] font-semibold ${active ? 'bg-white text-ink ring-1 ring-line' : 'text-ink'}`}
+                  className={`flex items-center justify-between rounded-xl px-3 py-3 text-[15px] font-semibold ${active ? 'bg-white text-brand-600 ring-1 ring-brand/20' : 'text-ink'}`}
                 >
                   {item.label}
                   <ChevronRight className="h-4 w-4 text-subtle" />

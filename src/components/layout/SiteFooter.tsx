@@ -6,8 +6,11 @@ import { CONTACT, whatsappLink } from '../../lib/config';
 
 export function SiteFooter() {
   return (
-    <footer className="mt-20 bg-ink text-white/80">
-      <div className="container-page grid grid-cols-1 gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+    <footer className="relative mt-24 overflow-hidden rounded-t-[32px] bg-ink text-white/80 sm:rounded-t-[44px]">
+      <div className="pointer-events-none absolute -left-24 -top-32 h-80 w-80 rounded-full bg-brand/25 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-brand-400/10 blur-3xl" aria-hidden />
+      <div className="h-1 w-full bg-brand-gradient" aria-hidden />
+      <div className="container-page relative grid grid-cols-1 gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <Logo inverted />
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">
@@ -17,7 +20,7 @@ export function SiteFooter() {
             href={whatsappLink('Bonjour DALUCHE, j’ai une question.')}
             target="_blank"
             rel="noreferrer"
-            className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/15"
+            className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[#25d366] px-5 text-sm font-semibold text-[#06361c] shadow-[0_10px_24px_-12px_rgb(37_211_102/0.7)] hover:brightness-105"
           >
             <MessageCircle className="h-4 w-4" /> WhatsApp {CONTACT.phoneDisplay}
           </a>
@@ -49,7 +52,7 @@ export function SiteFooter() {
           ]}
         />
       </div>
-      <div className="border-t border-white/10">
+      <div className="relative border-t border-white/10">
         <div className="container-page flex flex-col gap-2 py-5 text-[12.5px] text-white/45 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} DALUCHE · {CONTACT.city}</p>
           <p>Paiements sécurisés via GeniusPay · Wave · Orange Money · MTN · Carte</p>

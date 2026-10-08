@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarClock, ChevronRight, Info, MapPin, Plane, Ship, ShieldCheck, Users } from 'lucide-react';
+import { BellRing, CalendarClock, ChevronRight, Info, MapPin, Plane, ScrollText, Ship, ShieldCheck, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useAsync } from '../../lib/hooks';
-import { getGroupage, isJoinable, joinGroupage, listMyParticipations } from '../../services/groupages';
+import { useAsync, usePolling } from '../../lib/hooks';
+import { getGroupage, isJoinable, joinGroupage, listGroupageEvents, listMyParticipations } from '../../services/groupages';
 import { listHubs, PLACEHOLDER_IMAGE } from '../../services/catalog';
 import { startPayment } from '../../lib/api';
 import { friendlyError } from '../../lib/db';
-import { formatDate, formatXOF } from '../../lib/format';
+import { formatDate, formatDateTime, formatXOF } from '../../lib/format';
 import { GROUPAGE_STATUS, GROUPAGE_STEPS, PARTICIPANT_STATUS, TRANSPORT_LABEL, currentStepIndex } from '../../lib/status';
 import { Link } from '../../components/ui/Link';
 import { Button } from '../../components/ui/Button';
@@ -21,9 +21,12 @@ import { Select } from '../../components/ui/Field';
 
 export default function GroupagePage({ id }: { id: string }) {
   const { user, requireAuth, toast, navigate } = useApp();
-  const { data: g, loading, error, reload } = useAsync(() => getGroupage(id), [id]);
+  const { data: g, loading, error, reload } = useAsync(() => getGroupage(id), [id], { cacheKey: `groupage:${id}` });
+  usePolling(reload, 30000);
   const mine = useAsync(async () => (user ? (await listMyParticipations(user.id)).filter(p => p.groupageId === g?.id) : []), [user?.id, g?.id]);
-  const hubs = useAsync(() => listHubs(), []);
+  const hubs = useAsync(() => listHubs(), [], { cacheKey: 'hubs', maxAge: 600000 });
+  const events = useAsync(() => listGroupageEvents(id, 12), [id], { cacheKey: `groupage-events:${id}` });
+  usePolling(events.reload, 60000);
   const [qty, setQty] = useState(1);
   const [hubId, setHubId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -109,7 +112,7 @@ export default function GroupagePage({ id }: { id: string }) {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
         <div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] border border-line bg-white">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[28px] border border-line bg-white shadow-[var(--shadow-warm)]">
             <img src={images[imageIndex] || PLACEHOLDER_IMAGE} alt={g.title} className="h-full w-full object-cover" />
             <div className="absolute left-4 top-4">
               <StatusBadge map={GROUPAGE_STATUS} status={g.status} className="bg-white/95" />
@@ -127,7 +130,7 @@ export default function GroupagePage({ id }: { id: string }) {
 
           <div className="mt-8">
             <p className="text-[12px] font-semibold uppercase tracking-wide text-subtle">Groupage {g.code}</p>
-            <h1 className="mt-2 text-[26px] font-semibold leading-tight sm:text-[32px]">{g.product?.name || g.title}</h1>
+            <h1 className="mt-2 text-[26px] font-bold leading-tight sm:text-[32px]">{g.product?.name || g.title}</h1>
             {g.description && <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-muted">{g.description}</p>}
             {g.highlights.length > 0 && (
               <ul className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -145,8 +148,8 @@ export default function GroupagePage({ id }: { id: string }) {
             )}
           </div>
 
-          <section className="card mt-8 p-5 sm:p-6">
-            <h2 className="text-base font-semibold">Avancement du groupage</h2>
+          <section className="surface mt-8 p-5 sm:p-6">
+            <h2 className="text-base font-bold">Avancement du groupage</h2>
             <div className="mt-5">
               <Stepper steps={GROUPAGE_STEPS} current={step} stopped={g.status === 'cancelled'} />
             </div>
@@ -158,7 +161,41 @@ export default function GroupagePage({ id }: { id: string }) {
             )}
           </section>
 
-          <section className="card mt-4 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6">
+          {(events.data || []).filter(e => e.isPublic).length > 0 && (
+            <section className="surface mt-4 p-5 sm:p-6">
+              <h2 className="flex items-center gap-2 text-base font-bold">
+                <BellRing className="h-4 w-4 text-brand" /> Actualités du groupage
+              </h2>
+              <ol className="mt-4 space-y-4 border-l-2 border-brand/20 pl-5">
+                {(events.data || [])
+                  .filter(e => e.isPublic)
+                  .map(e => (
+                    <li key={e.id} className="relative">
+                      <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full bg-brand-gradient ring-4 ring-white" aria-hidden />
+                      <p className="text-[14px] font-semibold">{e.title}</p>
+                      {e.message && <p className="mt-0.5 whitespace-pre-line text-[13.5px] text-muted">{e.message}</p>}
+                      <p className="mt-1 text-[11.5px] text-subtle">{formatDateTime(e.createdAt)}</p>
+                    </li>
+                  ))}
+              </ol>
+            </section>
+          )}
+
+          <section className="surface mt-4 p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 text-base font-bold">
+              <ScrollText className="h-4 w-4 text-brand" /> Règles du groupage
+            </h2>
+            <ul className="mt-3 space-y-2 text-[13.5px] text-muted">
+              <li className="flex gap-2.5"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" /> Participation de {g.minPerUser} à {g.maxPerUser} unité{g.maxPerUser > 1 ? 's' : ''} par client.</li>
+              <li className="flex gap-2.5"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" /> Votre réservation est à régler sous {g.reservationHours} h ; passé ce délai, la place est libérée pour un autre acheteur.</li>
+              <li className="flex gap-2.5"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" /> Réservation non payée annulable depuis votre espace tant que le groupage est ouvert.</li>
+              <li className="flex gap-2.5"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" /> À la validation, seules les participations payées sont commandées à l’usine.</li>
+              <li className="flex gap-2.5"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" /> Si le groupage est annulé, les participations payées sont intégralement remboursées.</li>
+            </ul>
+            {g.terms && <p className="mt-3 whitespace-pre-line rounded-xl bg-paper p-3 text-[13px] text-muted">{g.terms}</p>}
+          </section>
+
+          <section className="surface mt-4 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6">
             <Detail icon={<TransportIcon className="h-4 w-4" />} label="Transport" value={TRANSPORT_LABEL[g.transportMode]} />
             <Detail icon={<MapPin className="h-4 w-4" />} label="Trajet" value={g.route || 'Chine → Dakar'} />
             <Detail icon={<CalendarClock className="h-4 w-4" />} label="Date limite de participation" value={formatDate(g.deadline)} />
@@ -175,10 +212,10 @@ export default function GroupagePage({ id }: { id: string }) {
 
         {/* Participation */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="card p-5 sm:p-6">
+          <div className="surface p-5 sm:p-6">
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="num font-display text-[30px] font-semibold leading-none">{formatXOF(g.unitPriceXOF)}</p>
+                <p className="num font-display text-[32px] font-bold leading-none text-brand-600">{formatXOF(g.unitPriceXOF)}</p>
                 <p className="mt-1.5 text-[13px] text-muted">par unité · prix groupage</p>
               </div>
               {savings > 0 && (
@@ -249,7 +286,7 @@ export default function GroupagePage({ id }: { id: string }) {
                   </Button>
                   <p className="flex items-start gap-2 text-[12px] leading-relaxed text-muted">
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    Votre place est réservée dès maintenant et confirmée au paiement. Paiement sécurisé GeniusPay.
+                    Votre place est réservée dès maintenant et confirmée au paiement (à régler sous {g.reservationHours} h). Paiement sécurisé GeniusPay.
                   </p>
                   <PaymentLogos />
                 </div>
@@ -276,7 +313,7 @@ export default function GroupagePage({ id }: { id: string }) {
 function Detail({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-paper-2 text-muted">{icon}</span>
+      <span className="icon-bubble h-9 w-9">{icon}</span>
       <div>
         <p className="text-[12px] text-muted">{label}</p>
         <p className="text-sm font-semibold">{value}</p>

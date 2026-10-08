@@ -1,5 +1,5 @@
 import { supabase, rpc, unwrap, AppError, friendlyError } from '../lib/db';
-import type { Groupage } from '../lib/types';
+import type { Groupage, GroupageEvent } from '../lib/types';
 import { mapProduct } from './catalog';
 
 const GROUPAGE_COLUMNS = `
@@ -51,8 +51,49 @@ export function mapGroupage(raw: any): Groupage {
     highlights: Array.isArray(raw.highlights) ? raw.highlights.filter(Boolean) : [],
     assignedManagerId: raw.assigned_manager_id || null,
     createdBy: raw.created_by || null,
-    createdAt: raw.created_at
+    createdAt: raw.created_at,
+    reservationHours: Number(raw.reservation_hours || 48),
+    terms: raw.terms || null
   };
+}
+
+let rulesSupport: Promise<boolean> | null = null;
+/** Les colonnes de règles (délai de réservation, conditions) existent-elles en base ? */
+export function supportsGroupageRules(): Promise<boolean> {
+  if (!rulesSupport) {
+    rulesSupport = Promise.resolve(supabase.from('groupages').select('reservation_hours').limit(1)).then(r => !r.error, () => false);
+  }
+  return rulesSupport;
+}
+
+/** Journal du groupage (étapes publiques, et notes internes pour l’équipe). Vide si indisponible. */
+export async function listGroupageEvents(groupageId: string, limit = 30): Promise<GroupageEvent[]> {
+  if (!(await supportsGroupageRules())) return [];
+  const { data, error } = await supabase
+    .from('groupage_events')
+    .select('id, kind, title, message, is_public, created_at')
+    .eq('groupage_id', groupageId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return (data || []).map(e => ({ id: e.id, kind: e.kind, title: e.title, message: e.message, isPublic: e.is_public, createdAt: e.created_at }));
+}
+
+/** Actions de gestion (gestionnaire / administration), contrôlées en base. */
+export function cancelParticipant(participantId: string, reason: string) {
+  return rpc<{ success: boolean; refund_required: boolean }>('staff_cancel_groupage_participant', { p_participant_id: participantId, p_reason: reason });
+}
+export function markParticipantRefunded(participantId: string, reference: string) {
+  return rpc('admin_mark_participant_refunded', { p_participant_id: participantId, p_reference: reference });
+}
+export function postGroupageUpdate(groupageId: string, title: string, message: string, isPublic: boolean, notify: boolean) {
+  return rpc<{ success: boolean; notified: number }>('staff_post_groupage_update', {
+    p_groupage_id: groupageId,
+    p_title: title,
+    p_message: message,
+    p_public: isPublic,
+    p_notify: notify
+  });
 }
 
 /** Un groupage accepte-t-il encore des participations ? */
@@ -179,6 +220,8 @@ export interface GroupageInput {
   highlights: string[];
   imageUrl: string | null;
   assignedManagerId?: string | null;
+  reservationHours?: number;
+  terms?: string;
 }
 
 export async function saveGroupage(input: GroupageInput, isAdmin: boolean): Promise<string> {
@@ -204,6 +247,10 @@ export async function saveGroupage(input: GroupageInput, isAdmin: boolean): Prom
     image_url: input.imageUrl || null
   };
   if (isAdmin) row.assigned_manager_id = input.assignedManagerId || null;
+  if (input.reservationHours !== undefined && (await supportsGroupageRules())) {
+    row.reservation_hours = Math.min(336, Math.max(1, Math.round(input.reservationHours || 48)));
+    row.terms = input.terms?.trim() || null;
+  }
 
   if (input.id) {
     unwrap(await supabase.from('groupages').update(row).eq('id', input.id));
@@ -232,6 +279,10 @@ export interface GroupageParticipantRow {
   payment_status: string | null;
   order_status: string | null;
   created_at: string;
+  cancelled_reason?: string | null;
+  refund_status?: 'none' | 'pending' | 'done';
+  refund_reference?: string | null;
+  pay_before?: string | null;
 }
 
 export function listGroupageParticipants(groupageId: string): Promise<GroupageParticipantRow[]> {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CreditCard, MapPin, Package, Truck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useAsync } from '../../lib/hooks';
+import { useAsync, usePolling } from '../../lib/hooks';
 import { getOrder } from '../../services/orders';
 import { listMyParticipations, cancelMyParticipation } from '../../services/groupages';
 import { listHubs } from '../../services/catalog';
@@ -20,6 +20,7 @@ import { PaymentLogos } from '../../components/commerce/PaymentLogos';
 export default function OrderDetailPage({ id }: { id: string }) {
   const { user, toast } = useApp();
   const { data: order, loading, error, reload } = useAsync(() => getOrder(id), [id]);
+  usePolling(reload, 45000);
   const participation = useAsync(async () => (order?.kind === 'groupage' ? (await listMyParticipations(user!.id)).find(p => p.orderId === order.id) || null : null), [order?.id]);
   const hubs = useAsync(() => listHubs(), []);
   const [busy, setBusy] = useState<'pay' | 'cancel' | null>(null);

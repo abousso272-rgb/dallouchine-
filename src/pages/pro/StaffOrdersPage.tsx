@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Package, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useAsync, useDebounced } from '../../lib/hooks';
+import { useAsync, usePolling, useDebounced } from '../../lib/hooks';
 import { listOrders } from '../../services/orders';
 import { formatDate, formatXOF } from '../../lib/format';
 import { ORDER_STATUS, PAYMENT_STATUS, ORDER_STATUS_FLOW } from '../../lib/status';
@@ -26,6 +26,7 @@ export default function StaffOrdersPage() {
   const q = useDebounced(search, 350);
 
   const { data, loading, error, reload } = useAsync(() => listOrders({ payment: payment || undefined, status: status || undefined, kind: kind || undefined, search: q, limit: 300 }), [payment, status, kind, q]);
+  usePolling(reload, 60000);
 
   const rows = useMemo(() => {
     const all = data || [];
@@ -63,7 +64,7 @@ export default function StaffOrdersPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Code, client, téléphone…"
-              className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-3 focus:border-ink focus:outline-none"
+              className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-3 focus:border-brand/60 focus:outline-none focus:ring-4 focus:ring-brand/10"
               aria-label="Rechercher une commande"
             />
           </div>

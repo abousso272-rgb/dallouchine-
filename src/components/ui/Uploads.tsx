@@ -209,7 +209,7 @@ export function MediaGalleryInput({
           value={urlDraft}
           onChange={e => setUrlDraft(e.target.value)}
           placeholder="…ou collez l’URL d’une image (https://)"
-          className="h-10 flex-1 rounded-xl border border-line-2 bg-white px-3 text-sm focus:border-ink focus:outline-none"
+          className="h-10 flex-1 rounded-xl border border-line-2 bg-white px-3 text-sm focus:border-brand/60 focus:outline-none focus:ring-4 focus:ring-brand/10"
           onKeyDown={e => {
             if (e.key === 'Enter') {
               e.preventDefault();

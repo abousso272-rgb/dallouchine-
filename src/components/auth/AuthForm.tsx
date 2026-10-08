@@ -10,11 +10,14 @@ import { friendlyError } from '../../lib/db';
 export function AuthForm({
   initialMode = 'login',
   onSuccess,
-  compact
+  compact,
+  loginOnly
 }: {
   initialMode?: 'login' | 'register';
   onSuccess?: () => void;
   compact?: boolean;
+  /** Masque l’inscription (espace équipe : accès sur invitation). */
+  loginOnly?: boolean;
 }) {
   const { signIn, signUp, toast } = useApp();
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
@@ -35,7 +38,7 @@ export function AuthForm({
     if (mode === 'register') {
       if (fullName.trim().length < 2) return setError('Indiquez votre nom complet.');
       if (phone.replace(/\D/g, '').length < 8) return setError('Indiquez un numéro de téléphone valide.');
-      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setError('Adresse email invalide.');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return setError('Indiquez une adresse email valide : elle sert à confirmer votre compte.');
       if (password.length < 8) return setError('Le mot de passe doit contenir au moins 8 caractères.');
     } else if (!identifier.trim() || !password) {
       return setError('Renseignez votre identifiant et votre mot de passe.');
@@ -47,7 +50,13 @@ export function AuthForm({
         toast('success', `Bonjour ${u.fullName.split(' ')[0] || ''}`.trim(), 'Vous êtes connecté.');
         onSuccess?.();
       } else {
-        const res = await signUp({ fullName, phone, email: email || undefined, password, city });
+        const res = await signUp({
+          fullName,
+          phone,
+          email: email.trim(),
+          password,
+          city
+        });
         if (res.needsConfirmation) {
           setConfirmSent(true);
         } else {
@@ -65,30 +74,32 @@ export function AuthForm({
   if (confirmSent) {
     return (
       <InlineAlert tone="success" title="Vérifiez votre boîte email">
-        Un lien de confirmation a été envoyé à <strong>{email}</strong>. Cliquez dessus puis connectez-vous.
+        Un lien de confirmation a été envoyé à <strong>{email}</strong>. Cliquez dessus pour activer votre compte : vous serez connecté automatiquement. Pensez à vérifier vos courriers indésirables.
       </InlineAlert>
     );
   }
 
   return (
     <div>
-      <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-paper-2 p-1" role="tablist">
-        {(['login', 'register'] as const).map(m => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={mode === m}
-            onClick={() => {
-              setMode(m);
-              setError(null);
-            }}
-            className={`h-10 rounded-xl text-[13.5px] font-semibold transition-colors ${mode === m ? 'bg-white text-ink shadow-sm' : 'text-muted'}`}
-          >
-            {m === 'login' ? 'Connexion' : 'Créer un compte'}
-          </button>
-        ))}
-      </div>
+      {!loginOnly && (
+        <div className="mb-5 grid grid-cols-2 gap-1 rounded-full bg-paper-2 p-1" role="tablist">
+          {(['login', 'register'] as const).map(m => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => {
+                setMode(m);
+                setError(null);
+              }}
+              className={`h-10 rounded-full text-[13.5px] font-semibold transition-all ${mode === m ? 'bg-white text-brand-600 shadow-sm' : 'text-muted hover:text-ink'}`}
+            >
+              {m === 'login' ? 'Connexion' : 'Créer un compte'}
+            </button>
+          ))}
+        </div>
+      )}
 
       <form onSubmit={submit} className="space-y-3.5" noValidate>
         {mode === 'register' ? (
@@ -110,11 +121,12 @@ export function AuthForm({
             </div>
             <Input
               label="Email"
+              required
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               prefix={<Mail className="h-4 w-4" />}
-              hint="Recommandé : permet de récupérer votre mot de passe."
+              hint="Un lien de confirmation vous sera envoyé. Vous pourrez ensuite vous connecter par email ou téléphone."
               autoComplete="email"
             />
           </>
@@ -164,9 +176,7 @@ export function AuthForm({
           </p>
         )}
         {mode === 'register' && (
-          <p className="text-center text-[12px] leading-relaxed text-muted">
-            En créant un compte, vous pourrez suivre vos commandes, groupages, demandes et devis en temps réel.
-          </p>
+          <p className="text-center text-[12px] leading-relaxed text-muted">En créant un compte, vous pourrez suivre vos commandes, groupages, demandes et devis en temps réel.</p>
         )}
       </form>
     </div>

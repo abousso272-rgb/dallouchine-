@@ -16,7 +16,7 @@ import { TRANSPORT_LABEL } from '../../lib/status';
 
 export default function ProductPage({ slug }: { slug: string }) {
   const { addToCart, navigate } = useApp();
-  const { data: product, loading, error, reload } = useAsync(() => getProduct(slug), [slug]);
+  const { data: product, loading, error, reload } = useAsync(() => getProduct(slug), [slug], { cacheKey: `product:${slug}` });
   const related = useAsync(async () => (product ? listRelatedProducts(product, 4) : []), [product?.id]);
   const groupage = useAsync(async () => {
     if (!product) return null;
@@ -109,7 +109,7 @@ export default function ProductPage({ slug }: { slug: string }) {
         {/* Informations d'achat */}
         <div>
           <p className="text-[12px] font-semibold uppercase tracking-wide text-subtle">{product.categoryName}</p>
-          <h1 className="mt-2 text-[26px] font-semibold leading-tight sm:text-[32px]">{product.name}</h1>
+          <h1 className="mt-2 text-[26px] font-bold leading-tight sm:text-[32px]">{product.name}</h1>
           {product.shortDescription && <p className="mt-3 text-[15px] leading-relaxed text-muted">{product.shortDescription}</p>}
 
           <div className="mt-6">
@@ -219,8 +219,8 @@ export default function ProductPage({ slug }: { slug: string }) {
       )}
 
       {/* Barre d'achat mobile */}
-      <div className="fixed inset-x-0 bottom-[62px] z-30 border-t border-line bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
-        <div className="flex items-center gap-3">
+      <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 px-2 pb-2 lg:hidden">
+        <div className="glass flex items-center gap-2.5 rounded-[22px] p-2.5 pl-4 shadow-[0_-4px_30px_-12px_rgb(120_60_20/0.4)]">
           <div className="min-w-0 flex-1">
             <p className="num truncate font-display text-lg font-semibold leading-tight">{formatXOF(product.priceXOF * qty)}</p>
             <p className="text-[11.5px] text-muted">{qty} × {formatXOF(product.priceXOF)}</p>

@@ -1,8 +1,8 @@
 import React, { useId } from 'react';
 
 const base =
-  'w-full rounded-xl border border-line-2 bg-white px-3.5 text-ink placeholder:text-subtle transition-colors ' +
-  'focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/5 disabled:bg-paper disabled:text-muted';
+  'w-full rounded-2xl border border-line-2 bg-white px-4 text-ink placeholder:text-subtle transition-[border-color,box-shadow] ' +
+  'focus:border-brand/60 focus:outline-none focus:ring-4 focus:ring-brand/10 disabled:bg-paper disabled:text-muted';
 
 export function Field({
   label,
@@ -52,13 +52,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
   const inputId = id || autoId;
   const input = (
     <div className="relative flex items-center">
-      {prefix && <span className="pointer-events-none absolute left-3.5 flex items-center text-muted">{prefix}</span>}
+      {prefix && <span className="pointer-events-none absolute left-4 flex items-center text-muted">{prefix}</span>}
       <input
         ref={ref}
         id={inputId}
         required={required}
         aria-invalid={error ? true : undefined}
-        className={`${base} h-11 ${prefix ? 'pl-10' : ''} ${suffix ? 'pr-16' : ''} ${error ? 'border-red-300' : ''} ${className}`}
+        className={`${base} h-12 ${prefix ? 'pl-11' : ''} ${suffix ? 'pr-16' : ''} ${error ? 'border-red-300' : ''} ${className}`}
         {...rest}
       />
       {suffix && <span className="pointer-events-none absolute right-3.5 text-[13px] font-medium text-muted">{suffix}</span>}
@@ -111,7 +111,7 @@ export function Select({ label, hint, error, options, placeholder, wrapperClassN
     <select
       id={inputId}
       required={required}
-      className={`${base} h-11 appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10 ${className}`}
+      className={`${base} h-12 appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10 ${className}`}
       style={{
         backgroundImage:
           "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6675' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")"
@@ -151,7 +151,7 @@ export function Checkbox({
     <label className={`flex cursor-pointer items-start gap-3 ${disabled ? 'opacity-50' : ''}`}>
       <input
         type="checkbox"
-        className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer rounded-[5px] accent-[#d9440f]"
+        className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer rounded-[5px] accent-[#e2470d]"
         checked={checked}
         disabled={disabled}
         onChange={e => onChange(e.target.checked)}
@@ -189,7 +189,7 @@ export function ChoiceCards<const T extends string>({
             aria-checked={active}
             onClick={() => onChange(o.value)}
             className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-              active ? 'border-ink bg-white ring-4 ring-ink/5' : 'border-line bg-white hover:border-line-2'
+              active ? 'border-brand/60 bg-brand-50/60 ring-4 ring-brand/10' : 'border-line bg-white hover:border-brand/30'
             }`}
           >
             {o.icon && <span className={`mt-0.5 ${active ? 'text-brand' : 'text-muted'}`}>{o.icon}</span>}
@@ -199,7 +199,7 @@ export function ChoiceCards<const T extends string>({
             </span>
             {o.aside && <span className="text-sm font-semibold text-ink">{o.aside}</span>}
             <span
-              className={`mt-0.5 h-[18px] w-[18px] shrink-0 rounded-full border-2 ${active ? 'border-[5px] border-ink' : 'border-line-2'}`}
+              className={`mt-0.5 h-[18px] w-[18px] shrink-0 rounded-full border-2 ${active ? 'border-[5px] border-brand' : 'border-line-2'}`}
               aria-hidden
             />
           </button>

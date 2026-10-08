@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CreditCard, PackageCheck, Target, Users } from 'lucide-react';
-import { useAsync } from '../../lib/hooks';
+import { useAsync, usePolling } from '../../lib/hooks';
 import { listPublicGroupages, isJoinable } from '../../services/groupages';
 import { GroupageCard } from '../../components/commerce/GroupageCard';
 import { Tabs } from '../../components/ui/Tabs';
@@ -8,7 +8,8 @@ import { EmptyState, ErrorState } from '../../components/ui/States';
 import { Button } from '../../components/ui/Button';
 
 export default function GroupagesPage() {
-  const { data, loading, error, reload } = useAsync(() => listPublicGroupages(), []);
+  const { data, loading, error, reload } = useAsync(() => listPublicGroupages(), [], { cacheKey: 'groupages:public' });
+  usePolling(reload, 60000);
   const [tab, setTab] = useState<'open' | 'progress'>('open');
   const open = (data || []).filter(isJoinable);
   const inProgress = (data || []).filter(g => !isJoinable(g));
@@ -19,7 +20,7 @@ export default function GroupagesPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_420px] lg:items-end">
         <div>
           <p className="eyebrow">Achats groupés</p>
-          <h1 className="mt-2 text-[30px] font-semibold leading-tight sm:text-[42px]">Le prix usine, à plusieurs.</h1>
+          <h1 className="mt-2 text-[30px] font-bold leading-tight sm:text-[42px]">Le prix usine, à plusieurs.</h1>
           <p className="mt-3 max-w-xl text-[15.5px] leading-relaxed text-muted">
             Les fournisseurs chinois imposent des quantités minimales. En regroupant les commandes, chacun accède au prix de gros — même pour une seule unité.
           </p>

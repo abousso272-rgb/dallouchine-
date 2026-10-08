@@ -107,7 +107,7 @@ export function MessageThread({
           placeholder="Écrire un message…"
           rows={1}
           maxLength={4000}
-          className="max-h-32 min-h-11 flex-1 resize-y rounded-xl border border-line-2 bg-white px-3.5 py-2.5 focus:border-ink focus:outline-none"
+          className="max-h-32 min-h-11 flex-1 resize-y rounded-xl border border-line-2 bg-white px-3.5 py-2.5 focus:border-brand/60 focus:outline-none focus:ring-4 focus:ring-brand/10"
           aria-label="Message"
         />
         <button type="submit" disabled={sending || !body.trim()} className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-white disabled:opacity-40" aria-label="Envoyer">

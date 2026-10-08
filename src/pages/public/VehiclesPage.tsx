@@ -24,16 +24,16 @@ export default function VehiclesPage() {
   const [type, setType] = useState('');
   const [search, setSearch] = useState('');
   const q = useDebounced(search, 350);
-  const { data, loading, error, reload } = useAsync(() => listVehicles({ type: type || null, search: q, featuredFirst: true }), [type, q]);
+  const { data, loading, error, reload } = useAsync(() => listVehicles({ type: type || null, search: q, featuredFirst: true }), [type, q], { cacheKey: `vehicles:${type}:${q}` });
   const items = data?.items || [];
-  const autoProducts = useAsync(() => listProducts({ autoMobilityOnly: true, pageSize: 8 }).then(r => r.items), []);
+  const autoProducts = useAsync(() => listProducts({ autoMobilityOnly: true, pageSize: 8 }).then(r => r.items), [], { cacheKey: 'vehicles:auto', maxAge: 60000 });
 
   return (
     <div>
       <section className="relative overflow-hidden bg-ink text-white">
         <div className="container-page relative py-12 sm:py-16">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">Automobile & motos</p>
-          <h1 className="mt-3 max-w-3xl text-[30px] font-semibold leading-tight text-white sm:text-[46px]">Voitures, motos et véhicules professionnels, importés sur devis.</h1>
+          <h1 className="mt-3 max-w-3xl text-[30px] font-bold leading-tight text-white sm:text-[46px]">Voitures, motos et véhicules professionnels, importés sur devis.</h1>
           <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-white/65">
             Choisissez un véhicule de notre sélection ou décrivez celui que vous cherchez. Vérification, transport maritime et accompagnement jusqu’à la remise des clés.
           </p>

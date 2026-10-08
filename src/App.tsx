@@ -66,7 +66,7 @@ const LEGACY_REDIRECTS: [RegExp, (m: RegExpMatchArray, search: string) => string
   [/^\/(group-buys|groupage)\/?$/, () => '/groupages'],
   [/^\/groupage\/(.+)$/, m => `/groupages/${m[1]}`],
   [/^\/(request|sourcing-personnalise)\/?$/, () => '/sourcing'],
-  [/^\/(b2b|espace-b2b|demande-devis|demander-un-devis|devis|quote)\/?$/, () => '/pro'],
+  [/^\/(professionnels|b2b|espace-b2b|demande-devis|demander-un-devis|devis|quote)\/?$/, () => '/pro'],
   [/^\/(auto-mobilite|vehicules|auto)\/?$/, () => '/automobile'],
   [/^\/(tracking)\/?$/, (_m, s) => `/suivi${s}`],
   [/^\/(cart)\/?$/, () => '/panier'],
@@ -151,7 +151,32 @@ export function hasRole(role: AppRole | undefined, allowed: AppRole[]) {
   return Boolean(role && allowed.includes(role));
 }
 
+// Préchargement discret des pages les plus visitées quand le navigateur est inactif :
+// la navigation suivante s'affiche sans attendre le téléchargement du code.
+function usePrefetchRoutes() {
+  useEffect(() => {
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (conn?.saveData) return;
+    const idle = (cb: () => void) =>
+      'requestIdleCallback' in window ? (window as Window & { requestIdleCallback: (c: () => void) => number }).requestIdleCallback(cb) : setTimeout(cb, 1500);
+    const t = window.setTimeout(
+      () =>
+        idle(() => {
+          import('./pages/public/CatalogPage');
+          import('./pages/public/ProductPage');
+          import('./pages/public/GroupagesPage');
+          import('./pages/public/GroupagePage');
+          import('./pages/public/CartPage');
+          import('./pages/public/SourcingPage');
+        }),
+      2500
+    );
+    return () => window.clearTimeout(t);
+  }, []);
+}
+
 export default function App() {
+  usePrefetchRoutes();
   return (
     <AppProvider>
       <Router />

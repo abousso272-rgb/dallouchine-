@@ -38,7 +38,7 @@ export default function InvitationPage() {
     <div className="container-page max-w-md py-12">
       <div className="card p-6 sm:p-8">
         <ShieldCheck className="h-9 w-9 text-brand" />
-        <h1 className="mt-4 text-2xl font-semibold">Invitation équipe DALUCHE</h1>
+        <h1 className="mt-4 text-2xl font-bold">Invitation équipe DALUCHE</h1>
         {!inv || inv.status === 'not_found' || invite.error ? (
           <InlineAlert tone="danger">{invite.error || 'Invitation introuvable. Vérifiez le lien reçu.'}</InlineAlert>
         ) : inv.status !== 'pending' ? (

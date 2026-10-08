@@ -15,7 +15,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useAsync } from '../../lib/hooks';
+import { useAsync, usePolling } from '../../lib/hooks';
 import { getAdminStats, getStaffStats, type ActivityItem } from '../../services/admin';
 import { listRequests } from '../../services/requests';
 import { listOrders } from '../../services/orders';
@@ -39,7 +39,25 @@ export default function DashboardPage() {
 function Greeting({ subtitle, actions }: { subtitle: string; actions?: React.ReactNode }) {
   const { user } = useApp();
   const first = (user?.fullName || '').split(' ')[0];
-  return <PageHeader eyebrow={formatDate(new Date())} title={`Bonjour${first ? ` ${first}` : ''}`} description={subtitle} actions={actions} />;
+  return (
+    <PageHeader
+      eyebrow={
+        <span className="inline-flex items-center gap-2">
+          {formatDate(new Date())}
+          <span className="inline-flex items-center gap-1.5 font-semibold normal-case tracking-normal text-jade" title="Les chiffres se mettent à jour automatiquement">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-jade/60 motion-reduce:hidden" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-jade" />
+            </span>
+            En direct
+          </span>
+        </span>
+      }
+      title={`Bonjour${first ? ` ${first}` : ''}`}
+      description={subtitle}
+      actions={actions}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -56,6 +74,7 @@ const ACTIVITY_LABEL: Record<ActivityItem['kind'], { label: string; icon: React.
 
 function AdminDashboard() {
   const { data: s, loading, error, reload } = useAsync(() => getAdminStats(), []);
+  usePolling(reload, 60000);
 
   if (error) {
     return (
@@ -90,7 +109,7 @@ function AdminDashboard() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[118px] rounded-[var(--radius-card)]" />)
         ) : (
           <>
-            <Stat tone="dark" label="Chiffre d’affaires encaissé" value={formatXOFCompact(s.revenue_xof)} hint={`${formatNumber(s.orders_paid)} commande(s) payée(s)`} icon={<Wallet className="h-4 w-4" />} />
+            <Stat tone="brand" label="Chiffre d’affaires encaissé" value={formatXOFCompact(s.revenue_xof)} hint={`${formatNumber(s.orders_paid)} commande(s) payée(s)`} icon={<Wallet className="h-4 w-4" />} />
             <Stat label="Encaissé ce mois" value={formatXOFCompact(s.revenue_month_xof)} icon={<TrendingUp className="h-4 w-4" />} to="/espace-pro/paiements" />
             <Stat
               label="Coûts (achats + logistique)"
@@ -138,7 +157,7 @@ function AdminDashboard() {
               return (
                 <li key={`${a.kind}-${a.id}-${a.at}`}>
                   <Link to={a.link} className="flex items-center gap-3 py-3">
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${a.kind === 'payment' ? 'bg-jade-50 text-jade' : 'bg-paper-2 text-muted'}`}>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${a.kind === 'payment' ? 'bg-jade-50 text-jade' : 'icon-bubble'}`}>
                       <meta.icon className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -179,6 +198,10 @@ function TransitaireDashboard() {
     };
   }, [user?.id]);
   const s = stats.data;
+  usePolling(() => {
+    stats.reload();
+    lists.reload();
+  }, 60000);
 
   return (
     <div className="space-y-6">
@@ -271,6 +294,10 @@ function ManagerDashboard() {
   const stats = useAsync(() => getStaffStats(), []);
   const groupages = useAsync(() => listStaffGroupages({ managerId: user!.id }), [user?.id]);
   const s = stats.data;
+  usePolling(() => {
+    stats.reload();
+    groupages.reload();
+  }, 60000);
   const canCreate = user?.permissions.includes('create_groupages');
   const active = (groupages.data || []).filter(g => !['completed', 'cancelled'].includes(g.status));
 

@@ -88,7 +88,7 @@ export default function ProPage() {
       <div className="container-page max-w-2xl py-12 sm:py-16">
         <div className="card p-6 text-center sm:p-10">
           <CheckCircle2 className="mx-auto h-12 w-12 text-jade" />
-          <h1 className="mt-4 text-2xl font-semibold sm:text-3xl">Demande professionnelle enregistrée</h1>
+          <h1 className="mt-4 text-2xl font-bold sm:text-3xl">Demande professionnelle enregistrée</h1>
           <p className="mt-2 text-muted">
             Référence <span className="num font-semibold text-ink">{done.code}</span>. Un conseiller qualifie votre besoin et vous recontacte. Le devis vous sera envoyé dans votre espace.
           </p>
@@ -106,7 +106,7 @@ export default function ProPage() {
         <div className="container-page grid grid-cols-1 gap-10 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">DALUCHE Pro · B2B</p>
-            <h1 className="mt-3 text-[30px] font-semibold leading-tight text-white sm:text-[44px]">Approvisionnez votre entreprise directement en Chine.</h1>
+            <h1 className="mt-3 text-[30px] font-bold leading-tight text-white sm:text-[44px]">Approvisionnez votre entreprise directement en Chine.</h1>
             <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-white/65">
               Grossistes, distributeurs, commerces et entreprises : nous sourçons, négocions, contrôlons et livrons vos commandes en volume, avec un interlocuteur dédié et un devis ferme.
             </p>

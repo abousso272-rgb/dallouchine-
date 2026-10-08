@@ -71,7 +71,7 @@ export default function StaffProductsPage() {
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_240px]">
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nom, référence…" className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-3 focus:border-ink focus:outline-none" aria-label="Rechercher un produit" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nom, référence…" className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-3 focus:border-brand/60 focus:outline-none focus:ring-4 focus:ring-brand/10" aria-label="Rechercher un produit" />
         </div>
         <Select value={categoryId} onChange={e => setCategoryId(e.target.value)} placeholder="Toutes catégories" options={categories.map(c => ({ value: c.id, label: c.name }))} aria-label="Catégorie" />
       </div>

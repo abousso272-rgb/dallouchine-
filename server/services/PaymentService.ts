@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseServerClient } from '../middleware/auth';
 import { PaymentProvider } from '../providers/PaymentProvider';
@@ -6,7 +7,7 @@ import {
   PaymentItem,
   PaymentStatus
 } from '../types/payment';
-import { config, hasGeniusPayCredentials } from '../config';
+import { config, hasGeniusPayCredentials, hasServiceRole } from '../config';
 
 export class PaymentService {
   private provider: PaymentProvider;
@@ -21,6 +22,8 @@ export class PaymentService {
    * Le montant serveur fait foi ; aucun montant client n'est accepté.
    */
   async createPaymentForOrder(params: {
+    /** Client Supabase de l'utilisateur (jeton) : l'identité est imposée par la base. */
+    db: SupabaseClient;
     orderId: string;
     userId?: string;
     clientIp?: string;
@@ -48,12 +51,9 @@ export class PaymentService {
       };
     }
 
-    const supabase = getSupabaseServerClient();
-
-    // 1. Appel de la procédure stockée PostgreSQL transactionnelle create_payment_attempt
-    const { data: attemptResult, error: attemptError } = await supabase.rpc('create_payment_attempt', {
+    // 1. Tentative créée au nom de l'utilisateur authentifié (auth.uid() côté base)
+    const { data: attemptResult, error: attemptError } = await params.db.rpc('create_payment_attempt_secure', {
       p_order_id: params.orderId,
-      p_user_id: params.userId || null,
       p_ip: params.clientIp || null,
       p_user_agent: params.userAgent || null
     });
@@ -114,23 +114,15 @@ export class PaymentService {
       };
     }
 
-    // 3. Mise à jour certifiée en base avec la réponse du fournisseur
-    const nowIso = new Date().toISOString();
-    const { error: paymentUpdateError } = await supabase.from('payments').update({
-      checkout_url: sessionResult.checkoutUrl,
-      provider_payment_id: sessionResult.providerTransactionId || null,
-      provider_reference: sessionResult.providerReference || attemptResult.merchant_reference,
-      updated_at: nowIso
-    }).eq('id', attemptResult.payment_id);
-    if (paymentUpdateError) {
-      console.warn('[PaymentService] payments update:', paymentUpdateError.message);
-    }
-
-    await supabase.from('payment_attempts').update({
-      provider_payment_id: sessionResult.providerTransactionId || null,
-      provider_reference: sessionResult.providerReference || attemptResult.merchant_reference,
-      updated_at: nowIso
-    }).eq('id', attemptResult.attempt_id);
+    // 3. Enregistrement de l'URL de paiement (seuls champs modifiables, tentative en attente uniquement)
+    const { error: attachError } = await params.db.rpc('attach_payment_checkout', {
+      p_payment_id: attemptResult.payment_id,
+      p_attempt_id: attemptResult.attempt_id,
+      p_checkout_url: sessionResult.checkoutUrl,
+      p_provider_payment_id: sessionResult.providerTransactionId || null,
+      p_provider_reference: sessionResult.providerReference || attemptResult.merchant_reference
+    });
+    if (attachError) console.warn('[PaymentService] attach_payment_checkout:', attachError.message);
 
     return {
       success: true,
@@ -162,24 +154,6 @@ export class PaymentService {
     if (!verification.isValid) {
       console.warn('[PaymentService] Webhook rejected (invalid signature):', verification.reason);
 
-      // Audit de l'événement rejeté
-      try {
-        await supabase.rpc('process_geniuspay_webhook', {
-          p_event_id: verification.eventId || `evt_invalid_${Date.now()}`,
-          p_event_type: verification.eventType || 'webhook.signature_failed',
-          p_provider_payment_id: verification.providerTransactionId || null,
-          p_merchant_reference: verification.providerReference || null,
-          p_order_id: verification.orderId || null,
-          p_status: 'failed',
-          p_amount_xof: verification.amount || 0,
-          p_currency: verification.currency || 'XOF',
-          p_payload: verification.rawPayload || {},
-          p_signature_verified: false
-        });
-      } catch (err: any) {
-        console.warn('[PaymentService] Failed to record invalid signature event:', err.message);
-      }
-
       return {
         status: 400,
         errorCode: 'INVALID_SIGNATURE',
@@ -187,19 +161,35 @@ export class PaymentService {
       };
     }
 
-    // 2. Exécution de la transaction PostgreSQL complète (RPC process_geniuspay_webhook)
-    const { data: rpcResult, error: rpcError } = await supabase.rpc('process_geniuspay_webhook', {
-      p_event_id: verification.eventId || null,
-      p_event_type: verification.eventType || 'payment_intent.confirmed',
-      p_provider_payment_id: verification.providerTransactionId || null,
-      p_merchant_reference: verification.providerReference || null,
-      p_order_id: verification.orderId || null,
-      p_status: verification.status || 'paid',
-      p_amount_xof: verification.amount,
-      p_currency: verification.currency || 'XOF',
-      p_payload: verification.rawPayload || {},
-      p_signature_verified: true
+    // 2. La base revérifie elle-même la signature (secret Vault) avant tout changement d'état
+    const rawString = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8');
+    const header = (name: string) => {
+      const v = headers[name];
+      return Array.isArray(v) ? v[0] : v;
+    };
+    let { data: rpcResult, error: rpcError } = await supabase.rpc('geniuspay_ingest', {
+      p_raw_body: rawString,
+      p_signature: header('x-webhook-signature') || header('x-geniuspay-signature') || header('x-signature') || header('signature') || '',
+      p_timestamp: header('x-webhook-timestamp') || header('x-geniuspay-timestamp') || header('x-timestamp') || header('timestamp') || null,
+      p_event_header: header('x-webhook-event') || header('x-geniuspay-event') || null
     });
+
+    // Transition : secret pas encore enregistré en base → ancienne fonction (service_role recommandé)
+    if (!rpcError && rpcResult?.error_code === 'SECRET_NOT_CONFIGURED') {
+      console.warn('[PaymentService] Secret Vault absent : traitement via process_geniuspay_webhook' + (hasServiceRole ? '' : ' (clé publique, à sécuriser)'));
+      ({ data: rpcResult, error: rpcError } = await supabase.rpc('process_geniuspay_webhook', {
+        p_event_id: verification.eventId || null,
+        p_event_type: verification.eventType || 'payment_intent.confirmed',
+        p_provider_payment_id: verification.providerTransactionId || null,
+        p_merchant_reference: verification.providerReference || null,
+        p_order_id: verification.orderId || null,
+        p_status: verification.status || 'paid',
+        p_amount_xof: verification.amount,
+        p_currency: verification.currency || 'XOF',
+        p_payload: verification.rawPayload || {},
+        p_signature_verified: true
+      }));
+    }
 
     if (rpcError) {
       console.error('[PaymentService] PostgreSQL transaction error during webhook processing:', rpcError);
@@ -210,7 +200,7 @@ export class PaymentService {
     }
 
     // 3. Gestion des réponses selon le résultat transactionnel
-    if (rpcResult.already_processed) {
+    if (rpcResult.already_processed || rpcResult.ignored) {
       console.log(`[PaymentService] [Idempotence] Event ${verification.eventId} was already processed.`);
       return {
         status: 200,
@@ -255,53 +245,58 @@ export class PaymentService {
    * 3. Récupération et synchronisation certifiée du statut d'un paiement
    * La source de vérité est la base de données PostgreSQL certifiée.
    */
-  async getPaymentStatus(paymentIdOrOrderId: string): Promise<{
+  async getPaymentStatus(db: SupabaseClient, paymentIdOrOrderId: string): Promise<{
     found: boolean;
     payment?: any;
     order?: any;
   }> {
-    const supabase = getSupabaseServerClient();
-
-    // Appel direct de la fonction PostgreSQL SECURITY DEFINER get_order_payment_details
-    const { data, error } = await supabase.rpc('get_order_payment_details', {
-      p_order_id: paymentIdOrOrderId
-    });
+    // Propriétaire ou équipe uniquement (contrôle en base)
+    const { data, error } = await db.rpc('get_my_order_payment', { p_order_id: paymentIdOrOrderId });
 
     if (error || !data || !data.found) {
       return { found: false };
     }
 
-    // Auto-synchronisation intelligente avec GeniusPay si le paiement est encore 'pending'
-    if (
-      data.order &&
-      data.order.payment_status !== 'paid' &&
-      (data.payment?.provider_reference || data.payment?.provider_transaction_id)
-    ) {
+    // Paiement encore en attente : on interroge GeniusPay. La confirmation passe par le même
+    // point d'entrée signé que les webhooks (HMAC avec GENIUSPAY_WEBHOOK_SECRET) : la base
+    // reste seule juge, et le montant retenu est celui renvoyé par GeniusPay.
+    const ref = data.payment?.provider_payment_id || data.payment?.provider_reference;
+    if (data.order && data.order.payment_status !== 'paid' && ref && config.geniusPayWebhookSecret) {
       try {
-        const ref = data.payment.provider_reference || data.payment.provider_transaction_id;
         const provStatus = await this.provider.getPaymentStatus(ref);
-        if (provStatus && provStatus.status === 'paid') {
-          console.log(`[PaymentService] Auto-sync: GeniusPay payment ${ref} is confirmed paid. Syncing order ${data.order.id}...`);
-          await supabase.rpc('process_geniuspay_webhook', {
-            p_event_id: `sync_${ref}_${Date.now()}`,
-            p_event_type: 'payment.success',
-            p_provider_payment_id: provStatus.providerTransactionId || data.payment.provider_transaction_id || ref,
-            p_merchant_reference: ref,
-            p_order_id: data.order.id,
-            p_status: 'paid',
-            p_amount_xof: Number(data.order.total_xof),
-            p_currency: 'XOF',
-            p_payload: provStatus.rawResponse || {},
-            p_signature_verified: true
+        if (provStatus && provStatus.status === 'paid' && provStatus.amount > 0) {
+          const body = JSON.stringify({
+            id: `sync_${provStatus.providerTransactionId || ref}_paid`,
+            event: 'payment.success',
+            data: {
+              transaction: {
+                id: provStatus.providerTransactionId || ref,
+                reference: data.payment?.provider_reference || ref,
+                amount: provStatus.amount,
+                currency: provStatus.currency || 'XOF',
+                status: 'completed',
+                metadata: { order_id: data.order.id }
+              }
+            }
           });
-          data.order.payment_status = 'paid';
-          if (data.payment) {
-            data.payment.status = 'paid';
-            data.payment.paid_at = provStatus.paidAt || new Date().toISOString();
+          const timestamp = String(Math.floor(Date.now() / 1000));
+          const signature = crypto.createHmac('sha256', config.geniusPayWebhookSecret).update(`${timestamp}.${body}`).digest('hex');
+          const { data: synced } = await getSupabaseServerClient().rpc('geniuspay_ingest', {
+            p_raw_body: body,
+            p_signature: signature,
+            p_timestamp: timestamp,
+            p_event_header: 'payment.success'
+          });
+          if (synced?.success && !synced.ignored) {
+            data.order.payment_status = 'paid';
+            if (data.payment) {
+              data.payment.status = 'paid';
+              data.payment.paid_at = provStatus.paidAt || new Date().toISOString();
+            }
           }
         }
       } catch (syncErr: any) {
-        console.warn('[PaymentService] Auto-sync verification note:', syncErr.message || syncErr);
+        console.warn('[PaymentService] Synchronisation GeniusPay :', syncErr.message || syncErr);
       }
     }
 

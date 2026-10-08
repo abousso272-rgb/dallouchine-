@@ -12,21 +12,21 @@
   --color-ink: #0b1620;
   --color-ink-2: #16222f;
   --color-ink-3: #243242;
-  --color-paper: #f7f5f2;
-  --color-paper-2: #f0ece6;
-  --color-line: #e7e1d8;
-  --color-line-2: #d8d0c4;
+  --color-paper: #fbf7f2;
+  --color-paper-2: #f5ede4;
+  --color-line: #efe5d9;
+  --color-line-2: #e2d4c4;
   --color-muted: #5b6573;
   --color-subtle: #8a929f;
 
   /* Orange-rouge du logo (fonds : contraste AA avec texte blanc) */
-  --color-brand: #d9440f;
-  --color-brand-400: #fc920c;
-  --color-brand-500: #ef5a17;
+  --color-brand: #e2470d;
+  --color-brand-400: #ff9a1a;
+  --color-brand-500: #f26a12;
   --color-brand-600: #c23a0b;
   --color-brand-700: #9e2c08;
-  --color-brand-50: #fff3ec;
-  --color-brand-100: #fde0d0;
+  --color-brand-50: #fff1e5;
+  --color-brand-100: #fdd9bd;
 
   /* Ambre du logo, usage rare */
   --color-ochre: #a85a08;
@@ -35,9 +35,11 @@
   --color-jade: #16795a;
   --color-jade-50: #e7f4ee;
 
-  --radius-card: 1.25rem;
+  --radius-card: 1.5rem;
   --shadow-soft: 0 1px 2px rgb(14 23 38 / 0.04), 0 8px 24px -12px rgb(14 23 38 / 0.12);
   --shadow-lift: 0 2px 4px rgb(11 22 32 / 0.05), 0 18px 40px -18px rgb(11 22 32 / 0.28);
+  --shadow-warm: 0 1px 2px rgb(120 60 20 / 0.05), 0 18px 44px -22px rgb(200 80 20 / 0.35);
+  --shadow-glow: 0 10px 28px -10px rgb(242 86 15 / 0.55);
 }
 
 @layer base {
@@ -47,6 +49,12 @@
   }
   body {
     @apply bg-paper text-ink font-sans antialiased;
+    /* Halos chauds du logo, très doux, derrière le contenu */
+    background-image:
+      radial-gradient(52rem 28rem at 105% -4%, rgb(252 146 12 / 0.17), transparent 62%),
+      radial-gradient(40rem 26rem at -12% 14%, rgb(239 90 23 / 0.09), transparent 62%),
+      radial-gradient(36rem 24rem at 100% 55%, rgb(252 146 12 / 0.07), transparent 62%);
+    background-repeat: no-repeat;
     font-feature-settings: "cv11", "ss01";
     min-height: 100dvh;
   }
@@ -81,10 +89,11 @@
     font-variant-numeric: tabular-nums;
   }
   .eyebrow {
-    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-muted;
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-brand-600;
   }
   .card {
     @apply rounded-[var(--radius-card)] border border-line bg-white;
+    box-shadow: 0 1px 2px rgb(120 60 20 / 0.04), 0 12px 32px -18px rgb(200 80 20 / 0.25);
   }
   .scrollbar-none {
     scrollbar-width: none;
@@ -95,9 +104,39 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
-  /* Dégradé du logo : réservé à la marque et aux indicateurs de progression */
+  /* Dégradé du logo (orange → rouge) */
   .bg-brand-gradient {
-    background-image: linear-gradient(120deg, #fc920c 0%, #f2560f 55%, #e3180a 100%);
+    background-image: linear-gradient(120deg, #ff9a1a 0%, #f2560f 55%, #dd240b 100%);
+  }
+  .bg-brand-soft {
+    background-image: linear-gradient(135deg, #fff4e8 0%, #ffe6d3 100%);
+  }
+  /* Verre dépoli (en-tête, cartes flottantes) */
+  .glass {
+    background: rgb(255 255 255 / 0.72);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid rgb(255 255 255 / 0.8);
+  }
+  /* Pastille d'icône pêche aux couleurs du logo */
+  .icon-bubble {
+    @apply inline-flex shrink-0 items-center justify-center rounded-full text-brand-600;
+    background: radial-gradient(circle at 30% 25%, #fff 0%, #ffeedd 55%, #ffd9bf 100%);
+    box-shadow: inset 0 0 0 1px rgb(242 86 15 / 0.12), 0 6px 16px -10px rgb(242 86 15 / 0.6);
+  }
+  .surface {
+    @apply rounded-[var(--radius-card)] border border-line bg-white;
+    box-shadow: var(--shadow-warm);
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-[12.5px] font-semibold text-ink;
+  }
+  .lift {
+    @apply transition-[transform,box-shadow] duration-300;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 2px 6px rgb(120 60 20 / 0.06), 0 24px 48px -24px rgb(200 80 20 / 0.45);
   }
   .text-brand-gradient {
     background-image: linear-gradient(100deg, #f7760d 0%, #ec4a10 60%, #d9230b 100%);

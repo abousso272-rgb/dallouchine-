@@ -52,7 +52,7 @@ export default function PasswordPage() {
 
   return (
     <div className="container-page max-w-md py-12">
-      <h1 className="text-2xl font-semibold">{updateMode ? 'Nouveau mot de passe' : 'Mot de passe oublié'}</h1>
+      <h1 className="text-2xl font-bold">{updateMode ? 'Nouveau mot de passe' : 'Mot de passe oublié'}</h1>
       <div className="card mt-6 p-5 sm:p-6">
         {updateMode ? (
           <form onSubmit={updatePassword} className="space-y-4">

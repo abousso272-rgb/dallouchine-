@@ -4,7 +4,8 @@ import { fileURLToPath } from 'url';
 import { shipmentsRouter } from './api/shipmentsRouter';
 import { paymentsRouter } from './api/paymentsRouter';
 import { teamRouter } from './api/teamRouter';
-import { config, hasServiceRole, hasGeniusPayCredentials } from './config';
+import { aiRouter } from './api/aiRouter';
+import { config, hasServiceRole, hasGeniusPayCredentials, hasAiProvider } from './config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +17,7 @@ export function createApiApp() {
   // Corps JSON + capture du corps brut pour la vérification HMAC des webhooks
   api.use(
     express.json({
-      limit: '1mb',
+      limit: '6mb',
       verify: (req: Request, _res: Response, buf: Buffer) => {
         (req as any).rawBody = buf.toString('utf8');
       }
@@ -40,6 +41,7 @@ export function createApiApp() {
       paymentsConfigured: hasGeniusPayCredentials,
       paymentsEnvironment: config.geniusPayEnvironment,
       serviceRoleConfigured: hasServiceRole,
+      aiConfigured: hasAiProvider,
       timestamp: new Date().toISOString()
     });
   });
@@ -48,6 +50,7 @@ export function createApiApp() {
   api.use('/api', paymentsRouter); // /api/webhooks/geniuspay
   api.use('/api/shipments', shipmentsRouter);
   api.use('/api/team', teamRouter);
+  api.use('/api/ai', aiRouter);
 
   api.use('/api', (_req: Request, res: Response) => {
     res.status(404).json({ success: false, error: 'Route API inconnue.' });

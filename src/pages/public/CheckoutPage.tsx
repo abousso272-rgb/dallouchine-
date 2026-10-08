@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Home, Lock, MapPin, Plane, Ship } from 'lucide-react';
+import { Check, Clock, Home, Lock, MapPin, Pencil, Plane, Ship, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAsync } from '../../lib/hooks';
 import { listHubs } from '../../services/catalog';
@@ -16,7 +16,7 @@ import { Link } from '../../components/ui/Link';
 
 export default function CheckoutPage() {
   const { user, authLoading, cart, cartTotal, clearCart, toast, navigate } = useApp();
-  const hubs = useAsync(() => listHubs(), []);
+  const hubs = useAsync(() => listHubs(), [], { cacheKey: 'hubs', maxAge: 600000 });
   const idempotencyKey = useRef(typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
   const [name, setName] = useState('');
@@ -35,6 +35,21 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [editContact, setEditContact] = useState(false);
+
+  // Dernier choix de livraison mémorisé sur cet appareil (confort uniquement)
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('daluche:checkout') || '{}');
+      if (saved.delivery === 'hub_pickup' || saved.delivery === 'home_delivery') setDelivery(saved.delivery);
+      if (saved.transport === 'air' || saved.transport === 'sea') setTransport(saved.transport);
+      if (typeof saved.hubId === 'string') setHubId(saved.hubId);
+      if (typeof saved.street === 'string') setStreet(saved.street);
+      if (typeof saved.district === 'string') setDistrict(saved.district);
+    } catch {
+      /* stockage indisponible : valeurs par défaut */
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -45,7 +60,7 @@ export default function CheckoutPage() {
   }, [user]);
 
   useEffect(() => {
-    if (hubs.data?.length && !hubId) setHubId(hubs.data[0].id);
+    if (hubs.data?.length && (!hubId || !hubs.data.some(h => h.id === hubId))) setHubId(hubs.data[0].id);
   }, [hubs.data, hubId]);
 
   const items = useMemo(() => cart.map(l => ({ product_id: l.productId, quantity: l.quantity })), [cart]);
@@ -69,7 +84,7 @@ export default function CheckoutPage() {
   if (!user) {
     return (
       <div className="container-page max-w-md py-10">
-        <h1 className="text-2xl font-semibold">Finaliser ma commande</h1>
+        <h1 className="text-2xl font-bold">Finaliser ma commande</h1>
         <p className="mb-6 mt-1 text-sm text-muted">Connectez-vous ou créez votre compte pour payer et suivre votre commande.</p>
         <div className="card p-5 sm:p-6">
           <AuthForm initialMode="register" compact />
@@ -88,6 +103,8 @@ export default function CheckoutPage() {
     );
   }
 
+  const contactComplete = name.trim().length >= 2 && phone.replace(/\D/g, '').length >= 8;
+  const showContactForm = editContact || !contactComplete || Boolean(errors.name || errors.phone || errors.email);
   const shipping = estimates[transport]?.customer_shipping_fee ?? null;
   const total = cartTotal + (shipping || 0);
 
@@ -111,6 +128,11 @@ export default function CheckoutPage() {
     }
     setSubmitting(true);
     try {
+      try {
+        localStorage.setItem('daluche:checkout', JSON.stringify({ delivery, transport, hubId, street, district }));
+      } catch {
+        /* ignoré */
+      }
       const order = await createOrderFromCart({
         items,
         deliveryType: delivery,
@@ -138,62 +160,110 @@ export default function CheckoutPage() {
     }
   }
 
-  return (
-    <div className="container-page py-8 sm:py-10">
-      <h1 className="text-[28px] font-semibold sm:text-4xl">Finaliser ma commande</h1>
-      <p className="mt-1 text-[15px] text-muted">Vérifiez vos informations puis payez en toute sécurité.</p>
+  const stepTitle = (n: number, title: string, done?: boolean) => (
+    <h2 className="flex items-center gap-2.5 text-[16px] font-bold">
+      <span className={`num flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold text-white ${done ? 'bg-jade' : 'bg-brand-gradient'}`}>
+        {done ? <Check className="h-3.5 w-3.5" /> : n}
+      </span>
+      {title}
+    </h2>
+  );
 
-      <form onSubmit={submit} className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]" noValidate>
+  return (
+    <div className="container-page pb-40 pt-6 sm:pt-8 lg:pb-12">
+      <CheckoutSteps current={1} />
+      <h1 className="mt-6 text-[28px] font-bold sm:text-4xl">Finaliser ma commande</h1>
+      <p className="mt-1 text-[15px] text-muted">Trois vérifications rapides, puis paiement sécurisé.</p>
+
+      <form id="checkout-form" onSubmit={submit} className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_400px] lg:gap-6" noValidate>
         <div className="space-y-4">
-          <section className="card space-y-4 p-5 sm:p-6">
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-              <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-white">1</span> Vos coordonnées
-            </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input label="Nom complet" required value={name} onChange={e => setName(e.target.value)} error={errors.name} autoComplete="name" />
-              <Input label="Téléphone" required type="tel" value={phone} onChange={e => setPhone(e.target.value)} error={errors.phone} autoComplete="tel" />
-              <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} hint="Pour recevoir la confirmation de paiement." autoComplete="email" />
-              <Input label="Ville" value={city} onChange={e => setCity(e.target.value)} autoComplete="address-level2" />
+          <section className="surface space-y-4 p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              {stepTitle(1, 'Vos coordonnées', !showContactForm)}
+              {!showContactForm && (
+                <button type="button" onClick={() => setEditContact(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold text-brand-600 hover:bg-brand-50">
+                  <Pencil className="h-3.5 w-3.5" /> Modifier
+                </button>
+              )}
             </div>
+            {showContactForm ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input label="Nom complet" required value={name} onChange={e => setName(e.target.value)} error={errors.name} autoComplete="name" />
+                <Input label="Téléphone / WhatsApp" required type="tel" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} error={errors.phone} autoComplete="tel" placeholder="77 123 45 67" />
+                <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} hint="Pour recevoir la confirmation de paiement." autoComplete="email" />
+                <Input label="Ville" value={city} onChange={e => setCity(e.target.value)} autoComplete="address-level2" />
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl bg-paper px-4 py-3">
+                <span className="icon-bubble h-10 w-10">
+                  <User className="h-[18px] w-[18px]" />
+                </span>
+                <div className="min-w-0 text-[14px]">
+                  <p className="truncate font-semibold">{name}</p>
+                  <p className="truncate text-muted">
+                    {phone}
+                    {email ? ` · ${email}` : ''} · {city}
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
 
-          <section className="card space-y-4 p-5 sm:p-6">
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-              <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-white">2</span> Livraison
-            </h2>
+          <section className="surface space-y-4 p-5 sm:p-6">
+            {stepTitle(2, 'Livraison')}
             <ChoiceCards
               value={delivery}
               onChange={setDelivery}
               options={[
-                { value: 'hub_pickup', title: 'Retrait en point relais', description: 'Récupérez votre colis dans un hub DALUCHE à Dakar.', icon: <MapPin className="h-5 w-5" /> },
-                { value: 'home_delivery', title: 'Livraison à domicile', description: 'Livraison à l’adresse de votre choix (frais inclus au calcul).', icon: <Home className="h-5 w-5" /> }
+                { value: 'hub_pickup', title: 'Retrait en point relais', description: 'Gratuit, dans un hub DALUCHE à Dakar.', icon: <MapPin className="h-5 w-5" /> },
+                { value: 'home_delivery', title: 'Livraison à domicile', description: 'À l’adresse de votre choix (frais inclus au calcul).', icon: <Home className="h-5 w-5" /> }
               ]}
             />
             {delivery === 'hub_pickup' ? (
-              hubs.data && hubs.data.length > 0 ? (
-                <Select
-                  label="Point de retrait"
-                  value={hubId}
-                  onChange={e => setHubId(e.target.value)}
-                  error={errors.hub}
-                  options={hubs.data.map(h => ({ value: h.id, label: `${h.name}${h.district ? ` — ${h.district}` : ''}` }))}
-                />
+              hubs.loading && !hubs.data ? (
+                <div className="skeleton h-20 rounded-2xl" />
+              ) : hubs.data && hubs.data.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label="Point de retrait">
+                  {hubs.data.map(h => {
+                    const active = h.id === hubId;
+                    return (
+                      <button
+                        key={h.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() => setHubId(h.id)}
+                        className={`rounded-2xl border p-3.5 text-left transition-all ${active ? 'border-brand/60 bg-brand-50/60 ring-4 ring-brand/10' : 'border-line bg-white hover:border-brand/30'}`}
+                      >
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="text-[14px] font-bold">{h.name}</span>
+                          <span className={`h-[18px] w-[18px] shrink-0 rounded-full border-2 ${active ? 'border-[5px] border-brand' : 'border-line-2'}`} aria-hidden />
+                        </span>
+                        <span className="mt-1 block text-[12.5px] text-muted">{[h.address, h.district, h.city].filter(Boolean).join(' · ')}</span>
+                        {h.openingHours && (
+                          <span className="mt-1 flex items-center gap-1 text-[12px] text-muted">
+                            <Clock className="h-3 w-3" /> {h.openingHours}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {errors.hub && <p className="text-[12.5px] font-medium text-red-700">{errors.hub}</p>}
+                </div>
               ) : (
                 <InlineAlert tone="warning">Aucun point de retrait disponible pour le moment : choisissez la livraison à domicile.</InlineAlert>
               )
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Input label="Adresse" required value={street} onChange={e => setStreet(e.target.value)} error={errors.street} wrapperClassName="sm:col-span-2" autoComplete="street-address" />
-                <Input label="Quartier" value={district} onChange={e => setDistrict(e.target.value)} />
+                <Input label="Adresse" required value={street} onChange={e => setStreet(e.target.value)} error={errors.street} wrapperClassName="sm:col-span-2" autoComplete="street-address" placeholder="Rue, villa, immeuble…" />
+                <Input label="Quartier" value={district} onChange={e => setDistrict(e.target.value)} placeholder="Ex. Mermoz" />
                 <Input label="Indications" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Repère, étage…" />
               </div>
             )}
           </section>
 
-          <section className="card space-y-4 p-5 sm:p-6">
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-              <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-white">3</span> Mode de transport
-            </h2>
+          <section className="surface space-y-4 p-5 sm:p-6">
+            {stepTitle(3, 'Mode de transport')}
             <ChoiceCards
               value={transport}
               onChange={setTransport}
@@ -214,17 +284,20 @@ export default function CheckoutPage() {
                 }
               ]}
             />
-            <Textarea label="Note pour notre équipe (optionnel)" value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
+            <details className="group rounded-2xl bg-paper px-4 py-3">
+              <summary className="cursor-pointer text-[13.5px] font-semibold text-muted group-open:text-ink">Ajouter une note pour notre équipe (optionnel)</summary>
+              <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} wrapperClassName="mt-3" placeholder="Couleur préférée, emballage cadeau, horaires…" />
+            </details>
           </section>
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="card p-5 sm:p-6">
-            <h2 className="text-base font-semibold">Votre commande</h2>
+          <div className="surface p-5 sm:p-6">
+            <h2 className="text-base font-bold">Votre commande</h2>
             <ul className="mt-4 max-h-64 space-y-3 overflow-y-auto pr-1">
               {cart.map(l => (
                 <li key={l.key} className="flex gap-3">
-                  <img src={l.product.images[0]} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                  <img src={l.product.images[0]} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-[13.5px] font-semibold">{l.product.name}</p>
                     <p className="num text-[12.5px] text-muted">
@@ -235,7 +308,7 @@ export default function CheckoutPage() {
                 </li>
               ))}
             </ul>
-            <dl className="mt-5 space-y-2.5 border-t border-line pt-4 text-sm">
+            <dl className="mt-5 space-y-2.5 border-t border-dashed border-line-2 pt-4 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted">Produits</dt>
                 <dd className="num font-semibold">{formatXOF(cartTotal)}</dd>
@@ -245,17 +318,17 @@ export default function CheckoutPage() {
                 <dd className="num font-semibold">{estimating ? '…' : shipping !== null ? formatXOF(shipping) : 'À confirmer'}</dd>
               </div>
               <div className="flex items-baseline justify-between border-t border-line pt-3">
-                <dt className="font-semibold">Total estimé</dt>
-                <dd className="num font-display text-2xl font-semibold">{formatXOF(total)}</dd>
+                <dt className="font-bold">Total</dt>
+                <dd className="num font-display text-[26px] font-bold text-brand-600">{formatXOF(total)}</dd>
               </div>
             </dl>
-            <p className="mt-2 text-[12px] leading-relaxed text-muted">Le montant définitif est recalculé par nos serveurs à la validation et affiché sur la page de paiement.</p>
+            <p className="mt-2 text-[12px] leading-relaxed text-muted">Montant recalculé par nos serveurs à la validation : c’est lui qui s’affiche sur la page de paiement.</p>
             {submitError && (
               <div className="mt-4">
                 <InlineAlert tone="danger">{submitError}</InlineAlert>
               </div>
             )}
-            <Button type="submit" block size="lg" className="mt-5" loading={submitting} icon={<Lock className="h-4 w-4" />}>
+            <Button type="submit" block size="lg" className="mt-5 hidden lg:inline-flex" loading={submitting} icon={<Lock className="h-4 w-4" />}>
               Payer {formatXOF(total)}
             </Button>
             <PaymentLogos className="mt-4 justify-center" />
@@ -265,6 +338,43 @@ export default function CheckoutPage() {
           </div>
         </aside>
       </form>
+
+      {/* Barre de paiement mobile */}
+      <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 px-2 pb-2 lg:hidden">
+        <div className="glass flex items-center gap-3 rounded-[22px] p-2.5 pl-4 shadow-[0_-4px_30px_-12px_rgb(120_60_20/0.4)]">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Total</p>
+            <p className="num truncate font-display text-[19px] font-bold leading-tight text-brand-600">{formatXOF(total)}</p>
+          </div>
+          <Button type="submit" form="checkout-form" size="lg" loading={submitting} icon={<Lock className="h-4 w-4" />}>
+            Payer
+          </Button>
+        </div>
+      </div>
     </div>
+  );
+}
+
+/** Étapes du tunnel d’achat. */
+export function CheckoutSteps({ current }: { current: 0 | 1 | 2 }) {
+  const steps = ['Panier', 'Livraison', 'Paiement'];
+  return (
+    <ol className="flex items-center gap-2 text-[12.5px] font-semibold sm:gap-3 sm:text-[13px]" aria-label="Étapes de la commande">
+      {steps.map((st, i) => (
+        <li key={st} className="flex items-center gap-2 sm:gap-3">
+          <span className={`flex items-center gap-1.5 ${i <= current ? 'text-ink' : 'text-subtle'}`}>
+            <span
+              className={`num flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
+                i < current ? 'bg-jade text-white' : i === current ? 'bg-brand-gradient text-white shadow-[var(--shadow-glow)]' : 'bg-paper-2 text-muted'
+              }`}
+            >
+              {i < current ? <Check className="h-3 w-3" /> : i + 1}
+            </span>
+            {st}
+          </span>
+          {i < steps.length - 1 && <span className={`h-px w-6 sm:w-12 ${i < current ? 'bg-jade' : 'bg-line-2'}`} aria-hidden />}
+        </li>
+      ))}
+    </ol>
   );
 }

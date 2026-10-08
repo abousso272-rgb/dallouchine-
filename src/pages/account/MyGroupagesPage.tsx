@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useAsync } from '../../lib/hooks';
+import { useAsync, usePolling } from '../../lib/hooks';
 import { listMyParticipations } from '../../services/groupages';
 import { formatDate, formatXOF } from '../../lib/format';
 import { GROUPAGE_STATUS, PARTICIPANT_STATUS } from '../../lib/status';
@@ -16,6 +16,7 @@ import { PLACEHOLDER_IMAGE } from '../../services/catalog';
 export default function MyGroupagesPage() {
   const { user } = useApp();
   const { data, loading, error, reload } = useAsync(() => listMyParticipations(user!.id), [user?.id]);
+  usePolling(reload, 60000);
 
   return (
     <div>

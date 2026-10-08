@@ -9,12 +9,41 @@
     <meta property="og:title" content="DALUCHE — Votre passerelle entre la Chine et l’Afrique" />
     <meta property="og:description" content="Catalogue, groupages, sourcing sur mesure, B2B et automobile : l’import Chine–Afrique, simple et suivi." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://splsjtguapquznbiacad.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
+    <!-- Polices chargées sans bloquer le premier affichage -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" /></noscript>
+    <style>
+      /* Écran de démarrage : affiché instantanément, remplacé par l'application */
+      html,body{margin:0;background:#faf6f1;color:#0b1620;font-family:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif}
+      .boot{min-height:100dvh;display:flex;flex-direction:column}
+      .boot-bar{height:64px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #ece4da;background:rgba(250,246,241,.8)}
+      .boot-logo{width:32px;height:32px;border-radius:9px;background:#0b1620;position:relative;overflow:hidden}
+      .boot-logo:after{content:"";position:absolute;left:7px;right:7px;top:13px;height:9px;border:3px solid #f2560f;border-bottom:0;border-radius:12px 12px 0 0}
+      .boot-name{font-weight:800;letter-spacing:.04em;font-size:16px}
+      .boot-hero{padding:48px 16px;max-width:1200px;margin:0 auto;width:100%;box-sizing:border-box}
+      .boot-line{height:14px;border-radius:7px;background:linear-gradient(90deg,#efe7dd 0,#f7f1ea 40%,#efe7dd 80%);background-size:400px 100%;animation:bootsh 1.2s linear infinite;margin-bottom:14px}
+      @keyframes bootsh{0%{background-position:-400px 0}100%{background-position:400px 0}}
+      @media (min-width:640px){.boot-bar{padding:0 32px}.boot-hero{padding:80px 32px}}
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" aria-hidden="true">
+        <div class="boot-bar"><span class="boot-logo"></span><span class="boot-name">DALUCHE</span></div>
+        <div class="boot-hero">
+          <div class="boot-line" style="width:220px;height:26px;border-radius:13px"></div>
+          <div class="boot-line" style="width:min(560px,90%);height:44px;border-radius:12px"></div>
+          <div class="boot-line" style="width:min(440px,70%);height:44px;border-radius:12px"></div>
+          <div class="boot-line" style="width:min(520px,85%)"></div>
+          <div class="boot-line" style="width:min(380px,60%)"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

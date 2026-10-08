@@ -94,6 +94,18 @@ export interface Groupage {
   assignedManagerId: string | null;
   createdBy: string | null;
   createdAt: string;
+  /** Délai (h) pour régler une réservation avant libération automatique */
+  reservationHours: number;
+  terms: string | null;
+}
+
+export interface GroupageEvent {
+  id: string;
+  kind: 'status' | 'update' | 'note' | 'participant' | 'refund' | 'system';
+  title: string;
+  message: string | null;
+  isPublic: boolean;
+  createdAt: string;
 }
 
 export interface CartLine {
