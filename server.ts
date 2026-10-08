@@ -5,7 +5,7 @@ const PORT = config.port;
 if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     logServerConfig();
-    console.log(`[DALUCHE] Serveur Express démarré on port ${PORT}`);
+    console.log(`[Dallou Chine] Serveur Express démarré on port ${PORT}`);
   });
 }
 

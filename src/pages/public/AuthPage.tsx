@@ -27,7 +27,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             </span>
           </div>
           <h1 className="mt-10 text-[40px] font-bold leading-[1.05] text-white">
-            Votre espace <span className="text-brand-gradient">DALUCHE</span>
+            Votre espace <span className="text-brand-gradient">Dallou Chine</span>
           </h1>
           <p className="mt-4 max-w-md text-[15.5px] leading-relaxed text-white/70">
             Un seul compte pour acheter, participer aux groupages, demander un sourcing et suivre chaque étape jusqu’à la livraison.

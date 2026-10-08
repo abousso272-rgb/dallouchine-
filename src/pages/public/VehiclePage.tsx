@@ -18,7 +18,7 @@ export default function VehiclePage({ slug }: { slug: string }) {
   const [imageIndex, setImageIndex] = useState(0);
 
   useEffect(() => {
-    if (v) document.title = `${v.title} — DALUCHE Automobile`;
+    if (v) document.title = `${v.title} — Dallou Chine Automobile`;
   }, [v]);
 
   if (loading) return <PageLoader />;

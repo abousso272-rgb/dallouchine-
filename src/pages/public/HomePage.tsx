@@ -165,9 +165,9 @@ export function HomePage() {
 function Hero({ groupage, openCount }: { groupage?: Groupage; openCount: number }) {
   return (
     <section className="relative -mt-[76px] overflow-hidden pt-[76px] sm:-mt-[80px] sm:pt-[80px]">
-      {/* halos chauds */}
-      <div className="pointer-events-none absolute -left-40 top-10 h-[420px] w-[420px] rounded-full bg-brand-400/25 blur-[90px]" aria-hidden />
-      <div className="pointer-events-none absolute -right-32 -top-20 h-[520px] w-[520px] rounded-full bg-brand/20 blur-[110px]" aria-hidden />
+      {/* halos chauds (affichés uniquement sur grand écran pour garantir un défilement mobile fluide) */}
+      <div className="pointer-events-none absolute -left-40 top-10 hidden h-[420px] w-[420px] rounded-full bg-brand-400/25 blur-[90px] sm:block" aria-hidden />
+      <div className="pointer-events-none absolute -right-32 -top-20 hidden h-[520px] w-[520px] rounded-full bg-brand/20 blur-[110px] sm:block" aria-hidden />
       <div className="route-line pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_70%)]" aria-hidden />
 
       <div className="container-page relative grid grid-cols-1 items-center gap-10 pb-6 pt-8 sm:pb-12 sm:pt-12 lg:grid-cols-[1.02fr_1fr] lg:gap-12 lg:pb-14 lg:pt-14">
@@ -192,7 +192,7 @@ function Hero({ groupage, openCount }: { groupage?: Groupage; openCount: number 
               size="lg"
               variant="whatsapp"
               icon={<MessageCircle className="h-4 w-4" />}
-              onClick={() => window.open(whatsappLink('Bonjour DALUCHE, je souhaite importer un produit de Chine.'), '_blank', 'noopener')}
+              onClick={() => window.open(whatsappLink('Bonjour Dallou Chine, je souhaite importer un produit de Chine.'), '_blank', 'noopener')}
             >
               Parler sur WhatsApp
             </Button>
@@ -508,8 +508,8 @@ function AutomobileSection({
   return (
     <section className="container-page mt-16 sm:mt-24" aria-labelledby="home-auto">
       <div className="relative overflow-hidden rounded-[32px] bg-ink px-5 py-10 text-white sm:px-10 sm:py-14">
-        <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-brand/30 blur-3xl" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-brand-400/15 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -right-20 -top-24 hidden h-80 w-80 rounded-full bg-brand/30 blur-3xl sm:block" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-24 left-10 hidden h-64 w-64 rounded-full bg-brand-400/15 blur-3xl sm:block" aria-hidden />
         <div className="relative">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
@@ -670,7 +670,7 @@ function FinalCta() {
             {user ? 'Mon espace client' : 'Créer mon compte'}
           </Button>
           <a
-            href={whatsappLink('Bonjour DALUCHE, je souhaite importer un produit.')}
+            href={whatsappLink('Bonjour Dallou Chine, je souhaite importer un produit.')}
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-[52px] items-center justify-center gap-2 rounded-full border border-white/40 bg-white/15 px-7 text-[15px] font-semibold text-white backdrop-blur hover:bg-white/25"
@@ -736,7 +736,7 @@ function AiBand() {
   return (
     <section className="container-page mt-12 sm:mt-16" aria-labelledby="home-ai">
       <div className="relative overflow-hidden rounded-[var(--radius-card)] border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-brand-50/60 p-6 shadow-[var(--shadow-soft)] sm:p-9">
-        <div className="pointer-events-none absolute -right-10 -top-14 h-56 w-56 rounded-full bg-brand-400/25 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -right-10 -top-14 hidden h-56 w-56 rounded-full bg-brand-400/25 blur-3xl sm:block" aria-hidden />
         <div className="relative grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div>
             <p className="eyebrow flex items-center gap-1.5">

@@ -67,7 +67,7 @@ export async function fetchPublicPage(raw: string, opts: { maxBytes?: number; ti
         redirect: 'manual',
         signal: ctrl.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; DalucheBot/1.0; +https://daluche.com)',
+          'User-Agent': 'Mozilla/5.0 (compatible; DallouChineBot/1.0; +https://dallouchine.vercel.app)',
           Accept: 'text/html,application/xhtml+xml',
           'Accept-Language': 'fr,en;q=0.8,zh;q=0.6'
         }

@@ -30,7 +30,7 @@ const CODE_MESSAGES: Record<string, string> = {
 };
 
 const MIGRATION_MESSAGE =
-  'Cette fonctionnalité nécessite la mise à jour de la base de données DALUCHE (migration à appliquer par l’administrateur).';
+  'Cette fonctionnalité nécessite la mise à jour de la base de données Dallou Chine (migration à appliquer par l’administrateur).';
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);

@@ -175,7 +175,7 @@ export default function OrderDetailPage({ id }: { id: string }) {
                   ? [order.deliveryAddress?.street, order.deliveryAddress?.district, order.deliveryAddress?.city].filter(Boolean).join(', ') || order.customerCity
                   : hub
                     ? `${hub.name} — ${hub.address}`
-                    : 'Hub DALUCHE, Dakar'}
+                    : 'Hub Dallou Chine, Dakar'}
               </p>
             </div>
           </div>

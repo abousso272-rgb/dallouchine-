@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { AppError } from './db';
 
-/** Appel authentifié à l'API DALUCHE (Express) avec le jeton de session Supabase. */
+/** Appel authentifié à l'API Dallou Chine (Express) avec le jeton de session Supabase. */
 export async function apiFetch<T = unknown>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const {
     data: { session }

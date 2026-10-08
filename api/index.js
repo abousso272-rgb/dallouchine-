@@ -553,9 +553,9 @@ var GeniusPayProvider = class {
     const payload = {
       amount: Math.round(params.amount),
       currency: params.currency || "XOF",
-      description: params.description || `Commande ${params.orderCode} - DALUCHE`,
+      description: params.description || `Commande ${params.orderCode} - Dallou Chine`,
       customer: {
-        name: params.customer.name || "Client DALUCHE",
+        name: params.customer.name || "Client Dallou Chine",
         ...params.customer.email ? { email: params.customer.email } : {},
         phone: params.customer.phone || ""
       },
@@ -855,7 +855,7 @@ var PaymentService = class {
       return {
         success: false,
         errorCode: "PROVIDER_NOT_CONFIGURED",
-        errorMessage: "Le paiement en ligne n'est pas encore configur\xE9. Contactez DALUCHE pour finaliser votre commande."
+        errorMessage: "Le paiement en ligne n'est pas encore configur\xE9. Contactez Dallou Chine pour finaliser votre commande."
       };
     }
     const { data: attemptResult, error: attemptError } = await params.db.rpc("create_payment_attempt_secure", {
@@ -888,9 +888,9 @@ var PaymentService = class {
       amount: attemptResult.amount_xof,
       currency: attemptResult.currency || "XOF",
       paymentMethod: params.paymentMethod,
-      description: `Commande ${attemptResult.tracking_code} - DALUCHE`,
+      description: `Commande ${attemptResult.tracking_code} - Dallou Chine`,
       customer: {
-        name: attemptResult.customer_name || "Client DALUCHE",
+        name: attemptResult.customer_name || "Client Dallou Chine",
         email: attemptResult.customer_email || "",
         phone: attemptResult.customer_phone || ""
       },
@@ -1332,7 +1332,7 @@ async function fetchPublicPage(raw, opts = {}) {
         redirect: "manual",
         signal: ctrl.signal,
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; DalucheBot/1.0; +https://daluche.com)",
+          "User-Agent": "Mozilla/5.0 (compatible; DallouChineBot/1.0; +https://dallouchine.vercel.app)",
           Accept: "text/html,application/xhtml+xml",
           "Accept-Language": "fr,en;q=0.8,zh;q=0.6"
         }
@@ -1423,7 +1423,7 @@ var TOOL = {
     required: ["productName", "productNameZh", "category", "description", "specs", "materials", "listing", "estimate", "searchKeywords", "supplierQuestions", "warnings", "confidence"]
   }
 };
-var SYSTEM = `Tu es l'analyste produit de DALUCHE, une plateforme d'import Chine \u2192 Afrique de l'Ouest.
+var SYSTEM = `Tu es l'analyste produit de Dallou Chine, une plateforme d'import Chine \u2192 Afrique de l'Ouest.
 \xC0 partir d'une photo et/ou du contenu d'une page produit (Alibaba, 1688, AliExpress, Made-in-China\u2026), tu identifies le produit et pr\xE9pares sa recherche de fournisseurs.
 R\xE8gles absolues :
 - N'invente JAMAIS un fournisseur, un prix, un MOQ ou un chiffre de ventes. Le champ "listing" ne contient que ce qui est \xE9crit dans le contenu de la page fourni ; sinon null.
@@ -1602,7 +1602,7 @@ function createApiApp() {
   api.get("/api/health", (_req, res) => {
     res.json({
       status: "online",
-      service: "DALUCHE API",
+      service: "Dallou Chine API",
       gateway: "GeniusPay",
       paymentsConfigured: hasGeniusPayCredentials,
       paymentsEnvironment: config.geniusPayEnvironment,

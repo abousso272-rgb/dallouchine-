@@ -32,7 +32,7 @@ export default function ProductPage({ slug }: { slug: string }) {
     if (product) {
       setQty(product.moq);
       setImageIndex(0);
-      document.title = `${product.name} — DALUCHE`;
+      document.title = `${product.name} — Dallou Chine`;
     }
   }, [product]);
 

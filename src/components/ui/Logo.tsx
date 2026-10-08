@@ -23,7 +23,7 @@ export function Logo({ inverted, compact }: { inverted?: boolean; compact?: bool
       {!compact && (
         <span className="flex flex-col leading-none">
           <span className={`font-display text-[18px] font-bold tracking-[0.02em] ${inverted ? 'text-white' : 'text-ink'}`}>
-            DALU<span className="text-brand-gradient">CHE</span>
+            DALLOU <span className="text-brand-gradient">CHINE</span>
           </span>
           <span className={`mt-1 text-[8.5px] font-bold uppercase tracking-[0.22em] ${inverted ? 'text-white/55' : 'text-muted'}`}>Chine → Afrique</span>
         </span>

@@ -8,7 +8,7 @@ import { friendlyError } from '../../lib/db';
 import { formatDateTime } from '../../lib/format';
 import { Spinner } from '../ui/States';
 
-/** Fil d'échange lié à une demande ou une commande (client ↔ équipe DALUCHE). */
+/** Fil d'échange lié à une demande ou une commande (client ↔ équipe Dallou Chine). */
 export function MessageThread({
   type,
   threadId,
@@ -87,7 +87,7 @@ export function MessageThread({
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${mine ? 'rounded-br-md bg-ink text-white' : 'rounded-bl-md bg-paper-2 text-ink'}`}>
                   <p className={`text-[11px] font-semibold ${mine ? 'text-white/60' : 'text-muted'}`}>
-                    {m.senderRole === 'staff' ? m.senderName || 'Équipe DALUCHE' : m.senderName || 'Client'} · {formatDateTime(m.createdAt)}
+                    {m.senderRole === 'staff' ? m.senderName || 'Équipe Dallou Chine' : m.senderName || 'Client'} · {formatDateTime(m.createdAt)}
                   </p>
                   <p className="mt-0.5 whitespace-pre-line text-[14px] leading-relaxed">{m.body}</p>
                 </div>

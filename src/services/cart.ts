@@ -7,7 +7,8 @@ const CART_PRODUCT_COLUMNS = `
   is_active, categories (id, name, slug), product_images (id, image_url, sort_order, is_primary)
 `;
 
-const GUEST_KEY = 'daluche_guest_cart_v1';
+const GUEST_KEY = 'dallouchine_guest_cart_v1';
+const LEGACY_GUEST_KEY = 'daluche_guest_cart_v1';
 
 export interface GuestCartEntry {
   productId: string;
@@ -17,7 +18,7 @@ export interface GuestCartEntry {
 // Panier invité : simple commodité locale, fusionné dans le panier en base dès la connexion.
 export function readGuestCart(): GuestCartEntry[] {
   try {
-    const raw = localStorage.getItem(GUEST_KEY);
+    const raw = localStorage.getItem(GUEST_KEY) || localStorage.getItem(LEGACY_GUEST_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.filter(e => e && typeof e.productId === 'string' && e.quantity > 0) : [];
   } catch {

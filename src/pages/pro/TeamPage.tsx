@@ -111,10 +111,10 @@ export default function TeamPage() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" icon={<MessageCircle className="h-3.5 w-3.5" />} to={`https://wa.me/?text=${encodeURIComponent(`Invitation à rejoindre l’équipe DALUCHE : ${result.inviteUrl}`)}`}>
+                <Button size="sm" variant="secondary" icon={<MessageCircle className="h-3.5 w-3.5" />} to={`https://wa.me/?text=${encodeURIComponent(`Invitation à rejoindre l’équipe Dallou Chine : ${result.inviteUrl}`)}`}>
                   Partager sur WhatsApp
                 </Button>
-                <Button size="sm" variant="secondary" icon={<Mail className="h-3.5 w-3.5" />} to={`mailto:${result.email}?subject=${encodeURIComponent('Invitation équipe DALUCHE')}&body=${encodeURIComponent(`Bonjour,\n\nVous êtes invité(e) à rejoindre l’espace professionnel DALUCHE :\n${result.inviteUrl}\n\nCréez votre compte avec cette adresse email puis acceptez l’invitation.`)}`}>
+                <Button size="sm" variant="secondary" icon={<Mail className="h-3.5 w-3.5" />} to={`mailto:${result.email}?subject=${encodeURIComponent('Invitation équipe Dallou Chine')}&body=${encodeURIComponent(`Bonjour,\n\nVous êtes invité(e) à rejoindre l’espace professionnel Dallou Chine :\n${result.inviteUrl}\n\nCréez votre compte avec cette adresse email puis acceptez l’invitation.`)}`}>
                   Envoyer par email
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setResult(null)}>

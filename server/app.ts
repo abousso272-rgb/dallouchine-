@@ -36,7 +36,7 @@ export function createApiApp() {
   api.get('/api/health', (_req: Request, res: Response) => {
     res.json({
       status: 'online',
-      service: 'DALUCHE API',
+      service: 'Dallou Chine API',
       gateway: 'GeniusPay',
       paymentsConfigured: hasGeniusPayCredentials,
       paymentsEnvironment: config.geniusPayEnvironment,

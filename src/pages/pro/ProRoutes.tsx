@@ -105,7 +105,7 @@ export default function ProRoutes({ path }: { path: string }) {
           </div>
           <div className="surface p-5 sm:p-7">
             <h1 className="text-xl font-bold">Espace professionnel</h1>
-            <p className="mb-5 mt-1 text-sm text-muted">Réservé à l’équipe DALUCHE : administration, transitaires et gestionnaires de groupages.</p>
+            <p className="mb-5 mt-1 text-sm text-muted">Réservé à l’équipe Dallou Chine : administration, transitaires et gestionnaires de groupages.</p>
             <AuthForm loginOnly />
             <p className="mt-4 border-t border-line pt-4 text-[12.5px] text-muted">Pas encore de compte équipe ? L’accès se fait sur invitation de l’administrateur, via le lien reçu par email.</p>
           </div>

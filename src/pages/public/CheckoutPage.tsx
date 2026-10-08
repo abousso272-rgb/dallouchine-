@@ -40,7 +40,7 @@ export default function CheckoutPage() {
   // Dernier choix de livraison mémorisé sur cet appareil (confort uniquement)
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('daluche:checkout') || '{}');
+      const saved = JSON.parse(localStorage.getItem('dallouchine:checkout') || localStorage.getItem('daluche:checkout') || '{}');
       if (saved.delivery === 'hub_pickup' || saved.delivery === 'home_delivery') setDelivery(saved.delivery);
       if (saved.transport === 'air' || saved.transport === 'sea') setTransport(saved.transport);
       if (typeof saved.hubId === 'string') setHubId(saved.hubId);
@@ -129,7 +129,7 @@ export default function CheckoutPage() {
     setSubmitting(true);
     try {
       try {
-        localStorage.setItem('daluche:checkout', JSON.stringify({ delivery, transport, hubId, street, district }));
+        localStorage.setItem('dallouchine:checkout', JSON.stringify({ delivery, transport, hubId, street, district }));
       } catch {
         /* ignoré */
       }
@@ -215,7 +215,7 @@ export default function CheckoutPage() {
               value={delivery}
               onChange={setDelivery}
               options={[
-                { value: 'hub_pickup', title: 'Retrait en point relais', description: 'Gratuit, dans un hub DALUCHE à Dakar.', icon: <MapPin className="h-5 w-5" /> },
+                { value: 'hub_pickup', title: 'Retrait en point relais', description: 'Gratuit, dans un hub Dallou Chine à Dakar.', icon: <MapPin className="h-5 w-5" /> },
                 { value: 'home_delivery', title: 'Livraison à domicile', description: 'À l’adresse de votre choix (frais inclus au calcul).', icon: <Home className="h-5 w-5" /> }
               ]}
             />

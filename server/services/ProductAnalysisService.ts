@@ -89,7 +89,7 @@ const TOOL = {
   }
 } as const;
 
-const SYSTEM = `Tu es l'analyste produit de DALUCHE, une plateforme d'import Chine → Afrique de l'Ouest.
+const SYSTEM = `Tu es l'analyste produit de Dallou Chine, une plateforme d'import Chine → Afrique de l'Ouest.
 À partir d'une photo et/ou du contenu d'une page produit (Alibaba, 1688, AliExpress, Made-in-China…), tu identifies le produit et prépares sa recherche de fournisseurs.
 Règles absolues :
 - N'invente JAMAIS un fournisseur, un prix, un MOQ ou un chiffre de ventes. Le champ "listing" ne contient que ce qui est écrit dans le contenu de la page fourni ; sinon null.

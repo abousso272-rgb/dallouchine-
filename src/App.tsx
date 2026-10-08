@@ -98,8 +98,8 @@ function Router() {
 
   // Titre de page
   useEffect(() => {
-    if (normalized.startsWith('/espace-pro')) document.title = 'Espace pro — DALUCHE';
-    else if (normalized.startsWith('/compte')) document.title = 'Mon espace — DALUCHE';
+    if (normalized.startsWith('/espace-pro')) document.title = 'Espace pro — Dallou Chine';
+    else if (normalized.startsWith('/compte')) document.title = 'Mon espace — Dallou Chine';
   }, [normalized]);
 
   // Un utilisateur déjà connecté qui ouvre /connexion est renvoyé vers son espace (ou ?next=)
@@ -151,25 +151,21 @@ export function hasRole(role: AppRole | undefined, allowed: AppRole[]) {
   return Boolean(role && allowed.includes(role));
 }
 
-// Préchargement discret des pages les plus visitées quand le navigateur est inactif :
-// la navigation suivante s'affiche sans attendre le téléchargement du code.
+// Préchargement discret des pages (uniquement sur grand écran pour préserver la bande passante mobile)
 function usePrefetchRoutes() {
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) return;
     const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
     if (conn?.saveData) return;
     const idle = (cb: () => void) =>
-      'requestIdleCallback' in window ? (window as Window & { requestIdleCallback: (c: () => void) => number }).requestIdleCallback(cb) : setTimeout(cb, 1500);
+      'requestIdleCallback' in window ? (window as Window & { requestIdleCallback: (c: () => void) => number }).requestIdleCallback(cb) : setTimeout(cb, 2500);
     const t = window.setTimeout(
       () =>
         idle(() => {
           import('./pages/public/CatalogPage');
-          import('./pages/public/ProductPage');
           import('./pages/public/GroupagesPage');
-          import('./pages/public/GroupagePage');
-          import('./pages/public/CartPage');
-          import('./pages/public/SourcingPage');
         }),
-      2500
+      4000
     );
     return () => window.clearTimeout(t);
   }, []);

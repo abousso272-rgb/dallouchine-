@@ -75,7 +75,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 px-2 pt-2 sm:px-4 sm:pt-3">
       <div className="glass mx-auto flex h-[60px] max-w-7xl items-center gap-2 rounded-2xl pl-2.5 pr-2 shadow-[0_12px_32px_-18px_rgb(120_60_20/0.45)] sm:h-16 sm:rounded-full sm:pl-4 sm:pr-2.5">
-        <Link to="/" className="shrink-0" aria-label="DALUCHE — accueil">
+        <Link to="/" className="shrink-0" aria-label="Dallou Chine — accueil">
           <Logo />
         </Link>
 

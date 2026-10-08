@@ -79,7 +79,7 @@ function AdminDashboard() {
   if (error) {
     return (
       <>
-        <Greeting subtitle="Vue d’ensemble de l’activité DALUCHE." />
+        <Greeting subtitle="Vue d’ensemble de l’activité Dallou Chine." />
         <ErrorState message={error} onRetry={reload} />
       </>
     );

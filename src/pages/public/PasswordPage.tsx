@@ -77,7 +77,7 @@ export default function PasswordPage() {
             </Button>
             <p className="text-[12.5px] leading-relaxed text-muted">
               Compte créé avec un numéro de téléphone uniquement ? Contactez-nous sur{' '}
-              <a href={whatsappLink('Bonjour, je souhaite réinitialiser mon mot de passe DALUCHE.')} className="font-semibold text-ink underline" target="_blank" rel="noreferrer">
+              <a href={whatsappLink('Bonjour, je souhaite réinitialiser mon mot de passe Dallou Chine.')} className="font-semibold text-ink underline" target="_blank" rel="noreferrer">
                 WhatsApp ({CONTACT.phoneDisplay})
               </a>
               .

@@ -15,7 +15,7 @@ import { formatNumber } from '../../lib/format';
 const PAGE_SIZE = 24;
 
 const SORTS: { value: ProductSort; label: string }[] = [
-  { value: 'featured', label: 'Sélection DALUCHE' },
+  { value: 'featured', label: 'Sélection Dallou Chine' },
   { value: 'newest', label: 'Nouveautés' },
   { value: 'price_asc', label: 'Prix croissant' },
   { value: 'price_desc', label: 'Prix décroissant' }
@@ -328,7 +328,7 @@ function FilterPanel({
           <Input inputMode="numeric" placeholder="Max" value={max} onChange={e => setMax(e.target.value.replace(/\D/g, ''))} onBlur={() => onChange({ max: max || null })} aria-label="Prix maximum" />
         </form>
       </div>
-      <Checkbox label="Disponible immédiatement" description="Produits en stock chez DALUCHE" checked={inStock} onChange={v => onChange({ dispo: v ? '1' : null })} />
+      <Checkbox label="Disponible immédiatement" description="Produits en stock chez Dallou Chine" checked={inStock} onChange={v => onChange({ dispo: v ? '1' : null })} />
       <div>
         <p className="mb-2 text-[13px] font-semibold">Transport</p>
         <div className="grid grid-cols-3 gap-1.5">

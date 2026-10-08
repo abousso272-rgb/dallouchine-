@@ -253,7 +253,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const profile = await loadProfile(data.user);
     if (profile.status === 'suspended') {
       await supabase.auth.signOut();
-      throw new AppError('Ce compte est suspendu. Contactez le support DALUCHE.');
+      throw new AppError('Ce compte est suspendu. Contactez le support Dallou Chine.');
     }
     return profile;
   }, []);

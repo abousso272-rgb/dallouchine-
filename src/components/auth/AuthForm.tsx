@@ -60,7 +60,7 @@ export function AuthForm({
         if (res.needsConfirmation) {
           setConfirmSent(true);
         } else {
-          toast('success', 'Compte créé', 'Bienvenue sur DALUCHE !');
+          toast('success', 'Compte créé', 'Bienvenue sur Dallou Chine !');
           onSuccess?.();
         }
       }

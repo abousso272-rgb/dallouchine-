@@ -36,7 +36,7 @@ export default function GroupagePage({ id }: { id: string }) {
   useEffect(() => {
     if (g) {
       setQty(g.minPerUser);
-      document.title = `Groupage ${g.product?.name || g.title} — DALUCHE`;
+      document.title = `Groupage ${g.product?.name || g.title} — Dallou Chine`;
     }
   }, [g]);
   useEffect(() => {

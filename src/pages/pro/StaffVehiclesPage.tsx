@@ -30,7 +30,7 @@ export default function StaffVehiclesPage() {
           </div>
         }
       />
-      {data?.unavailable && <InlineAlert tone="warning" title="Module automobile non activé">La migration de base de données DALUCHE doit être appliquée pour gérer les véhicules.</InlineAlert>}
+      {data?.unavailable && <InlineAlert tone="warning" title="Module automobile non activé">La migration de base de données Dallou Chine doit être appliquée pour gérer les véhicules.</InlineAlert>}
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : loading ? (

@@ -47,7 +47,7 @@ export class PaymentService {
       return {
         success: false,
         errorCode: 'PROVIDER_NOT_CONFIGURED',
-        errorMessage: 'Le paiement en ligne n\'est pas encore configuré. Contactez DALUCHE pour finaliser votre commande.'
+        errorMessage: 'Le paiement en ligne n\'est pas encore configuré. Contactez Dallou Chine pour finaliser votre commande.'
       };
     }
 
@@ -90,9 +90,9 @@ export class PaymentService {
       amount: attemptResult.amount_xof,
       currency: attemptResult.currency || 'XOF',
       paymentMethod: params.paymentMethod,
-      description: `Commande ${attemptResult.tracking_code} - DALUCHE`,
+      description: `Commande ${attemptResult.tracking_code} - Dallou Chine`,
       customer: {
-        name: attemptResult.customer_name || 'Client DALUCHE',
+        name: attemptResult.customer_name || 'Client Dallou Chine',
         email: attemptResult.customer_email || '',
         phone: attemptResult.customer_phone || ''
       },

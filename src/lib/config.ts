@@ -1,4 +1,4 @@
-/** Coordonnées publiques DALUCHE — à ajuster ici uniquement. */
+/** Coordonnées publiques Dallou Chine — à ajuster ici uniquement. */
 export const CONTACT = {
   whatsappNumber: '221774201819',
   phoneDisplay: '+221 77 420 18 19',

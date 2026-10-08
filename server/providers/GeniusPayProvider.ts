@@ -62,9 +62,9 @@ export class GeniusPayProvider implements PaymentProvider {
     const payload: Record<string, any> = {
       amount: Math.round(params.amount),
       currency: params.currency || 'XOF',
-      description: params.description || `Commande ${params.orderCode} - DALUCHE`,
+      description: params.description || `Commande ${params.orderCode} - Dallou Chine`,
       customer: {
-        name: params.customer.name || 'Client DALUCHE',
+        name: params.customer.name || 'Client Dallou Chine',
         ...(params.customer.email ? { email: params.customer.email } : {}),
         phone: params.customer.phone || ''
       },

@@ -105,7 +105,7 @@ export default function ProPage() {
       <section className="bg-ink text-white">
         <div className="container-page grid grid-cols-1 gap-10 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">DALUCHE Pro · B2B</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">Dallou Chine Pro · B2B</p>
             <h1 className="mt-3 text-[30px] font-bold leading-tight text-white sm:text-[44px]">Approvisionnez votre entreprise directement en Chine.</h1>
             <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-white/65">
               Grossistes, distributeurs, commerces et entreprises : nous sourçons, négocions, contrôlons et livrons vos commandes en volume, avec un interlocuteur dédié et un devis ferme.
