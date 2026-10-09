@@ -5,7 +5,7 @@ import { shipmentsRouter } from './api/shipmentsRouter';
 import { paymentsRouter } from './api/paymentsRouter';
 import { teamRouter } from './api/teamRouter';
 import { aiRouter } from './api/aiRouter';
-import { config, hasServiceRole, hasGeniusPayCredentials, hasSasPayCredentials, hasAiProvider } from './config';
+import { hasServiceRole, hasSasPayCredentials, hasSasPayWebhookSecret, saspayEnvironment, hasAiProvider } from './config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,10 +37,11 @@ export function createApiApp() {
     res.json({
       status: 'online',
       service: 'Dallou Chine API',
-      gateway: config.paymentProvider === 'saspay' ? 'SasPay' : 'GeniusPay',
-      paymentProvider: config.paymentProvider,
-      paymentsConfigured: config.paymentProvider === 'saspay' ? hasSasPayCredentials && Boolean(config.saspayWebhookSecret) : hasGeniusPayCredentials,
-      paymentsEnvironment: config.paymentProvider === 'saspay' ? (config.saspaySecretKey.startsWith('sk_live_') ? 'production' : 'sandbox') : config.geniusPayEnvironment,
+      gateway: 'SasPay',
+      paymentsConfigured: hasSasPayCredentials && hasSasPayWebhookSecret,
+      saspayKey: hasSasPayCredentials,
+      saspayWebhookSecret: hasSasPayWebhookSecret,
+      paymentsEnvironment: saspayEnvironment,
       serviceRoleConfigured: hasServiceRole,
       aiConfigured: hasAiProvider,
       timestamp: new Date().toISOString()
@@ -48,7 +49,7 @@ export function createApiApp() {
   });
 
   api.use('/api/payments', paymentsRouter);
-  api.use('/api', paymentsRouter); // /api/webhooks/geniuspay
+  api.use('/api', paymentsRouter); // /api/webhooks/saspay
   api.use('/api/shipments', shipmentsRouter);
   api.use('/api/team', teamRouter);
   api.use('/api/ai', aiRouter);

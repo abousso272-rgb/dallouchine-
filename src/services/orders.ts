@@ -113,7 +113,7 @@ export async function createOrderFromCart(p: CheckoutParams): Promise<Order> {
     p_customer_email: p.email,
     p_customer_city: p.city,
     p_notes: p.notes || null,
-    p_payment_method: 'geniuspay',
+    p_payment_method: 'saspay',
     p_idempotency_key: p.idempotencyKey,
     p_items: p.items
   });

@@ -13,7 +13,7 @@ function appBaseUrl(req: Request): string {
 
 /**
  * POST /api/payments/create
- * Initialise un paiement GeniusPay pour une commande de l'utilisateur connecté.
+ * Initialise un paiement SasPay pour une commande de l'utilisateur connecté.
  * Le montant est toujours recalculé côté base de données ; aucun montant client n'est accepté.
  */
 paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -58,9 +58,75 @@ paymentsRouter.post('/create', requireAuth, async (req: Request, res: Response):
 });
 
 /**
+ * POST /api/payments/checkout
+ * Parcours d'achat en UN appel : création de la commande (prix recalculés en base), frais de transport,
+ * vidage du panier et session de paiement SasPay. Le navigateur n'a plus qu'à rediriger.
+ */
+paymentsRouter.post('/checkout', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const b = req.body || {};
+    const items = Array.isArray(b.items) ? b.items.filter((i: any) => i && typeof i.product_id === 'string' && Number(i.quantity) > 0).slice(0, 100) : [];
+    if (!items.length) {
+      res.status(400).json({ success: false, errorCode: 'EMPTY_CART', errorMessage: 'Votre panier est vide.' });
+      return;
+    }
+    if (!paymentService.isConfigured) {
+      res.status(503).json({ success: false, errorCode: 'PROVIDER_NOT_CONFIGURED', errorMessage: 'Le paiement en ligne est en cours de configuration. Contactez-nous pour finaliser votre commande.' });
+      return;
+    }
+    const delivery = b.deliveryType === 'home_delivery' ? 'home_delivery' : 'hub_pickup';
+    const { data: created, error } = await req.db!.rpc('create_order_from_cart', {
+      p_delivery_type: delivery,
+      p_hub_location_id: delivery === 'hub_pickup' ? b.hubId || null : null,
+      p_delivery_address: delivery === 'home_delivery' ? b.address || null : null,
+      p_customer_name: String(b.name || '').slice(0, 120),
+      p_customer_phone: String(b.phone || '').slice(0, 40),
+      p_customer_email: String(b.email || req.user!.email || '').slice(0, 160),
+      p_customer_city: String(b.city || 'Dakar').slice(0, 80),
+      p_notes: b.notes ? String(b.notes).slice(0, 1000) : null,
+      p_payment_method: 'saspay',
+      p_idempotency_key: String(b.idempotencyKey || '').slice(0, 80) || null,
+      p_items: items.map((i: any) => ({ product_id: i.product_id, quantity: Math.round(Number(i.quantity)) }))
+    });
+    if (error || !created?.order_id) {
+      res.status(400).json({ success: false, errorCode: 'ORDER_FAILED', errorMessage: error?.message || 'La commande n’a pas pu être créée.' });
+      return;
+    }
+    const orderId: string = created.order_id;
+    const transport = b.transportMode === 'sea' ? 'sea' : 'air';
+    const { error: logisticsError } = await req.db!.rpc('calculate_order_logistics', { p_order_id: orderId, p_transport_mode: transport, p_status: 'estimated' });
+    if (logisticsError) console.warn('[payments] checkout logistics:', logisticsError.message);
+
+    const base = appBaseUrl(req);
+    const [payment] = await Promise.all([
+      paymentService.createPaymentForOrder({
+        db: req.db!,
+        orderId,
+        userId: req.user!.id,
+        clientIp: req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        returnUrl: `${base}/paiement/retour?orderId=${encodeURIComponent(orderId)}`,
+        cancelUrl: `${base}/paiement/retour?orderId=${encodeURIComponent(orderId)}&cancelled=1`
+      }),
+      // la commande existe : le panier peut être vidé en parallèle
+      req.db!.from('cart_items').delete().eq('user_id', req.user!.id).is('groupage_id', null)
+    ]);
+    res.status(payment.success ? 200 : 202).json({ success: true, orderId, checkoutUrl: payment.checkoutUrl || null, paymentError: payment.success ? undefined : payment.errorMessage });
+  } catch (error: any) {
+    console.error('[payments] checkout:', error?.message || error);
+    res.status(500).json({ success: false, errorCode: 'INTERNAL_ERROR', errorMessage: 'Erreur interne lors de la commande.' });
+  }
+});
+
+/** GET /api/payments/warmup : réveille la fonction serveur avant le paiement (aucune donnée). */
+paymentsRouter.get('/warmup', (_req: Request, res: Response) => {
+  res.json({ ok: true });
+});
+
+/**
  * GET /api/payments/order/:orderId
  * Statut certifié du paiement d'une commande (propriétaire ou administration uniquement).
- * Interroge GeniusPay pour synchroniser un paiement encore en attente.
+ * Interroge SasPay pour synchroniser un paiement encore en attente.
  */
 async function handleStatus(req: Request, res: Response): Promise<void> {
   try {
@@ -83,23 +149,6 @@ async function handleStatus(req: Request, res: Response): Promise<void> {
 
 paymentsRouter.get('/order/:orderId', requireAuth, handleStatus);
 paymentsRouter.get('/:id/status', requireAuth, handleStatus);
-
-/**
- * POST /api/payments/webhooks/geniuspay (et /api/webhooks/geniuspay)
- * Source de vérité de la confirmation de paiement : signature HMAC vérifiée sur le corps brut.
- */
-const handleGeniusPayWebhookRoute = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
-    const result = await paymentService.handleWebhook(rawBody, req.headers);
-    res.status(result.status).json(result);
-  } catch (error: any) {
-    console.error('[payments] webhook:', error?.message || error);
-    res.status(500).json({ status: 500, message: 'Erreur interne lors du traitement du webhook.' });
-  }
-};
-
-paymentsRouter.post('/webhooks/geniuspay', handleGeniusPayWebhookRoute);
 
 /** POST /api/webhooks/saspay : notification signée (HMAC) ; le paiement est relu auprès de l'API avant confirmation. */
 const handleSasPayWebhookRoute = async (req: Request, res: Response): Promise<void> => {
@@ -182,13 +231,4 @@ paymentsRouter.get('/admin/list', requireAdmin, async (req: Request, res: Respon
     console.error('[payments] admin list:', error?.message || error);
     res.status(500).json({ success: false, errorMessage: 'Erreur lors du chargement des paiements.' });
   }
-});
-
-/** Solde et compte marchand GeniusPay (administration générale) */
-paymentsRouter.get('/admin/geniuspay/balance', requireAdmin, async (_req: Request, res: Response): Promise<void> => {
-  res.json(await paymentService.getGeniusPayBalance());
-});
-
-paymentsRouter.get('/admin/geniuspay/account', requireAdmin, async (_req: Request, res: Response): Promise<void> => {
-  res.json(await paymentService.getGeniusPayAccount());
 });

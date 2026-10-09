@@ -222,14 +222,9 @@ function Hero({ groupage, openCount }: { groupage?: Groupage; openCount: number 
               className="aspect-[5/4] w-full object-cover sm:aspect-[16/11]"
             />
             <div className="absolute inset-0 bg-gradient-to-tr from-brand/35 via-transparent to-transparent mix-blend-multiply" aria-hidden />
-            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-ink/60 to-transparent" aria-hidden />
-            <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3 text-white">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">Départs réguliers</p>
-                <p className="text-[15px] font-semibold">Guangzhou · Yiwu → Dakar</p>
-              </div>
-              <span className="glass rounded-full px-3 py-1 text-[11.5px] font-bold text-ink">Maritime & aérien</span>
-            </div>
+            <span className="glass absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold text-ink shadow-sm">
+              <Ship className="h-3.5 w-3.5 text-brand" /> Guangzhou · Yiwu → Dakar
+            </span>
           </div>
 
           {/* Cartes flottantes */}
@@ -390,9 +385,9 @@ function Journey() {
         <div className="relative">
           <div className="flex items-center gap-3">
             <FlagCN className="hidden h-6 w-9 shrink-0 sm:block" />
-            <ol className="scrollbar-none -mx-4 flex flex-1 snap-x gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6">
+            <ol className="grid flex-1 grid-cols-3 gap-x-2 gap-y-6 sm:gap-3 lg:grid-cols-6">
               {steps.map((st, i) => (
-                <li key={st.title} className="relative flex w-[140px] shrink-0 snap-start flex-col items-center text-center sm:w-auto">
+                <li key={st.title} className="relative flex min-w-0 flex-col items-center text-center">
                   {i > 0 && <span className="absolute -left-2 top-8 hidden text-brand/60 lg:block" aria-hidden><ChevronRight className="h-4 w-4" /></span>}
                   <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[var(--shadow-warm)] ring-1 ring-line">
                     <span className="icon-bubble h-12 w-12">
@@ -433,7 +428,7 @@ function categoryIcon(name: string) {
 function MarketplaceBand() {
   const { categories, navigate } = useApp();
   const [q, setQ] = React.useState('');
-  const top = categories.filter(c => c.isActive !== false && !c.parentId).slice(0, 9);
+  const top = categories.filter(c => c.isActive !== false && !c.parentId).slice(0, 8);
   return (
     <section className="container-page mt-14 sm:mt-20" aria-label="Rechercher dans la marketplace">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,330px)_minmax(0,1fr)]">
@@ -466,19 +461,20 @@ function MarketplaceBand() {
                 enterKeyHint="search"
               />
             </div>
-            <Button type="submit" size="lg" className="h-12 px-5 sm:px-7">
-              Rechercher
+            <Button type="submit" size="lg" className="h-12 w-12 shrink-0 px-0 sm:w-auto sm:px-7" aria-label="Rechercher">
+              <Search className="h-5 w-5 sm:hidden" />
+              <span className="hidden sm:inline">Rechercher</span>
             </Button>
           </form>
           {top.length > 0 && (
-            <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            <div className="grid grid-cols-4 gap-1 xl:grid-cols-8">
               {top.map(c => {
                 const Icon = categoryIcon(c.name);
                 return (
                   <Link
                     key={c.id}
                     to={`/catalogue?categorie=${c.slug}`}
-                    className="group flex w-[88px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-2 text-center text-[11.5px] font-semibold text-ink/80 hover:bg-brand-50"
+                    className="group flex min-w-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-2 text-center text-[11.5px] font-semibold text-ink/80 hover:bg-brand-50"
                   >
                     <span className="icon-bubble h-11 w-11 transition-transform group-hover:-translate-y-0.5">
                       <Icon className="h-5 w-5" />

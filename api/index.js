@@ -13,31 +13,27 @@ import { createClient } from "@supabase/supabase-js";
 import "dotenv/config";
 var PUBLIC_SUPABASE_URL = "https://splsjtguapquznbiacad.supabase.co";
 var PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbHNqdGd1YXBxdXpuYmlhY2FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NzYwNjYsImV4cCI6MjEwNTM1MjA2Nn0.yr8irdxSNMFI-N3K7ueOZV72uKQSVQykDpX9ioY1C4A";
+var clean = (v) => (v || "").trim();
 var config = {
-  geniusPayApiKey: process.env.GENIUSPAY_API_KEY || "",
-  geniusPayApiSecret: process.env.GENIUSPAY_API_SECRET || "",
-  geniusPayWebhookSecret: process.env.GENIUSPAY_WEBHOOK_SECRET || "",
-  geniusPayBaseUrl: (process.env.GENIUSPAY_BASE_URL || "https://geniuspay.ci/api/v1/merchant").replace(/^http:\/\//i, "https://").replace(/\/+$/, ""),
-  geniusPayEnvironment: process.env.GENIUSPAY_ENVIRONMENT === "production" ? "production" : "sandbox",
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || PUBLIC_SUPABASE_URL,
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   appUrl: (process.env.APP_URL || "https://dallouchine.vercel.app").replace(/\/+$/, ""),
   port: parseInt(process.env.PORT || "3000", 10),
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
+  anthropicApiKey: clean(process.env.ANTHROPIC_API_KEY),
   anthropicModel: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
   anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, ""),
-  saspaySecretKey: process.env.SASPAY_SECRET_KEY || "",
-  saspayWebhookSecret: process.env.SASPAY_WEBHOOK_SECRET || "",
+  saspaySecretKey: clean(process.env.SASPAY_SECRET_KEY),
+  saspayWebhookSecret: clean(process.env.SASPAY_WEBHOOK_SECRET),
   saspayBaseUrl: (process.env.SASPAY_BASE_URL || "https://api.saspay.me/api/v1").replace(/\/+$/, ""),
   saspayFeeMode: process.env.SASPAY_FEE_MODE === "ADD_ON" ? "ADD_ON" : "DEDUCTED",
-  saspayProxyUrl: process.env.SASPAY_PROXY_URL || process.env.FIXIE_URL || process.env.QUOTAGUARDSTATIC_URL || "",
-  paymentProvider: process.env.PAYMENT_PROVIDER === "geniuspay" || !process.env.SASPAY_SECRET_KEY && process.env.PAYMENT_PROVIDER !== "saspay" ? "geniuspay" : "saspay"
+  saspayProxyUrl: process.env.SASPAY_PROXY_URL || process.env.FIXIE_URL || process.env.QUOTAGUARDSTATIC_URL || ""
 };
+var hasSasPayCredentials = /^sk_(test|live)_[A-Za-z0-9_-]{12,}$/.test(config.saspaySecretKey);
+var hasSasPayWebhookSecret = /^[\x21-\x7e]{16,}$/.test(config.saspayWebhookSecret);
+var saspayEnvironment = config.saspaySecretKey.startsWith("sk_live_") ? "production" : "sandbox";
 var hasServiceRole = Boolean(config.supabaseServiceRoleKey);
-var hasAiProvider = Boolean(config.anthropicApiKey);
-var hasSasPayCredentials = Boolean(config.saspaySecretKey);
-var hasGeniusPayCredentials = Boolean(config.geniusPayApiKey && config.geniusPayApiSecret);
+var hasAiProvider = /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(config.anthropicApiKey) || config.anthropicApiKey.length > 20 && !config.anthropicApiKey.includes("\u2026");
 
 // server/middleware/auth.ts
 var ADMIN_ROLES = ["admin", "super_admin", "operations", "commercial", "finance"];
@@ -524,331 +520,10 @@ shipmentsRouter.post("/:id/events", requireAdmin, async (req, res) => {
 import { Router as Router2 } from "express";
 
 // server/services/PaymentService.ts
-import crypto3 from "crypto";
-
-// server/providers/GeniusPayProvider.ts
-import crypto from "crypto";
-var GeniusPayProvider = class {
-  constructor(customConfig) {
-    this.name = "geniuspay";
-    this.apiKey = customConfig?.apiKey || config.geniusPayApiKey;
-    this.apiSecret = customConfig?.apiSecret || config.geniusPayApiSecret;
-    this.webhookSecret = customConfig?.webhookSecret || config.geniusPayWebhookSecret;
-    this.baseUrl = (customConfig?.baseUrl || config.geniusPayBaseUrl).replace(/\/+$/, "");
-    this.environment = customConfig?.environment || config.geniusPayEnvironment;
-  }
-  /**
-   * En-têtes HTTP requis par l'API GeniusPay
-   * X-API-Key : Clé publique (pk_sandbox_... ou pk_live_...)
-   * X-API-Secret : Clé secrète (sk_sandbox_... ou sk_live_...)
-   */
-  getHeaders() {
-    return {
-      "X-API-Key": this.apiKey,
-      "X-API-Secret": this.apiSecret,
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    };
-  }
-  /**
-   * 1. POST /payments - Initier un paiement
-   * Documentation : Crée une transaction et retourne checkout_url (mode Hosted Checkout)
-   * ou payment_url (mode direct si payment_method est spécifié).
-   */
-  async createPaymentSession(params) {
-    const endpoint = `${this.baseUrl}/payments`;
-    const payload = {
-      amount: Math.round(params.amount),
-      currency: params.currency || "XOF",
-      description: params.description || `Commande ${params.orderCode} - Dallou Chine`,
-      customer: {
-        name: params.customer.name || "Client Dallou Chine",
-        ...params.customer.email ? { email: params.customer.email } : {},
-        phone: params.customer.phone || ""
-      },
-      success_url: params.returnUrl,
-      error_url: params.cancelUrl,
-      metadata: {
-        order_id: params.orderId,
-        order_code: params.orderCode,
-        merchant_reference: params.merchantReference,
-        user_id: params.userId || null,
-        platform: "daluche",
-        ...params.metadata || {}
-      }
-    };
-    if (params.paymentMethod && ["wave", "orange_money", "mtn_money", "card", "paystack"].includes(params.paymentMethod)) {
-      payload.payment_method = params.paymentMethod;
-    }
-    console.log("[GeniusPayProvider] Initiating payment request to GeniusPay:", {
-      endpoint,
-      amount: payload.amount,
-      currency: payload.currency,
-      paymentMethod: payload.payment_method || "hosted_checkout",
-      orderId: params.orderId,
-      merchantReference: params.merchantReference
-    });
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify(payload)
-      });
-      const json = await response.json().catch(() => ({}));
-      const data = json?.data || json;
-      const checkoutUrl = data?.checkout_url || data?.payment_url || json?.checkout_url || json?.payment_url;
-      if (!response.ok || !checkoutUrl) {
-        console.warn(`[GeniusPayProvider] Gateway error HTTP ${response.status}:`, JSON.stringify(json).slice(0, 500));
-        return {
-          success: false,
-          paymentId: params.orderId,
-          checkoutUrl: "",
-          errorMessage: response.status >= 500 || response.status === 405 || response.status === 429 ? "GeniusPay est momentan\xE9ment indisponible. Votre commande est bien enregistr\xE9e : relancez le paiement depuis \xAB Mes commandes \xBB dans quelques minutes." : json?.message || json?.error || `La passerelle de paiement a refus\xE9 la demande (HTTP ${response.status}).`
-        };
-      }
-      return {
-        success: true,
-        paymentId: params.orderId,
-        checkoutUrl,
-        providerTransactionId: String(data.id || json.id || ""),
-        providerReference: data.reference || json.reference || params.merchantReference,
-        expiresAt: data.expires_at || new Date(Date.now() + 30 * 60 * 1e3).toISOString()
-      };
-    } catch (err) {
-      console.error("[GeniusPayProvider] Gateway unreachable:", err?.message || err);
-      return {
-        success: false,
-        paymentId: params.orderId,
-        checkoutUrl: "",
-        errorMessage: "La passerelle de paiement est momentan\xE9ment inaccessible. R\xE9essayez dans quelques instants."
-      };
-    }
-  }
-  /**
-   * 2. Vérification cryptographique de la signature HMAC-SHA256 du Webhook
-   * Supporte :
-   * - hash_hmac('sha256', payload, secret) (Standard officiel GeniusPay documenté)
-   * - hash_hmac('sha256', `${timestamp}.${payload}`, secret) (Avec horodatage anti-rejeu)
-   */
-  async verifyWebhook(rawBody, headers) {
-    const rawString = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
-    const signatureHeader = headers["x-webhook-signature"] || headers["X-Webhook-Signature"] || headers["x-geniuspay-signature"] || headers["X-GeniusPay-Signature"] || headers["x-signature"] || headers["genius-webhook-token"] || headers["signature"];
-    const timestampHeader = headers["x-webhook-timestamp"] || headers["X-Webhook-Timestamp"] || headers["x-geniuspay-timestamp"] || headers["X-GeniusPay-Timestamp"] || headers["x-timestamp"] || headers["timestamp"];
-    const eventHeader = headers["x-webhook-event"] || headers["X-Webhook-Event"] || headers["x-geniuspay-event"] || headers["X-GeniusPay-Event"] || headers["event"];
-    if (!this.webhookSecret) {
-      return {
-        isValid: false,
-        reason: "GENIUSPAY_WEBHOOK_SECRET non configur\xE9 sur le serveur."
-      };
-    }
-    if (!signatureHeader) {
-      return {
-        isValid: false,
-        reason: "En-t\xEAte de signature manquant dans la requ\xEAte webhook."
-      };
-    }
-    if (timestampHeader) {
-      const parsedTimestamp = parseInt(timestampHeader, 10);
-      const currentTimeSeconds = Math.floor(Date.now() / 1e3);
-      const diff = Math.abs(currentTimeSeconds - parsedTimestamp);
-      if (isNaN(parsedTimestamp) || diff > 300) {
-        return {
-          isValid: false,
-          reason: `Timestamp webhook expir\xE9 ou hors fen\xEAtre de tol\xE9rance (${diff}s).`
-        };
-      }
-    }
-    const expectedDirectSignature = crypto.createHmac("sha256", this.webhookSecret).update(rawString).digest("hex");
-    const expectedTimestampedSignature = timestampHeader ? crypto.createHmac("sha256", this.webhookSecret).update(`${timestampHeader}.${rawString}`).digest("hex") : "";
-    const isValidSignature = this.timingSafeEqual(expectedDirectSignature, signatureHeader) || Boolean(expectedTimestampedSignature) && this.timingSafeEqual(expectedTimestampedSignature, signatureHeader);
-    if (!isValidSignature) {
-      return {
-        isValid: false,
-        reason: "Signature cryptographique invalide."
-      };
-    }
-    let parsedPayload;
-    try {
-      parsedPayload = JSON.parse(rawString);
-    } catch {
-      return {
-        isValid: false,
-        reason: "Payload JSON malform\xE9."
-      };
-    }
-    const eventType = (parsedPayload.event || eventHeader || parsedPayload.type || "payment.success").toString();
-    const tx = parsedPayload.data?.transaction || parsedPayload.data || parsedPayload;
-    const providerTransactionId = (tx.id || tx.transaction_id || tx.payment_id || `gp_tx_${Date.now()}`).toString();
-    const providerReference = tx.reference || tx.merchant_reference || tx.provider_reference || "";
-    const rawStatus = (tx.status || tx.payment_status || "").toLowerCase();
-    const mappedStatus = this.mapProviderStatus(rawStatus, eventType);
-    const amount = Number(tx.amount !== void 0 ? tx.amount : tx.total_amount !== void 0 ? tx.total_amount : 0);
-    const currency = tx.currency || "XOF";
-    const metadata = tx.metadata || parsedPayload.metadata || {};
-    const orderId = metadata.order_id || tx.order_id || parsedPayload.order_id;
-    const paymentId = metadata.payment_id || tx.payment_id;
-    const eventId = parsedPayload.id || parsedPayload.event_id || `evt_${providerTransactionId}_${Date.now()}`;
-    return {
-      isValid: true,
-      eventType,
-      eventId,
-      providerTransactionId,
-      providerReference,
-      status: mappedStatus,
-      amount,
-      currency,
-      orderId,
-      paymentId,
-      rawPayload: parsedPayload
-    };
-  }
-  /**
-   * 3. GET /payments/{reference} - Récupérer un paiement certifié
-   */
-  async getPaymentStatus(referenceOrId) {
-    const endpoint = `${this.baseUrl}/payments/${encodeURIComponent(referenceOrId)}`;
-    try {
-      const response = await fetch(endpoint, {
-        method: "GET",
-        headers: this.getHeaders()
-      });
-      if (response.ok) {
-        const json = await response.json();
-        const tx = json.data || json;
-        const mappedStatus = this.mapProviderStatus(tx.status);
-        return {
-          providerTransactionId: String(tx.id || referenceOrId),
-          status: mappedStatus,
-          amount: Number(tx.amount || 0),
-          currency: tx.currency || "XOF",
-          paymentMethod: tx.payment_method,
-          paidAt: tx.completed_at || tx.paid_at || (mappedStatus === "paid" ? (/* @__PURE__ */ new Date()).toISOString() : void 0),
-          rawResponse: json
-        };
-      }
-    } catch (err) {
-      console.warn("[GeniusPayProvider] Failed to fetch payment status from API:", err.message || err);
-    }
-    return {
-      providerTransactionId: referenceOrId,
-      status: "pending",
-      amount: 0,
-      currency: "XOF"
-    };
-  }
-  /**
-   * 4. GET /payments - Lister les transactions GeniusPay
-   */
-  async listPayments(params) {
-    const query = new URLSearchParams();
-    if (params?.status) query.append("status", params.status);
-    if (params?.from) query.append("from", params.from);
-    if (params?.to) query.append("to", params.to);
-    if (params?.per_page) query.append("per_page", String(params.per_page));
-    const endpoint = `${this.baseUrl}/payments${query.toString() ? `?${query.toString()}` : ""}`;
-    try {
-      const response = await fetch(endpoint, {
-        method: "GET",
-        headers: this.getHeaders()
-      });
-      if (response.ok) {
-        const json = await response.json();
-        return {
-          success: true,
-          data: json.data || [],
-          meta: json.meta
-        };
-      }
-    } catch (err) {
-      console.warn("[GeniusPayProvider] Failed to list payments:", err.message || err);
-    }
-    return { success: false, data: [] };
-  }
-  /**
-   * 5. GET /account - Récupérer les informations du compte marchand
-   */
-  async getAccountInfo() {
-    const endpoint = `${this.baseUrl}/account`;
-    try {
-      const response = await fetch(endpoint, {
-        method: "GET",
-        headers: this.getHeaders()
-      });
-      if (response.ok) {
-        const json = await response.json();
-        return {
-          success: true,
-          account: json.data || json
-        };
-      }
-      return { success: false, error: `Erreur API compte marchand HTTP ${response.status}` };
-    } catch (err) {
-      return { success: false, error: err.message || "Passerelle GeniusPay inaccessible" };
-    }
-  }
-  /**
-   * 6. GET /account/balance - Récupérer le solde du compte marchand
-   */
-  async getAccountBalance() {
-    const endpoint = `${this.baseUrl}/account/balance`;
-    try {
-      const response = await fetch(endpoint, {
-        method: "GET",
-        headers: this.getHeaders()
-      });
-      if (response.ok) {
-        const json = await response.json();
-        return {
-          success: true,
-          balance: json.data || json
-        };
-      }
-      return { success: false, error: `Erreur API solde marchand HTTP ${response.status}` };
-    } catch (err) {
-      return { success: false, error: err.message || "Passerelle GeniusPay inaccessible" };
-    }
-  }
-  /**
-   * Mapping des statuts documentés de GeniusPay vers les statuts internes de l'application
-   */
-  mapProviderStatus(rawStatus, eventType) {
-    const status = (rawStatus || "").toLowerCase();
-    const event = (eventType || "").toLowerCase();
-    if (status === "completed" || status === "paid" || status === "success" || status === "successful" || event === "payment.success" || event === "payment_success" || event === "payment_intent.confirmed" || event === "payment.completed") {
-      return "paid";
-    }
-    if (status === "failed" || status === "declined" || status === "rejected" || event === "payment.failed" || event === "payment_failed" || event === "payment.declined") {
-      return "failed";
-    }
-    if (status === "cancelled" || status === "canceled" || event === "payment.cancelled" || event === "payment_cancelled") {
-      return "cancelled";
-    }
-    if (status === "expired" || event === "payment.expired" || event === "payment_expired") {
-      return "expired";
-    }
-    if (status === "refunded" || status === "partially_refunded" || event === "payment.refunded" || event === "payment_refunded") {
-      return "refunded";
-    }
-    return "pending";
-  }
-  /**
-   * Comparaison en temps constant pour éviter les attaques temporelles (Timing Attacks)
-   */
-  timingSafeEqual(a, b) {
-    if (!a || !b) return false;
-    try {
-      const bufA = Buffer.from(a);
-      const bufB = Buffer.from(b);
-      if (bufA.length !== bufB.length) return false;
-      return crypto.timingSafeEqual(bufA, bufB);
-    } catch {
-      return a === b;
-    }
-  }
-};
+import crypto2 from "crypto";
 
 // server/providers/SasPayProvider.ts
-import crypto2 from "crypto";
+import crypto from "crypto";
 import { ProxyAgent } from "undici";
 var proxyAgent = null;
 function proxyDispatcher() {
@@ -1064,10 +739,10 @@ var SasPayProvider = class _SasPayProvider {
     const timestamp = h("x-webhook-timestamp") || "";
     if (!signature || !/^\d{9,11}$/.test(timestamp)) return { isValid: false, reason: "En-t\xEAtes de signature manquants." };
     if (Math.abs(Date.now() / 1e3 - Number(timestamp)) > 300) return { isValid: false, reason: "Horodatage hors tol\xE9rance (anti-rejeu)." };
-    const expected = crypto2.createHmac("sha256", config.saspayWebhookSecret).update(`${timestamp}.${raw}`).digest("hex");
+    const expected = crypto.createHmac("sha256", config.saspayWebhookSecret).update(`${timestamp}.${raw}`).digest("hex");
     const a = Buffer.from(expected);
     const b = Buffer.from(signature);
-    if (a.length !== b.length || !crypto2.timingSafeEqual(a, b)) return { isValid: false, reason: "Signature cryptographique invalide." };
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return { isValid: false, reason: "Signature cryptographique invalide." };
     let payload;
     try {
       payload = JSON.parse(raw);
@@ -1094,18 +769,12 @@ var SasPayProvider = class _SasPayProvider {
 // server/services/PaymentService.ts
 var PaymentService = class {
   constructor() {
-    this.geniuspay = new GeniusPayProvider();
     this.saspay = new SasPayProvider();
-  }
-  /** Fournisseur utilisé pour les nouveaux paiements. */
-  get activeProvider() {
-    return config.paymentProvider;
+    /** Fournisseur unique : SasPay. */
+    this.activeProvider = "saspay";
   }
   get isConfigured() {
-    return this.activeProvider === "saspay" ? hasSasPayCredentials : hasGeniusPayCredentials;
-  }
-  providerFor(name) {
-    return name === "saspay" ? this.saspay : this.geniuspay;
+    return hasSasPayCredentials && hasSasPayWebhookSecret;
   }
   baseUrl() {
     return config.appUrl && !config.appUrl.includes("localhost") ? config.appUrl.replace(/\/+$/, "") : "https://dallouchine.vercel.app";
@@ -1135,7 +804,7 @@ var PaymentService = class {
     const base = this.baseUrl();
     const returnUrl = params.returnUrl || `${base}/paiement/retour?orderId=${attempt.order_id}`;
     const cancelUrl = params.cancelUrl || `${base}/paiement/retour?orderId=${attempt.order_id}&cancelled=1`;
-    const session = await this.providerFor(provider).createPaymentSession({
+    const session = await this.saspay.createPaymentSession({
       orderId: attempt.order_id,
       orderCode: attempt.tracking_code,
       userId: params.userId,
@@ -1185,7 +854,7 @@ var PaymentService = class {
    * serveur peut donc marquer une commande payée.
    */
   async confirmInDatabase(provider, tx, orderId, merchantReference, eventId) {
-    const secret = provider === "saspay" ? config.saspayWebhookSecret : "";
+    const secret = hasSasPayWebhookSecret ? config.saspayWebhookSecret : "";
     if (!secret) return { ok: false, error: "Secret de signature non configur\xE9." };
     const body = JSON.stringify({
       id: eventId,
@@ -1207,7 +876,7 @@ var PaymentService = class {
       }
     });
     const timestamp = String(Math.floor(Date.now() / 1e3));
-    const signature = crypto3.createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
+    const signature = crypto2.createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
     const { data, error } = await getSupabaseServerClient().rpc("payment_ingest", { p_provider: provider, p_raw_body: body, p_signature: signature, p_timestamp: timestamp });
     if (error) return { ok: false, error: error.message };
     return { ok: Boolean(data?.success), result: data };
@@ -1243,37 +912,6 @@ var PaymentService = class {
     }
     return { status: 200, message: "Webhook trait\xE9 avec succ\xE8s.", data: confirmed.result };
   }
-  /** Webhook GeniusPay (conservé pour les paiements déjà en cours chez cet ancien fournisseur). */
-  async handleWebhook(rawBody, headers) {
-    const supabase = getSupabaseServerClient();
-    const verification = await this.geniuspay.verifyWebhook(rawBody, headers);
-    if (!verification.isValid) {
-      console.warn("[PaymentService] webhook GeniusPay rejet\xE9 :", verification.reason);
-      return { status: 400, errorCode: "INVALID_SIGNATURE", message: verification.reason || "Signature de webhook invalide." };
-    }
-    const rawString = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
-    const header = (name) => {
-      const v = headers[name];
-      return Array.isArray(v) ? v[0] : v;
-    };
-    const { data: rpcResult, error: rpcError } = await supabase.rpc("geniuspay_ingest", {
-      p_raw_body: rawString,
-      p_signature: header("x-webhook-signature") || header("x-geniuspay-signature") || header("x-signature") || header("signature") || "",
-      p_timestamp: header("x-webhook-timestamp") || header("x-geniuspay-timestamp") || header("x-timestamp") || header("timestamp") || null,
-      p_event_header: header("x-webhook-event") || header("x-geniuspay-event") || null
-    });
-    if (rpcError) {
-      console.error("[PaymentService] erreur base (webhook GeniusPay):", rpcError);
-      return { status: 500, message: "Erreur interne de base de donn\xE9es lors du traitement du webhook." };
-    }
-    if (rpcResult.already_processed || rpcResult.ignored) return { status: 200, message: "\xC9v\xE9nement d\xE9j\xE0 trait\xE9 ou ignor\xE9.", data: rpcResult };
-    if (!rpcResult.success) {
-      const code = rpcResult.error_code;
-      const statusCode = ["AMOUNT_MISMATCH", "REFERENCE_MISMATCH", "CURRENCY_MISMATCH"].includes(code) ? 422 : ["PAYMENT_ATTEMPT_NOT_FOUND", "ORDER_NOT_FOUND"].includes(code) ? 404 : code === "ORDER_CANCELLED" ? 409 : 400;
-      return { status: statusCode, errorCode: code, message: rpcResult.error_message || "\xC9chec de traitement du webhook.", data: rpcResult };
-    }
-    return { status: 200, message: "Webhook trait\xE9 avec succ\xE8s.", data: rpcResult };
-  }
   // -------------------------------------------------------------------------------------------
   // Statut
   // -------------------------------------------------------------------------------------------
@@ -1281,37 +919,18 @@ var PaymentService = class {
   async getPaymentStatus(db, orderRef) {
     const { data, error } = await db.rpc("get_my_order_payment", { p_order_id: orderRef });
     if (error || !data || !data.found) return { found: false };
-    const provider = data.payment?.provider || "geniuspay";
-    const ref = data.payment?.provider_payment_id || data.payment?.provider_reference;
-    if (data.order && data.order.payment_status !== "paid" && ref) {
+    const ref = data.payment?.provider_payment_id;
+    if (data.order && data.order.payment_status !== "paid" && ref && data.payment?.provider === "saspay" && this.isConfigured) {
       try {
-        if (provider === "saspay" && config.saspayWebhookSecret) {
-          const tx = await this.saspay.getPaymentStatus(ref);
-          if (tx.status !== "pending" && tx.amount > 0) {
-            const merchantReference = data.payment?.provider_reference || data.attempt?.merchant_reference;
-            const done = await this.confirmInDatabase("saspay", tx, data.order.id, merchantReference, `saspay_${tx.providerTransactionId}_${tx.status}`);
-            if (done.ok && tx.status === "paid") {
-              data.order.payment_status = "paid";
-              if (data.payment) {
-                data.payment.status = "paid";
-                data.payment.paid_at = tx.paidAt || (/* @__PURE__ */ new Date()).toISOString();
-              }
-            }
-          }
-        } else if (provider === "geniuspay" && config.geniusPayWebhookSecret) {
-          const prov = await this.geniuspay.getPaymentStatus(ref);
-          if (prov.status === "paid" && prov.amount > 0) {
-            const body = JSON.stringify({
-              id: `sync_${prov.providerTransactionId || ref}_paid`,
-              event: "payment.success",
-              data: { transaction: { id: prov.providerTransactionId || ref, reference: data.payment?.provider_reference || ref, amount: prov.amount, currency: prov.currency || "XOF", status: "completed", metadata: { order_id: data.order.id } } }
-            });
-            const timestamp = String(Math.floor(Date.now() / 1e3));
-            const signature = crypto3.createHmac("sha256", config.geniusPayWebhookSecret).update(`${timestamp}.${body}`).digest("hex");
-            const { data: synced } = await getSupabaseServerClient().rpc("geniuspay_ingest", { p_raw_body: body, p_signature: signature, p_timestamp: timestamp, p_event_header: "payment.success" });
-            if (synced?.success && !synced.ignored) {
-              data.order.payment_status = "paid";
-              if (data.payment) data.payment.status = "paid";
+        const tx = await this.saspay.getPaymentStatus(ref);
+        if (tx.status !== "pending" && tx.amount > 0) {
+          const merchantReference = data.payment?.provider_reference || data.attempt?.merchant_reference;
+          const done = await this.confirmInDatabase("saspay", tx, data.order.id, merchantReference, `saspay_${tx.providerTransactionId}_${tx.status}`);
+          if (done.ok && tx.status === "paid") {
+            data.order.payment_status = "paid";
+            if (data.payment) {
+              data.payment.status = "paid";
+              data.payment.paid_at = tx.paidAt || (/* @__PURE__ */ new Date()).toISOString();
             }
           }
         }
@@ -1378,14 +997,14 @@ var PaymentService = class {
   }
   /** Réseaux mobile money disponibles sur le compte SasPay (Sénégal). */
   async listNetworks() {
-    return hasSasPayCredentials ? this.saspay.listNetworks("SN") : [];
+    return this.isConfigured ? this.saspay.listNetworks("SN") : [];
   }
   /**
    * Remboursement automatique (administration) : envoi SasPay vers le mobile money du client,
    * puis enregistrement en base (commande ou participation de groupage) avec la référence d'envoi.
    */
   async refundOrder(db, p) {
-    if (!hasSasPayCredentials) return { success: false, errorCode: "PROVIDER_NOT_CONFIGURED", errorMessage: "SasPay n\u2019est pas configur\xE9." };
+    if (!this.isConfigured) return { success: false, errorCode: "PROVIDER_NOT_CONFIGURED", errorMessage: "SasPay n\u2019est pas configur\xE9." };
     const { data: order, error } = await db.from("orders").select("id, tracking_code, total_xof, payment_status, customer_name, customer_email, customer_phone").eq("id", p.orderId).maybeSingle();
     if (error || !order) return { success: false, errorCode: "ORDER_NOT_FOUND", errorMessage: "Commande introuvable." };
     if (order.payment_status !== "paid") return { success: false, errorCode: "NOT_REFUNDABLE", errorMessage: "Seule une commande pay\xE9e peut \xEAtre rembours\xE9e." };
@@ -1409,12 +1028,6 @@ var PaymentService = class {
       return { success: true, payoutId: out.payoutId, warning: `Envoi ${out.payoutId} effectu\xE9, mais l\u2019enregistrement a \xE9chou\xE9 : saisissez cette r\xE9f\xE9rence manuellement.` };
     }
     return { success: true, payoutId: out.payoutId };
-  }
-  async getGeniusPayBalance() {
-    return this.geniuspay.getAccountBalance();
-  }
-  async getGeniusPayAccount() {
-    return this.geniuspay.getAccountInfo();
   }
 };
 var paymentService = new PaymentService();
@@ -1461,6 +1074,63 @@ paymentsRouter.post("/create", requireAuth, async (req, res) => {
     res.status(500).json({ success: false, errorCode: "INTERNAL_ERROR", errorMessage: "Erreur interne lors de l'initialisation du paiement." });
   }
 });
+paymentsRouter.post("/checkout", requireAuth, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const items = Array.isArray(b.items) ? b.items.filter((i) => i && typeof i.product_id === "string" && Number(i.quantity) > 0).slice(0, 100) : [];
+    if (!items.length) {
+      res.status(400).json({ success: false, errorCode: "EMPTY_CART", errorMessage: "Votre panier est vide." });
+      return;
+    }
+    if (!paymentService.isConfigured) {
+      res.status(503).json({ success: false, errorCode: "PROVIDER_NOT_CONFIGURED", errorMessage: "Le paiement en ligne est en cours de configuration. Contactez-nous pour finaliser votre commande." });
+      return;
+    }
+    const delivery = b.deliveryType === "home_delivery" ? "home_delivery" : "hub_pickup";
+    const { data: created, error } = await req.db.rpc("create_order_from_cart", {
+      p_delivery_type: delivery,
+      p_hub_location_id: delivery === "hub_pickup" ? b.hubId || null : null,
+      p_delivery_address: delivery === "home_delivery" ? b.address || null : null,
+      p_customer_name: String(b.name || "").slice(0, 120),
+      p_customer_phone: String(b.phone || "").slice(0, 40),
+      p_customer_email: String(b.email || req.user.email || "").slice(0, 160),
+      p_customer_city: String(b.city || "Dakar").slice(0, 80),
+      p_notes: b.notes ? String(b.notes).slice(0, 1e3) : null,
+      p_payment_method: "saspay",
+      p_idempotency_key: String(b.idempotencyKey || "").slice(0, 80) || null,
+      p_items: items.map((i) => ({ product_id: i.product_id, quantity: Math.round(Number(i.quantity)) }))
+    });
+    if (error || !created?.order_id) {
+      res.status(400).json({ success: false, errorCode: "ORDER_FAILED", errorMessage: error?.message || "La commande n\u2019a pas pu \xEAtre cr\xE9\xE9e." });
+      return;
+    }
+    const orderId = created.order_id;
+    const transport = b.transportMode === "sea" ? "sea" : "air";
+    const { error: logisticsError } = await req.db.rpc("calculate_order_logistics", { p_order_id: orderId, p_transport_mode: transport, p_status: "estimated" });
+    if (logisticsError) console.warn("[payments] checkout logistics:", logisticsError.message);
+    const base = appBaseUrl(req);
+    const [payment] = await Promise.all([
+      paymentService.createPaymentForOrder({
+        db: req.db,
+        orderId,
+        userId: req.user.id,
+        clientIp: req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() || req.socket.remoteAddress,
+        userAgent: req.headers["user-agent"],
+        returnUrl: `${base}/paiement/retour?orderId=${encodeURIComponent(orderId)}`,
+        cancelUrl: `${base}/paiement/retour?orderId=${encodeURIComponent(orderId)}&cancelled=1`
+      }),
+      // la commande existe : le panier peut être vidé en parallèle
+      req.db.from("cart_items").delete().eq("user_id", req.user.id).is("groupage_id", null)
+    ]);
+    res.status(payment.success ? 200 : 202).json({ success: true, orderId, checkoutUrl: payment.checkoutUrl || null, paymentError: payment.success ? void 0 : payment.errorMessage });
+  } catch (error) {
+    console.error("[payments] checkout:", error?.message || error);
+    res.status(500).json({ success: false, errorCode: "INTERNAL_ERROR", errorMessage: "Erreur interne lors de la commande." });
+  }
+});
+paymentsRouter.get("/warmup", (_req, res) => {
+  res.json({ ok: true });
+});
 async function handleStatus(req, res) {
   try {
     const id = req.params.orderId || req.params.id;
@@ -1481,17 +1151,6 @@ async function handleStatus(req, res) {
 }
 paymentsRouter.get("/order/:orderId", requireAuth, handleStatus);
 paymentsRouter.get("/:id/status", requireAuth, handleStatus);
-var handleGeniusPayWebhookRoute = async (req, res) => {
-  try {
-    const rawBody = req.rawBody || JSON.stringify(req.body);
-    const result = await paymentService.handleWebhook(rawBody, req.headers);
-    res.status(result.status).json(result);
-  } catch (error) {
-    console.error("[payments] webhook:", error?.message || error);
-    res.status(500).json({ status: 500, message: "Erreur interne lors du traitement du webhook." });
-  }
-};
-paymentsRouter.post("/webhooks/geniuspay", handleGeniusPayWebhookRoute);
 var handleSasPayWebhookRoute = async (req, res) => {
   try {
     const rawBody = req.rawBody || JSON.stringify(req.body);
@@ -1560,12 +1219,6 @@ paymentsRouter.get("/admin/list", requireAdmin, async (req, res) => {
     console.error("[payments] admin list:", error?.message || error);
     res.status(500).json({ success: false, errorMessage: "Erreur lors du chargement des paiements." });
   }
-});
-paymentsRouter.get("/admin/geniuspay/balance", requireAdmin, async (_req, res) => {
-  res.json(await paymentService.getGeniusPayBalance());
-});
-paymentsRouter.get("/admin/geniuspay/account", requireAdmin, async (_req, res) => {
-  res.json(await paymentService.getGeniusPayAccount());
 });
 
 // server/api/teamRouter.ts
@@ -1996,10 +1649,11 @@ function createApiApp() {
     res.json({
       status: "online",
       service: "Dallou Chine API",
-      gateway: config.paymentProvider === "saspay" ? "SasPay" : "GeniusPay",
-      paymentProvider: config.paymentProvider,
-      paymentsConfigured: config.paymentProvider === "saspay" ? hasSasPayCredentials && Boolean(config.saspayWebhookSecret) : hasGeniusPayCredentials,
-      paymentsEnvironment: config.paymentProvider === "saspay" ? config.saspaySecretKey.startsWith("sk_live_") ? "production" : "sandbox" : config.geniusPayEnvironment,
+      gateway: "SasPay",
+      paymentsConfigured: hasSasPayCredentials && hasSasPayWebhookSecret,
+      saspayKey: hasSasPayCredentials,
+      saspayWebhookSecret: hasSasPayWebhookSecret,
+      paymentsEnvironment: saspayEnvironment,
       serviceRoleConfigured: hasServiceRole,
       aiConfigured: hasAiProvider,
       timestamp: (/* @__PURE__ */ new Date()).toISOString()

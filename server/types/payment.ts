@@ -27,7 +27,7 @@ export interface PaymentItem {
   orderId: string;
   orderCode: string;
   userId?: string;
-  provider: 'geniuspay' | 'saspay' | 'manual' | 'mock_sandbox';
+  provider: 'saspay' | 'manual' | 'geniuspay';
   providerTransactionId?: string;
   providerReference?: string;
   amount: number;
@@ -131,36 +131,3 @@ export interface ProviderPaymentStatusResult {
   merchantReference?: string;
   orderId?: string;
 }
-
-export interface GeniusPayAccountInfo {
-  id: string;
-  name: string;
-  email: string;
-  status: string;
-  createdAt?: string;
-}
-
-export interface GeniusPayAccountBalance {
-  available: number;
-  pending: number;
-  total: number;
-  currency: string;
-}
-
-export interface GeniusPayTransactionItem {
-  id: number | string;
-  reference: string;
-  amount: number;
-  fees?: number;
-  netAmount?: number;
-  status: string;
-  paymentMethod?: string;
-  customer?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-  };
-  createdAt?: string;
-  completedAt?: string;
-}
-

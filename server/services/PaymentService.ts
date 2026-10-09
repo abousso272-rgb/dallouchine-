@@ -1,13 +1,11 @@
 import crypto from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseServerClient } from '../middleware/auth';
-import { PaymentProvider } from '../providers/PaymentProvider';
-import { GeniusPayProvider } from '../providers/GeniusPayProvider';
 import { SasPayProvider } from '../providers/SasPayProvider';
 import { PaymentItem, PaymentStatus, ProviderPaymentStatusResult } from '../types/payment';
-import { config, hasGeniusPayCredentials, hasSasPayCredentials } from '../config';
+import { config, hasSasPayCredentials, hasSasPayWebhookSecret } from '../config';
 
-type ProviderName = 'saspay' | 'geniuspay';
+type ProviderName = 'saspay';
 
 export interface CreatePaymentResult {
   success: boolean;
@@ -27,25 +25,13 @@ export interface CreatePaymentResult {
 }
 
 export class PaymentService {
-  private geniuspay: GeniusPayProvider;
-  private saspay: SasPayProvider;
+  private saspay = new SasPayProvider();
 
-  constructor() {
-    this.geniuspay = new GeniusPayProvider();
-    this.saspay = new SasPayProvider();
-  }
-
-  /** Fournisseur utilisé pour les nouveaux paiements. */
-  get activeProvider(): ProviderName {
-    return config.paymentProvider;
-  }
+  /** Fournisseur unique : SasPay. */
+  readonly activeProvider: ProviderName = 'saspay';
 
   get isConfigured(): boolean {
-    return this.activeProvider === 'saspay' ? hasSasPayCredentials : hasGeniusPayCredentials;
-  }
-
-  private providerFor(name: string): PaymentProvider {
-    return name === 'saspay' ? this.saspay : this.geniuspay;
+    return hasSasPayCredentials && hasSasPayWebhookSecret;
   }
 
   private baseUrl() {
@@ -95,7 +81,7 @@ export class PaymentService {
     const returnUrl = params.returnUrl || `${base}/paiement/retour?orderId=${attempt.order_id}`;
     const cancelUrl = params.cancelUrl || `${base}/paiement/retour?orderId=${attempt.order_id}&cancelled=1`;
 
-    const session = await this.providerFor(provider).createPaymentSession({
+    const session = await this.saspay.createPaymentSession({
       orderId: attempt.order_id,
       orderCode: attempt.tracking_code,
       userId: params.userId,
@@ -150,7 +136,7 @@ export class PaymentService {
    * serveur peut donc marquer une commande payée.
    */
   private async confirmInDatabase(provider: ProviderName, tx: ProviderPaymentStatusResult, orderId: string | undefined, merchantReference: string | undefined, eventId: string) {
-    const secret = provider === 'saspay' ? config.saspayWebhookSecret : '';
+    const secret = hasSasPayWebhookSecret ? config.saspayWebhookSecret : '';
     if (!secret) return { ok: false as const, error: 'Secret de signature non configuré.' };
     const body = JSON.stringify({
       id: eventId,
@@ -211,38 +197,6 @@ export class PaymentService {
     return { status: 200, message: 'Webhook traité avec succès.', data: (confirmed as { result?: unknown }).result };
   }
 
-  /** Webhook GeniusPay (conservé pour les paiements déjà en cours chez cet ancien fournisseur). */
-  async handleWebhook(rawBody: string | Buffer, headers: Record<string, string | string[] | undefined>): Promise<{ status: number; message: string; data?: unknown; errorCode?: string }> {
-    const supabase = getSupabaseServerClient();
-    const verification = await this.geniuspay.verifyWebhook(rawBody, headers);
-    if (!verification.isValid) {
-      console.warn('[PaymentService] webhook GeniusPay rejeté :', verification.reason);
-      return { status: 400, errorCode: 'INVALID_SIGNATURE', message: verification.reason || 'Signature de webhook invalide.' };
-    }
-    const rawString = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8');
-    const header = (name: string) => {
-      const v = headers[name];
-      return Array.isArray(v) ? v[0] : v;
-    };
-    const { data: rpcResult, error: rpcError } = await supabase.rpc('geniuspay_ingest', {
-      p_raw_body: rawString,
-      p_signature: header('x-webhook-signature') || header('x-geniuspay-signature') || header('x-signature') || header('signature') || '',
-      p_timestamp: header('x-webhook-timestamp') || header('x-geniuspay-timestamp') || header('x-timestamp') || header('timestamp') || null,
-      p_event_header: header('x-webhook-event') || header('x-geniuspay-event') || null
-    });
-    if (rpcError) {
-      console.error('[PaymentService] erreur base (webhook GeniusPay):', rpcError);
-      return { status: 500, message: 'Erreur interne de base de données lors du traitement du webhook.' };
-    }
-    if (rpcResult.already_processed || rpcResult.ignored) return { status: 200, message: 'Événement déjà traité ou ignoré.', data: rpcResult };
-    if (!rpcResult.success) {
-      const code = rpcResult.error_code;
-      const statusCode = ['AMOUNT_MISMATCH', 'REFERENCE_MISMATCH', 'CURRENCY_MISMATCH'].includes(code) ? 422 : ['PAYMENT_ATTEMPT_NOT_FOUND', 'ORDER_NOT_FOUND'].includes(code) ? 404 : code === 'ORDER_CANCELLED' ? 409 : 400;
-      return { status: statusCode, errorCode: code, message: rpcResult.error_message || 'Échec de traitement du webhook.', data: rpcResult };
-    }
-    return { status: 200, message: 'Webhook traité avec succès.', data: rpcResult };
-  }
-
   // -------------------------------------------------------------------------------------------
   // Statut
   // -------------------------------------------------------------------------------------------
@@ -252,37 +206,18 @@ export class PaymentService {
     const { data, error } = await db.rpc('get_my_order_payment', { p_order_id: orderRef });
     if (error || !data || !data.found) return { found: false };
 
-    const provider: string = data.payment?.provider || 'geniuspay';
-    const ref: string | undefined = data.payment?.provider_payment_id || data.payment?.provider_reference;
-    if (data.order && data.order.payment_status !== 'paid' && ref) {
+    const ref: string | undefined = data.payment?.provider_payment_id;
+    if (data.order && data.order.payment_status !== 'paid' && ref && data.payment?.provider === 'saspay' && this.isConfigured) {
       try {
-        if (provider === 'saspay' && config.saspayWebhookSecret) {
-          const tx = await this.saspay.getPaymentStatus(ref);
-          if (tx.status !== 'pending' && tx.amount > 0) {
-            const merchantReference = data.payment?.provider_reference || data.attempt?.merchant_reference;
-            const done = await this.confirmInDatabase('saspay', tx, data.order.id, merchantReference, `saspay_${tx.providerTransactionId}_${tx.status}`);
-            if (done.ok && tx.status === 'paid') {
-              data.order.payment_status = 'paid';
-              if (data.payment) {
-                data.payment.status = 'paid';
-                data.payment.paid_at = tx.paidAt || new Date().toISOString();
-              }
-            }
-          }
-        } else if (provider === 'geniuspay' && config.geniusPayWebhookSecret) {
-          const prov = await this.geniuspay.getPaymentStatus(ref);
-          if (prov.status === 'paid' && prov.amount > 0) {
-            const body = JSON.stringify({
-              id: `sync_${prov.providerTransactionId || ref}_paid`,
-              event: 'payment.success',
-              data: { transaction: { id: prov.providerTransactionId || ref, reference: data.payment?.provider_reference || ref, amount: prov.amount, currency: prov.currency || 'XOF', status: 'completed', metadata: { order_id: data.order.id } } }
-            });
-            const timestamp = String(Math.floor(Date.now() / 1000));
-            const signature = crypto.createHmac('sha256', config.geniusPayWebhookSecret).update(`${timestamp}.${body}`).digest('hex');
-            const { data: synced } = await getSupabaseServerClient().rpc('geniuspay_ingest', { p_raw_body: body, p_signature: signature, p_timestamp: timestamp, p_event_header: 'payment.success' });
-            if (synced?.success && !synced.ignored) {
-              data.order.payment_status = 'paid';
-              if (data.payment) data.payment.status = 'paid';
+        const tx = await this.saspay.getPaymentStatus(ref);
+        if (tx.status !== 'pending' && tx.amount > 0) {
+          const merchantReference = data.payment?.provider_reference || data.attempt?.merchant_reference;
+          const done = await this.confirmInDatabase('saspay', tx, data.order.id, merchantReference, `saspay_${tx.providerTransactionId}_${tx.status}`);
+          if (done.ok && tx.status === 'paid') {
+            data.order.payment_status = 'paid';
+            if (data.payment) {
+              data.payment.status = 'paid';
+              data.payment.paid_at = tx.paidAt || new Date().toISOString();
             }
           }
         }
@@ -360,7 +295,7 @@ export class PaymentService {
 
   /** Réseaux mobile money disponibles sur le compte SasPay (Sénégal). */
   async listNetworks() {
-    return hasSasPayCredentials ? this.saspay.listNetworks('SN') : [];
+    return this.isConfigured ? this.saspay.listNetworks('SN') : [];
   }
 
   /**
@@ -371,7 +306,7 @@ export class PaymentService {
     db: SupabaseClient,
     p: { orderId: string; participantId?: string; networkCode: string; msisdn: string }
   ): Promise<{ success: boolean; payoutId?: string; errorCode?: string; errorMessage?: string; warning?: string }> {
-    if (!hasSasPayCredentials) return { success: false, errorCode: 'PROVIDER_NOT_CONFIGURED', errorMessage: 'SasPay n’est pas configuré.' };
+    if (!this.isConfigured) return { success: false, errorCode: 'PROVIDER_NOT_CONFIGURED', errorMessage: 'SasPay n’est pas configuré.' };
     const { data: order, error } = await db
       .from('orders')
       .select('id, tracking_code, total_xof, payment_status, customer_name, customer_email, customer_phone')
@@ -403,13 +338,6 @@ export class PaymentService {
     return { success: true, payoutId: out.payoutId };
   }
 
-  async getGeniusPayBalance() {
-    return this.geniuspay.getAccountBalance();
-  }
-
-  async getGeniusPayAccount() {
-    return this.geniuspay.getAccountInfo();
-  }
 }
 
 export const paymentService = new PaymentService();

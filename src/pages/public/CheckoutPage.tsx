@@ -3,8 +3,8 @@ import { Check, Clock, Home, Lock, MapPin, Pencil, Plane, Ship, User } from 'luc
 import { useApp } from '../../context/AppContext';
 import { useAsync } from '../../lib/hooks';
 import { listHubs } from '../../services/catalog';
-import { createOrderFromCart, estimateShipping, type ShippingEstimate } from '../../services/orders';
-import { startPayment } from '../../lib/api';
+import { estimateShipping, type ShippingEstimate } from '../../services/orders';
+import { checkoutAndPay, warmupPayments } from '../../lib/api';
 import { friendlyError } from '../../lib/db';
 import { formatXOF } from '../../lib/format';
 import { Button } from '../../components/ui/Button';
@@ -36,6 +36,10 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [editContact, setEditContact] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Réveille le serveur de paiement dès l'arrivée sur la page
+  useEffect(() => warmupPayments(), []);
 
   // Dernier choix de livraison mémorisé sur cet appareil (confort uniquement)
   useEffect(() => {
@@ -93,6 +97,10 @@ export default function CheckoutPage() {
     );
   }
 
+  if (redirecting) {
+    return <PageLoader />;
+  }
+
   if (!cart.length) {
     return (
       <div className="container-page max-w-2xl py-12">
@@ -133,7 +141,8 @@ export default function CheckoutPage() {
       } catch {
         /* ignoré */
       }
-      const order = await createOrderFromCart({
+      setRedirecting(true);
+      const res = await checkoutAndPay({
         items,
         deliveryType: delivery,
         hubId: delivery === 'hub_pickup' ? hubId : null,
@@ -146,14 +155,14 @@ export default function CheckoutPage() {
         transportMode: transport,
         idempotencyKey: idempotencyKey.current
       });
-      await clearCart();
-      try {
-        await startPayment(order.id);
-      } catch (payErr) {
-        toast('error', 'Paiement non démarré', friendlyError(payErr));
-        navigate(`/compte/commandes/${order.id}`);
+      if (res.paymentError) {
+        // commande enregistrée, panier vidé côté serveur : on synchronise et on montre la commande
+        clearCart().catch(() => undefined);
+        toast('error', 'Paiement non démarré', res.paymentError);
+        navigate(`/compte/commandes/${res.orderId}`);
       }
     } catch (err) {
+      setRedirecting(false);
       setSubmitError(friendlyError(err));
     } finally {
       setSubmitting(false);
