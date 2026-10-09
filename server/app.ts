@@ -5,6 +5,7 @@ import { shipmentsRouter } from './api/shipmentsRouter';
 import { paymentsRouter } from './api/paymentsRouter';
 import { teamRouter } from './api/teamRouter';
 import { aiRouter } from './api/aiRouter';
+import { paymentService } from './services/PaymentService';
 import { hasServiceRole, hasSasPayCredentials, hasSasPayWebhookSecret, saspayEnvironment, hasAiProvider } from './config';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,8 +34,10 @@ export function createApiApp() {
     next();
   });
 
-  api.get('/api/health', (_req: Request, res: Response) => {
+  api.get('/api/health', async (_req: Request, res: Response) => {
+    const paymentsReady = await paymentService.readiness();
     res.json({
+      paymentsReady,
       status: 'online',
       service: 'Dallou Chine API',
       gateway: 'SasPay',

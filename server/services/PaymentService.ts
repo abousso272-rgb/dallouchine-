@@ -34,6 +34,40 @@ export class PaymentService {
     return hasSasPayCredentials && hasSasPayWebhookSecret;
   }
 
+  private readyCache: { at: number; status: string } | null = null;
+
+  /**
+   * Prêt à encaisser ? Clé et secret présents côté serveur ET secret identique dans la base (Vault).
+   * Sans cela, un client pourrait payer sans que sa commande soit confirmée : on refuse de démarrer.
+   */
+  async readiness(): Promise<'ok' | 'no_key' | 'no_webhook_secret' | 'missing' | 'mismatch' | 'error'> {
+    if (!hasSasPayCredentials) return 'no_key';
+    if (!hasSasPayWebhookSecret) return 'no_webhook_secret';
+    if (this.readyCache && this.readyCache.status === 'ok' && Date.now() - this.readyCache.at < 5 * 60_000) return 'ok';
+    try {
+      const probe = `ready:${Date.now()}`;
+      const signature = crypto.createHmac('sha256', config.saspayWebhookSecret).update(probe).digest('hex');
+      const { data, error } = await getSupabaseServerClient().rpc('payment_provider_ready', { p_provider: 'saspay', p_probe: probe, p_signature: signature });
+      const status = error ? 'error' : (String(data) as 'ok' | 'missing' | 'mismatch');
+      this.readyCache = { at: Date.now(), status };
+      return status;
+    } catch {
+      return 'error';
+    }
+  }
+
+  static readinessMessage(status: string): string {
+    switch (status) {
+      case 'missing':
+      case 'mismatch':
+        return 'Le paiement en ligne est en cours d’activation (confirmation sécurisée non prête). Réessayez dans quelques minutes ou contactez-nous.';
+      case 'error':
+        return 'Le service de paiement est momentanément indisponible. Réessayez dans un instant.';
+      default:
+        return 'Le paiement en ligne est en cours de configuration. Contactez-nous pour finaliser votre commande.';
+    }
+  }
+
   private baseUrl() {
     return config.appUrl && !config.appUrl.includes('localhost') ? config.appUrl.replace(/\/+$/, '') : 'https://dallouchine.vercel.app';
   }
@@ -55,12 +89,10 @@ export class PaymentService {
     /** Lien généré par l'équipe pour le compte d'un client */
     asStaff?: boolean;
   }): Promise<CreatePaymentResult> {
-    if (!this.isConfigured) {
-      return {
-        success: false,
-        errorCode: 'PROVIDER_NOT_CONFIGURED',
-        errorMessage: "Le paiement en ligne n'est pas encore configuré. Contactez Dallou Chine pour finaliser votre commande."
-      };
+    const ready = await this.readiness();
+    if (ready !== 'ok') {
+      console.warn('[PaymentService] paiement bloqué, état :', ready);
+      return { success: false, errorCode: 'PROVIDER_NOT_CONFIGURED', errorMessage: PaymentService.readinessMessage(ready) };
     }
     const provider = this.activeProvider;
 
@@ -192,7 +224,8 @@ export class PaymentService {
     if (!confirmed.ok) {
       const code = (confirmed as { result?: { error_code?: string } }).result?.error_code;
       console.warn('[PaymentService] confirmation SasPay refusée :', code || (confirmed as { error?: string }).error);
-      return { status: code === 'AMOUNT_MISMATCH' ? 422 : code === 'PAYMENT_ATTEMPT_NOT_FOUND' ? 404 : 400, errorCode: code, message: 'Confirmation refusée par la base.' };
+      // 503 : SasPay relance automatiquement (5 tentatives sur ~2 h) le temps de corriger la configuration
+      return { status: code === 'AMOUNT_MISMATCH' ? 422 : code === 'PAYMENT_ATTEMPT_NOT_FOUND' ? 404 : 503, errorCode: code, message: 'Confirmation refusée par la base.' };
     }
     return { status: 200, message: 'Webhook traité avec succès.', data: (confirmed as { result?: unknown }).result };
   }

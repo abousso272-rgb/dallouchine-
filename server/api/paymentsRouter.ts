@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { paymentService } from '../services/PaymentService';
+import { paymentService, PaymentService } from '../services/PaymentService';
 import { config } from '../config';
 import { requireAuth, requireAdmin, requireRole } from '../middleware/auth';
 
@@ -70,8 +70,9 @@ paymentsRouter.post('/checkout', requireAuth, async (req: Request, res: Response
       res.status(400).json({ success: false, errorCode: 'EMPTY_CART', errorMessage: 'Votre panier est vide.' });
       return;
     }
-    if (!paymentService.isConfigured) {
-      res.status(503).json({ success: false, errorCode: 'PROVIDER_NOT_CONFIGURED', errorMessage: 'Le paiement en ligne est en cours de configuration. Contactez-nous pour finaliser votre commande.' });
+    const ready = await paymentService.readiness();
+    if (ready !== 'ok') {
+      res.status(503).json({ success: false, errorCode: 'PROVIDER_NOT_CONFIGURED', errorMessage: PaymentService.readinessMessage(ready) });
       return;
     }
     const delivery = b.deliveryType === 'home_delivery' ? 'home_delivery' : 'hub_pickup';

@@ -767,14 +767,45 @@ var SasPayProvider = class _SasPayProvider {
 };
 
 // server/services/PaymentService.ts
-var PaymentService = class {
+var PaymentService = class _PaymentService {
   constructor() {
     this.saspay = new SasPayProvider();
     /** Fournisseur unique : SasPay. */
     this.activeProvider = "saspay";
+    this.readyCache = null;
   }
   get isConfigured() {
     return hasSasPayCredentials && hasSasPayWebhookSecret;
+  }
+  /**
+   * Prêt à encaisser ? Clé et secret présents côté serveur ET secret identique dans la base (Vault).
+   * Sans cela, un client pourrait payer sans que sa commande soit confirmée : on refuse de démarrer.
+   */
+  async readiness() {
+    if (!hasSasPayCredentials) return "no_key";
+    if (!hasSasPayWebhookSecret) return "no_webhook_secret";
+    if (this.readyCache && this.readyCache.status === "ok" && Date.now() - this.readyCache.at < 5 * 6e4) return "ok";
+    try {
+      const probe = `ready:${Date.now()}`;
+      const signature = crypto2.createHmac("sha256", config.saspayWebhookSecret).update(probe).digest("hex");
+      const { data, error } = await getSupabaseServerClient().rpc("payment_provider_ready", { p_provider: "saspay", p_probe: probe, p_signature: signature });
+      const status = error ? "error" : String(data);
+      this.readyCache = { at: Date.now(), status };
+      return status;
+    } catch {
+      return "error";
+    }
+  }
+  static readinessMessage(status) {
+    switch (status) {
+      case "missing":
+      case "mismatch":
+        return "Le paiement en ligne est en cours d\u2019activation (confirmation s\xE9curis\xE9e non pr\xEAte). R\xE9essayez dans quelques minutes ou contactez-nous.";
+      case "error":
+        return "Le service de paiement est momentan\xE9ment indisponible. R\xE9essayez dans un instant.";
+      default:
+        return "Le paiement en ligne est en cours de configuration. Contactez-nous pour finaliser votre commande.";
+    }
   }
   baseUrl() {
     return config.appUrl && !config.appUrl.includes("localhost") ? config.appUrl.replace(/\/+$/, "") : "https://dallouchine.vercel.app";
@@ -784,12 +815,10 @@ var PaymentService = class {
    * de paiement) puis la session chez le fournisseur actif. Le montant vient toujours de la commande en base.
    */
   async createPaymentForOrder(params) {
-    if (!this.isConfigured) {
-      return {
-        success: false,
-        errorCode: "PROVIDER_NOT_CONFIGURED",
-        errorMessage: "Le paiement en ligne n'est pas encore configur\xE9. Contactez Dallou Chine pour finaliser votre commande."
-      };
+    const ready = await this.readiness();
+    if (ready !== "ok") {
+      console.warn("[PaymentService] paiement bloqu\xE9, \xE9tat :", ready);
+      return { success: false, errorCode: "PROVIDER_NOT_CONFIGURED", errorMessage: _PaymentService.readinessMessage(ready) };
     }
     const provider = this.activeProvider;
     const { data: attempt, error: attemptError } = params.asStaff ? await params.db.rpc("staff_create_payment_attempt", { p_order_id: params.orderId, p_provider: provider, p_ip: params.clientIp || null, p_user_agent: params.userAgent || null }) : await params.db.rpc("create_payment_attempt_secure", { p_order_id: params.orderId, p_ip: params.clientIp || null, p_user_agent: params.userAgent || null, p_provider: provider });
@@ -908,7 +937,7 @@ var PaymentService = class {
     if (!confirmed.ok) {
       const code = confirmed.result?.error_code;
       console.warn("[PaymentService] confirmation SasPay refus\xE9e :", code || confirmed.error);
-      return { status: code === "AMOUNT_MISMATCH" ? 422 : code === "PAYMENT_ATTEMPT_NOT_FOUND" ? 404 : 400, errorCode: code, message: "Confirmation refus\xE9e par la base." };
+      return { status: code === "AMOUNT_MISMATCH" ? 422 : code === "PAYMENT_ATTEMPT_NOT_FOUND" ? 404 : 503, errorCode: code, message: "Confirmation refus\xE9e par la base." };
     }
     return { status: 200, message: "Webhook trait\xE9 avec succ\xE8s.", data: confirmed.result };
   }
@@ -1082,8 +1111,9 @@ paymentsRouter.post("/checkout", requireAuth, async (req, res) => {
       res.status(400).json({ success: false, errorCode: "EMPTY_CART", errorMessage: "Votre panier est vide." });
       return;
     }
-    if (!paymentService.isConfigured) {
-      res.status(503).json({ success: false, errorCode: "PROVIDER_NOT_CONFIGURED", errorMessage: "Le paiement en ligne est en cours de configuration. Contactez-nous pour finaliser votre commande." });
+    const ready = await paymentService.readiness();
+    if (ready !== "ok") {
+      res.status(503).json({ success: false, errorCode: "PROVIDER_NOT_CONFIGURED", errorMessage: PaymentService.readinessMessage(ready) });
       return;
     }
     const delivery = b.deliveryType === "home_delivery" ? "home_delivery" : "hub_pickup";
@@ -1645,8 +1675,10 @@ function createApiApp() {
     res.setHeader("Cache-Control", "no-store");
     next();
   });
-  api.get("/api/health", (_req, res) => {
+  api.get("/api/health", async (_req, res) => {
+    const paymentsReady = await paymentService.readiness();
     res.json({
+      paymentsReady,
       status: "online",
       service: "Dallou Chine API",
       gateway: "SasPay",
