@@ -50,6 +50,7 @@ import { formatNumber, formatXOF, percent } from '../../lib/format';
 import { whatsappLink, PHOTOS, photoSrcSet } from '../../lib/config';
 import { FlagCN, FlagSN } from '../../components/ui/Flags';
 import { Reveal } from '../../components/ui/Reveal';
+import { AiSearchBand } from '../../components/home/AiSearchBand';
 import type { Groupage } from '../../lib/types';
 
 export function HomePage() {
@@ -65,6 +66,7 @@ export function HomePage() {
   return (
     <>
       <Hero groupage={heroGroupage} openCount={openGroupages.length} />
+      <AiSearchBand />
       <ServiceStrip />
       <Reveal>
         <Journey />
@@ -120,8 +122,6 @@ export function HomePage() {
           </div>
         </section>
       </Reveal>
-
-      <MarketplaceBand />
 
       {/* Produits */}
       <section className="container-page mt-14 sm:mt-16" aria-labelledby="home-products">
@@ -402,89 +402,6 @@ function Journey() {
             </ol>
             <FlagSN className="hidden h-6 w-9 shrink-0 sm:block" />
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const CATEGORY_ICONS: [RegExp, React.ElementType][] = [
-  [/mode|textile|vêtement|habit/i, Shirt],
-  [/maison|meuble|déco/i, HomeIcon],
-  [/électro|high-tech|téléphone|informatique/i, Smartphone],
-  [/beauté|cosm|santé/i, Sparkles],
-  [/restaur|cuisine|aliment/i, UtensilsCrossed],
-  [/commerce|boutique|emballage/i, Store],
-  [/équipement|machine|outil|industri|pro/i, Wrench],
-  [/événement|fête|déco/i, PartyPopper],
-  [/personnalis|logo|impression/i, Palette],
-  [/énergie|solaire|batter/i, Zap],
-  [/auto|moto|véhicule|voiture|scooter/i, Car]
-];
-function categoryIcon(name: string) {
-  return CATEGORY_ICONS.find(([re]) => re.test(name))?.[1] || Boxes;
-}
-
-function MarketplaceBand() {
-  const { categories, navigate } = useApp();
-  const [q, setQ] = React.useState('');
-  const top = categories.filter(c => c.isActive !== false && !c.parentId).slice(0, 8);
-  return (
-    <section className="container-page mt-14 sm:mt-20" aria-label="Rechercher dans la marketplace">
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,330px)_minmax(0,1fr)]">
-        <div className="relative overflow-hidden rounded-[var(--radius-card)] bg-ink p-6 text-white">
-          <img src={PHOTOS.containers} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-25" />
-          <div className="absolute inset-0 bg-gradient-to-br from-ink via-ink/80 to-brand/40" aria-hidden />
-          <div className="relative">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-400">Marketplace</p>
-            <p className="mt-2 font-display text-[22px] font-bold leading-tight">Des milliers de produits venus de Chine</p>
-            <p className="mt-2 text-[13px] text-white/65">Prix en FCFA, livraison au hub de Dakar ou à domicile.</p>
-          </div>
-        </div>
-        <div className="surface flex flex-col justify-center gap-4 p-4 sm:p-5">
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              navigate(q.trim() ? `/catalogue?q=${encodeURIComponent(q.trim())}` : '/catalogue');
-            }}
-            className="flex gap-2"
-            role="search"
-          >
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <input
-                value={q}
-                onChange={e => setQ(e.target.value)}
-                placeholder="Que recherchez-vous ?"
-                aria-label="Rechercher un produit"
-                className="h-12 w-full rounded-full border border-line bg-paper pl-11 pr-4 focus:border-brand/50 focus:bg-white focus:outline-none"
-                enterKeyHint="search"
-              />
-            </div>
-            <Button type="submit" size="lg" className="h-12 w-12 shrink-0 px-0 sm:w-auto sm:px-7" aria-label="Rechercher">
-              <Search className="h-5 w-5 sm:hidden" />
-              <span className="hidden sm:inline">Rechercher</span>
-            </Button>
-          </form>
-          {top.length > 0 && (
-            <div className="grid grid-cols-4 gap-1 xl:grid-cols-8">
-              {top.map(c => {
-                const Icon = categoryIcon(c.name);
-                return (
-                  <Link
-                    key={c.id}
-                    to={`/catalogue?categorie=${c.slug}`}
-                    className="group flex min-w-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-2 text-center text-[11.5px] font-semibold text-ink/80 hover:bg-brand-50"
-                  >
-                    <span className="icon-bubble h-11 w-11 transition-transform group-hover:-translate-y-0.5">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="line-clamp-2 leading-tight">{c.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     </section>

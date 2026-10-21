@@ -1832,7 +1832,7 @@ function buildActions(text, lang, hasResults, exact) {
   const t = text.toLowerCase();
   const actions = [];
   if (isTrackingIntent(t)) actions.push({ label: tr(lang, "Suivre ma commande", "Track my order"), to: "/suivi" });
-  if (/devis|quote|quantit|gros|wholesale|entreprise|business|marque|logo|personnalis|custom/.test(t)) actions.push({ label: tr(lang, "Demander un devis", "Request a quote"), to: "/pro" });
+  if (/devis|quote|quantit|gros|wholesale|entreprise|business|marque|logo|personnalis|custom|revend|resell|import/.test(t)) actions.push({ label: tr(lang, "Demander un devis", "Request a quote"), to: "/pro" });
   if (/groupage|group buy|ensemble|together/.test(t)) actions.push({ label: tr(lang, "Voir les groupages", "See group buys"), to: "/groupages" });
   if (/comment|fonctionn|how|marche|work|d[ée]lai|livraison|delivery|paiement|payment|rembours|refund/.test(t)) actions.push({ label: tr(lang, "Comment \xE7a marche", "How it works"), to: "/guide" });
   if ((!hasResults || !exact) && !isTrackingIntent(t)) actions.push({ label: tr(lang, "Faire sourcer ce produit", "Have this product sourced"), to: "/sourcing" });

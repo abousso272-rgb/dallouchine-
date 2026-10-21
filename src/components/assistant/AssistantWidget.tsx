@@ -2,77 +2,44 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUp, MessageCircle, PackageSearch, Search, Sparkles, Users, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { usePrefs } from '../../context/PrefsContext';
-import { askAssistant, type AssistantReply } from '../../services/assistant';
+import { assistantStore, useAssistant } from '../../lib/assistantStore';
 import { whatsappLink } from '../../lib/config';
-import { AppError } from '../../lib/db';
-import { Link } from '../ui/Link';
-
-interface Msg {
-  role: 'user' | 'assistant';
-  content: string;
-  local?: boolean;
-  data?: Pick<AssistantReply, 'products' | 'groupages' | 'actions' | 'mode'>;
-}
-
-const KEY = 'dallouchine_assistant_v1';
-
-function load(): Msg[] {
-  try {
-    const raw = JSON.parse(sessionStorage.getItem(KEY) || '[]');
-    return Array.isArray(raw) ? raw.slice(-20) : [];
-  } catch {
-    return [];
-  }
-}
+import { AssistantMessages, Bubble } from './AssistantMessages';
 
 /** Assistant flottant : recherche conversationnelle (« mode IA »), aide rapide et lien vers un conseiller. */
 export function AssistantWidget() {
   const { navigate } = useApp();
-  const { t, lang, money } = usePrefs();
+  const { t, lang } = usePrefs();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>(load);
   const [input, setInput] = useState('');
-  const [busy, setBusy] = useState(false);
+  const { messages, busy } = useAssistant();
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const messagesRef = useRef(messages);
-  messagesRef.current = messages;
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem(KEY, JSON.stringify(messages.slice(-20)));
-    } catch {
-      /* ignore */
-    }
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, busy, open]);
 
   const send = useCallback(
     async (text: string) => {
-      const q = text.trim();
-      if (!q || busy) return;
-      const next: Msg[] = [...messagesRef.current, { role: 'user', content: q }];
-      setMessages(next);
       setInput('');
-      setBusy(true);
-      try {
-        const history = next.filter(m => !m.local).map(m => ({ role: m.role, content: m.content }));
-        const res = await askAssistant(history, lang);
-        setMessages(m => [...m, { role: 'assistant', content: res.reply, data: { products: res.products, groupages: res.groupages, actions: res.actions, mode: res.mode } }]);
-      } catch (err) {
-        const limited = err instanceof AppError && err.code === 'RATE_LIMITED';
-        setMessages(m => [...m, { role: 'assistant', content: limited ? t('assistant.rateLimit') : t('assistant.error'), local: true, data: { products: [], groupages: [], actions: [], mode: 'simple' } }]);
-      } finally {
-        setBusy(false);
-      }
+      await assistantStore.send(text, lang, { generic: t('assistant.error'), rateLimited: t('assistant.rateLimit') });
     },
-    [busy, lang, t]
+    [lang, t]
   );
 
   // Ouverture depuis la recherche de l'en-tête (« IA ») ou le menu mobile
   useEffect(() => {
     const onOpen = (e: Event) => {
       const q = (e as CustomEvent<{ q?: string }>).detail?.q;
+      // Sur l'accueil, la recherche IA de la page prend le relais (même conversation)
+      const band = document.getElementById('home-ai-search');
+      if (band) {
+        band.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.setTimeout(() => document.getElementById('home-ai-input')?.focus({ preventScroll: true }), 350);
+        if (q) void send(q);
+        return;
+      }
       setOpen(true);
       if (q) void send(q);
     };
@@ -148,49 +115,7 @@ export function AssistantWidget() {
               </div>
             )}
 
-            {messages.map((m, i) => (
-              <div key={i} className="space-y-2">
-                <Bubble role={m.role}>{m.content}</Bubble>
-                {m.data && (m.data.products.length > 0 || m.data.groupages.length > 0) && (
-                  <ul className="space-y-2 pl-1">
-                    {m.data.products.map(p => (
-                      <li key={p.id}>
-                        <Link to={`/produit/${p.slug}`} onClick={() => setOpen(false)} className="lift flex items-center gap-3 rounded-2xl border border-line bg-white p-2.5">
-                          <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-paper-2">{p.image && <img src={p.image} alt="" loading="lazy" className="h-full w-full object-cover" />}</span>
-                          <span className="min-w-0 flex-1">
-                            <span className="line-clamp-2 text-[13px] font-semibold leading-snug">{p.name}</span>
-                            <span className="num mt-0.5 block text-[13px] font-bold text-brand-700">{money(p.priceXOF)}</span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                    {m.data.groupages.map(g => (
-                      <li key={g.id}>
-                        <Link to={`/groupages/${g.id}`} onClick={() => setOpen(false)} className="lift flex items-center gap-3 rounded-2xl border border-ochre/30 bg-ochre-50 p-3">
-                          <Users className="h-5 w-5 shrink-0 text-ochre" />
-                          <span className="min-w-0 flex-1">
-                            <span className="line-clamp-1 text-[13px] font-semibold">{g.title}</span>
-                            <span className="num block text-[12px] text-muted">
-                              {t('assistant.groupagesTitle')} · {money(g.unitPriceXOF)} · {g.reserved}/{g.target}
-                            </span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {m.data && m.data.actions.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pl-1">
-                    {m.data.actions.map(a => (
-                      <button key={a.to} type="button" onClick={() => go(a.to)} className="rounded-full bg-brand-gradient px-3.5 py-2 text-[12.5px] font-semibold text-white shadow-sm hover:brightness-105">
-                        {a.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            {busy && <Bubble role="assistant">{t('assistant.thinking')}</Bubble>}
+            <AssistantMessages messages={messages} busy={busy} onNavigate={go} />
           </div>
 
           <form
@@ -217,14 +142,5 @@ export function AssistantWidget() {
         </div>
       )}
     </>
-  );
-}
-
-function Bubble({ role, children }: { role: 'user' | 'assistant'; children: React.ReactNode }) {
-  const mine = role === 'user';
-  return (
-    <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-      <p className={`max-w-[88%] whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed ${mine ? 'rounded-br-md bg-ink text-white' : 'rounded-bl-md border border-line bg-white text-ink'}`}>{children}</p>
-    </div>
   );
 }

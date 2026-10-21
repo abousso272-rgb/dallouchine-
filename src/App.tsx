@@ -19,6 +19,7 @@ const GroupagesPage = lazy(() => import('./pages/public/GroupagesPage'));
 const GroupagePage = lazy(() => import('./pages/public/GroupagePage'));
 const SourcingPage = lazy(() => import('./pages/public/SourcingPage'));
 const GuidePage = lazy(() => import('./pages/public/GuidePage'));
+const OnboardingPage = lazy(() => import('./pages/public/OnboardingPage'));
 const ProPage = lazy(() => import('./pages/public/ProPage'));
 const VehiclesPage = lazy(() => import('./pages/public/VehiclesPage'));
 const VehiclePage = lazy(() => import('./pages/public/VehiclePage'));
@@ -100,6 +101,16 @@ function Router() {
     }
   }, [normalized, navigate]);
 
+  // Nouveau client : écran de bienvenue (une seule fois, ignorable). Les anciens comptes et l'équipe ne sont pas concernés.
+  useEffect(() => {
+    if (authLoading || !user || user.role !== 'client') return;
+    if (user.onboarding.done || user.onboarding.skipped) return;
+    const ageDays = (Date.now() - new Date(user.createdAt).getTime()) / 86400000;
+    if (!(ageDays <= 14)) return;
+    const busy = ['/bienvenue', '/paiement', '/commande', '/mot-de-passe', '/invitation'].some(p => normalized === p || normalized.startsWith(p + '/'));
+    if (!busy) navigate('/bienvenue', { replace: true });
+  }, [authLoading, user, normalized, navigate]);
+
   // Titre de page
   useEffect(() => {
     if (normalized.startsWith('/espace-pro')) document.title = 'Espace pro — Dallou Chine';
@@ -112,6 +123,14 @@ function Router() {
       navigate(query.get('next') || (user.role === 'client' ? '/compte' : '/espace-pro'), { replace: true });
     }
   }, [authLoading, user, normalized, navigate, query]);
+
+  if (normalized === '/bienvenue') {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <OnboardingPage />
+      </Suspense>
+    );
+  }
 
   if (normalized.startsWith('/espace-pro')) {
     if (authLoading) return <PageLoader label="Vérification de votre session…" />;
