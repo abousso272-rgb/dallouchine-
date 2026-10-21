@@ -27,6 +27,7 @@ import { Button } from '../../components/ui/Button';
 import { Checkbox, Input, Select, Textarea } from '../../components/ui/Field';
 import { Modal } from '../../components/ui/Modal';
 import { RefundModal } from '../../components/pro/RefundModal';
+import { GroupageCockpit } from '../../components/pro/GroupageCockpit';
 import { MediaGalleryInput } from '../../components/ui/Uploads';
 import { EmptyState, ErrorState, InlineAlert, PageLoader, Skeleton } from '../../components/ui/States';
 import { Link } from '../../components/ui/Link';
@@ -266,6 +267,8 @@ export default function GroupageEditorPage({ id }: { id: string }) {
           ) : undefined
         }
       />
+
+      {!isNew && g && g.status !== 'draft' && <GroupageCockpit groupageId={g.id} onChanged={() => participants.reload()} />}
 
       {!isNew && g && (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.1fr]">

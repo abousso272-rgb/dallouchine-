@@ -20,6 +20,9 @@ export interface AdminStats {
   recorded_costs_xof: number;
   estimated_purchase_xof: number;
   margin_xof: number;
+  /** Part du chiffre d'affaires dont les coûts sont connus (la marge ne porte que sur cette part). */
+  margin_coverage_pct: number;
+  orders_missing_costs: number;
   orders_total: number;
   orders_paid: number;
   orders_pending_payment: number;

@@ -2,6 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { createQuote } from '../../services/requests';
+import { getFinanceContext } from '../../services/finance';
+import { useAsync } from '../../lib/hooks';
+import { quoteMargin } from '../../lib/pricing';
+import { PricingPanel, type AppliedPricing } from './PricingPanel';
 import { friendlyError } from '../../lib/db';
 import { formatXOF, percent } from '../../lib/format';
 import type { ClientRequest, Finding } from '../../lib/types';
@@ -54,6 +58,10 @@ export function QuoteBuilder({
   const [send, setSend] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calc, setCalc] = useState<AppliedPricing | null>(null);
+  const [confirmLoss, setConfirmLoss] = useState(false);
+  const ctx = useAsync(() => (open ? getFinanceContext() : Promise.resolve(null)), [open], { cacheKey: 'finance:context', maxAge: 60000 });
+  const minMargin = ctx.data?.targets.min_margin_pct ?? 15;
 
   const n = (v: string) => Number(v.replace(/\s/g, '')) || 0;
   const subtotal = lines.reduce((s, l) => s + n(l.quantity) * n(l.unitPrice), 0);
@@ -61,6 +69,19 @@ export function QuoteBuilder({
   const depositAmount = Math.round((total * Math.min(Math.max(n(deposit), 0), 100)) / 100);
   const purchaseCost = useMemo(() => (selected?.unitPriceXOF ? selected.unitPriceXOF * (n(lines[0]?.quantity || '0') || request.quantity) : null), [selected, lines, request.quantity]);
   const margin = purchaseCost !== null ? subtotal + n(fees) - n(discount) - purchaseCost : null;
+  const real = calc ? quoteMargin(calc.result.landedCostXOF, total, calc.paymentFeePct) : null;
+  const loss = Boolean(real && real.marginXOF < 0);
+
+  function applyPricing(a: AppliedPricing) {
+    setCalc(a);
+    setConfirmLoss(false);
+    setLines(prev => prev.map((l, k) => (k === 0 ? { ...l, quantity: String(a.quantity), unitPrice: String(a.result.quote.unitPriceXOF) } : l)));
+    setShipping(String(a.result.quote.shippingXOF));
+    setCustoms(String(a.result.quote.customsXOF));
+    setFees(String(a.result.quote.feesXOF));
+    setDiscount('');
+    setTransport(a.mode);
+  }
 
   function updateLine(i: number, patch: Partial<Line>) {
     setLines(prev => prev.map((l, k) => (k === i ? { ...l, ...patch } : l)));
@@ -73,6 +94,7 @@ export function QuoteBuilder({
       .map(l => ({ description: l.description.trim(), quantity: n(l.quantity), unit_price_xof: n(l.unitPrice) }));
     if (!items.length) return setError('Ajoutez au moins une ligne avec une quantité.');
     if (total <= 0) return setError('Le total du devis doit être positif.');
+    if (loss && send && !confirmLoss) return setError('Ce devis est vendu à perte : cochez la confirmation ou corrigez les prix.');
     setSaving(true);
     try {
       const res = await createQuote(request.type, request.id, {
@@ -121,6 +143,24 @@ export function QuoteBuilder({
       }
     >
       <div className="space-y-5">
+        <details className="rounded-2xl border border-line bg-paper/60 p-4" open={!calc && Boolean(selected?.unitPriceCNY)}>
+          <summary className="cursor-pointer text-[13px] font-semibold">Calculer le prix à partir du coût réel (change, fret, douane, marge)</summary>
+          <div className="mt-4">
+            {ctx.loading && !ctx.data ? (
+              <p className="text-sm text-muted">Chargement des tarifs…</p>
+            ) : ctx.data ? (
+              <PricingPanel
+                context={ctx.data}
+                seed={{ quantity: request.quantity || 1, unitPriceCNY: selected?.unitPriceCNY, mode: transport }}
+                onApply={applyPricing}
+                applyLabel="Reporter dans le devis"
+              />
+            ) : (
+              <p className="text-sm text-muted">{ctx.error || 'Tarifs indisponibles.'}</p>
+            )}
+          </div>
+        </details>
+
         <div className="space-y-3">
           <p className="text-[13px] font-semibold">Lignes du devis</p>
           {lines.map((l, i) => (
@@ -191,7 +231,17 @@ export function QuoteBuilder({
           </dl>
           <div className="rounded-xl bg-white p-3 ring-1 ring-line">
             <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">Pilotage interne</p>
-            {purchaseCost !== null ? (
+            {real && calc ? (
+              <>
+                <p className="mt-1 text-[13px]">
+                  Coût réel livré : <span className="num font-semibold">{formatXOF(calc.result.landedCostXOF)}</span>
+                </p>
+                <p className={`mt-0.5 text-[13px] font-semibold ${loss ? 'text-red-700' : real.marginPct < minMargin ? 'text-ochre' : 'text-jade'}`}>
+                  Marge réelle : {formatXOF(real.marginXOF)} ({real.marginPct} %)
+                </p>
+                {!loss && real.marginPct < minMargin && <p className="mt-1 text-[12px] text-ochre">Sous le seuil de {minMargin} % fixé par l’administration.</p>}
+              </>
+            ) : purchaseCost !== null ? (
               <>
                 <p className="mt-1 text-[13px]">
                   Coût d’achat ({selected?.supplierName}) : <span className="num font-semibold">{formatXOF(purchaseCost)}</span>
@@ -206,6 +256,11 @@ export function QuoteBuilder({
           </div>
         </div>
 
+        {loss && (
+          <InlineAlert tone="danger" title="Ce devis est inférieur au coût réel">
+            <Checkbox label="Je confirme vendre à perte" description={`Perte estimée : ${formatXOF(Math.abs(real!.marginXOF))}. Corrigez les prix ou confirmez pour pouvoir envoyer.`} checked={confirmLoss} onChange={setConfirmLoss} />
+          </InlineAlert>
+        )}
         <Checkbox label="Envoyer immédiatement au client" description="Le client est notifié et peut accepter le devis en ligne. Les devis précédents encore ouverts sont remplacés." checked={send} onChange={setSend} />
         {error && <InlineAlert tone="danger">{error}</InlineAlert>}
       </div>

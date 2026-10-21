@@ -16,6 +16,11 @@ export interface ServerConfig {
   saspayFeeMode: 'ADD_ON' | 'DEDUCTED';
   /** Relais HTTP(S) à IP fixe pour les appels SasPay soumis à liste blanche (remboursements). Optionnel. */
   saspayProxyUrl: string;
+  /** Envoi des emails de notification (Resend). Optionnel : sans clé, aucun email n'est envoyé. */
+  resendApiKey: string;
+  emailFrom: string;
+  /** Secret du déclencheur /api/cron/notifications (Vercel Cron l'envoie en Authorization: Bearer). */
+  cronSecret: string;
 }
 
 // Clé publique du projet Supabase Dallou Chine (non secrète : déjà embarquée dans le front).
@@ -38,7 +43,10 @@ export const config: ServerConfig = {
   saspayWebhookSecret: clean(process.env.SASPAY_WEBHOOK_SECRET),
   saspayBaseUrl: (process.env.SASPAY_BASE_URL || 'https://api.saspay.me/api/v1').replace(/\/+$/, ''),
   saspayFeeMode: process.env.SASPAY_FEE_MODE === 'ADD_ON' ? 'ADD_ON' : 'DEDUCTED',
-  saspayProxyUrl: process.env.SASPAY_PROXY_URL || process.env.FIXIE_URL || process.env.QUOTAGUARDSTATIC_URL || ''
+  saspayProxyUrl: process.env.SASPAY_PROXY_URL || process.env.FIXIE_URL || process.env.QUOTAGUARDSTATIC_URL || '',
+  resendApiKey: clean(process.env.RESEND_API_KEY),
+  emailFrom: clean(process.env.EMAIL_FROM) || 'Dallou Chine <notifications@dallouchine.com>',
+  cronSecret: clean(process.env.CRON_SECRET)
 };
 
 /** Une vraie clé SasPay (et non un exemple recopié tel quel). */
@@ -47,6 +55,7 @@ export const hasSasPayCredentials = /^sk_(test|live)_[A-Za-z0-9_-]{12,}$/.test(c
 export const hasSasPayWebhookSecret = /^[\x21-\x7e]{16,}$/.test(config.saspayWebhookSecret);
 export const saspayEnvironment: 'sandbox' | 'production' = config.saspaySecretKey.startsWith('sk_live_') ? 'production' : 'sandbox';
 export const hasServiceRole = Boolean(config.supabaseServiceRoleKey);
+export const hasEmailProvider = /^re_[A-Za-z0-9_-]{16,}$/.test(config.resendApiKey);
 export const hasAiProvider = /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(config.anthropicApiKey) || (config.anthropicApiKey.length > 20 && !config.anthropicApiKey.includes('…'));
 
 // Journalisation sans jamais afficher de secret

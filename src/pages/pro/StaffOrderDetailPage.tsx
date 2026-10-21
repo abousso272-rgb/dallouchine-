@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useAsync } from '../../lib/hooks';
 import { addOrderCost, deleteOrderCost, getOrder, listOrderCosts, staffUpdateOrder } from '../../services/orders';
 import { listHubs } from '../../services/catalog';
+import { getOrderFinancials } from '../../services/finance';
 import { friendlyError } from '../../lib/db';
 import { formatDate, formatDateTime, formatXOF, percent } from '../../lib/format';
 import { COST_TYPE_LABEL, ORDER_STATUS, ORDER_STATUS_FLOW, PAYMENT_STATUS, TRANSPORT_LABEL, statusMeta } from '../../lib/status';
@@ -26,6 +27,7 @@ export default function StaffOrderDetailPage({ id }: { id: string }) {
   const { data: order, loading, error, reload } = useAsync(() => getOrder(id), [id]);
   const costs = useAsync(() => (canCosts ? listOrderCosts(id) : Promise.resolve([])), [id, canCosts]);
   const hubs = useAsync(() => listHubs(), []);
+  const fin = useAsync(() => (isAdmin ? getOrderFinancials(id) : Promise.resolve(null)), [id, isAdmin, costs.data?.length, order?.paymentStatus]);
 
   const [status, setStatus] = useState('');
   const [note, setNote] = useState('');
@@ -57,6 +59,7 @@ export default function StaffOrderDetailPage({ id }: { id: string }) {
   const allowedStatuses = isAdmin ? [...ORDER_STATUS_FLOW, 'cancelled'] : [order.orderStatus, ...FULFILLMENT.filter(s => s !== order.orderStatus)];
   const paid = order.paymentStatus === 'paid';
   const totalCosts = (costs.data || []).reduce((s, c) => s + c.amountXOF, 0);
+  const hasSupplierCost = (costs.data || []).some(c => c.type === 'supplier');
   const margin = order.totalXOF - totalCosts;
   const hub = hubs.data?.find(h => h.id === order.hubId);
 
@@ -210,22 +213,66 @@ export default function StaffOrderDetailPage({ id }: { id: string }) {
                   ))}
                 </ul>
               )}
-              <div className="grid grid-cols-3 gap-2 rounded-2xl bg-paper p-3 text-center text-[12.5px]">
-                <div>
-                  <p className="text-muted">Encaissé</p>
-                  <p className="num font-semibold">{paid ? formatXOF(order.totalXOF) : '—'}</p>
+              {isAdmin && fin.data ? (
+                <>
+                  <div className="grid grid-cols-3 gap-2 rounded-2xl bg-paper p-3 text-center text-[12.5px]">
+                    <div>
+                      <p className="text-muted">Encaissé</p>
+                      <p className="num font-semibold">{formatXOF(fin.data.revenue_xof)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted">Coûts</p>
+                      <p className="num font-semibold">{formatXOF(fin.data.total_cost_xof)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted">Marge</p>
+                      {fin.data.margin_xof === null ? (
+                        <p className="font-semibold text-ochre">à chiffrer</p>
+                      ) : (
+                        <p className={`num font-semibold ${fin.data.margin_xof < 0 ? 'text-red-700' : 'text-jade'}`}>
+                          {formatXOF(fin.data.margin_xof)} <span className="text-muted">({fin.data.margin_pct} %)</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <ul className="mt-3 space-y-1 text-[12.5px] text-muted">
+                    <li>
+                      Achat : <span className="num font-semibold text-ink">{formatXOF(fin.data.purchase_xof)}</span>{' '}
+                      {fin.data.purchase_source === 'recorded' ? '(saisi)' : fin.data.purchase_source === 'estimated' ? '(estimé depuis la fiche produit)' : '— inconnu : ajoutez « Achat fournisseur » ci-dessous'}
+                    </li>
+                    <li>
+                      Transport et douane : <span className="num font-semibold text-ink">{formatXOF(fin.data.logistics_xof)}</span>{' '}
+                      {{ recorded: '(saisi)', logistics: '(calcul logistique de la commande)', estimated: '(estimé depuis la fiche produit)', missing: '— inconnu : la marge est surestimée' }[fin.data.logistics_source]}
+                    </li>
+                    {fin.data.payment_fee_xof > 0 && (
+                      <li>
+                        Frais de paiement : <span className="num font-semibold text-ink">{formatXOF(fin.data.payment_fee_xof)}</span>
+                      </li>
+                    )}
+                  </ul>
+                </>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 rounded-2xl bg-paper p-3 text-center text-[12.5px]">
+                  <div>
+                    <p className="text-muted">Encaissé</p>
+                    <p className="num font-semibold">{paid ? formatXOF(order.totalXOF) : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted">Coûts saisis</p>
+                    <p className="num font-semibold">{formatXOF(totalCosts)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted">Marge</p>
+                    {paid && hasSupplierCost ? (
+                      <p className={`num font-semibold ${margin < 0 ? 'text-red-700' : 'text-jade'}`}>
+                        {formatXOF(margin)} {order.totalXOF > 0 && <span className="text-muted">({Math.round((margin / order.totalXOF) * 100)} %)</span>}
+                      </p>
+                    ) : (
+                      <p className="font-semibold text-ochre">{paid ? 'à chiffrer' : '—'}</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-muted">Coûts</p>
-                  <p className="num font-semibold">{formatXOF(totalCosts)}</p>
-                </div>
-                <div>
-                  <p className="text-muted">Marge</p>
-                  <p className={`num font-semibold ${margin < 0 ? 'text-red-700' : 'text-jade'}`}>
-                    {formatXOF(margin)} {order.totalXOF > 0 && <span className="text-muted">({percent(Math.max(margin, 0), order.totalXOF)} %)</span>}
-                  </p>
-                </div>
-              </div>
+              )}
               <form onSubmit={addCost} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end 2xl:grid-cols-[160px_150px_1fr_auto]">
                 <Select label="Type" value={costType} onChange={e => setCostType(e.target.value)} options={Object.entries(COST_TYPE_LABEL).filter(([k]) => k !== 'payment_fee').map(([value, label]) => ({ value, label }))} />
                 <Input label="Montant" inputMode="numeric" value={costAmount} onChange={e => setCostAmount(e.target.value.replace(/\D/g, ''))} suffix="F" />

@@ -5,8 +5,9 @@ import { shipmentsRouter } from './api/shipmentsRouter';
 import { paymentsRouter } from './api/paymentsRouter';
 import { teamRouter } from './api/teamRouter';
 import { aiRouter } from './api/aiRouter';
+import { cronRouter } from './api/cronRouter';
 import { paymentService } from './services/PaymentService';
-import { hasServiceRole, hasSasPayCredentials, hasSasPayWebhookSecret, saspayEnvironment, hasAiProvider } from './config';
+import { hasServiceRole, hasSasPayCredentials, hasSasPayWebhookSecret, saspayEnvironment, hasAiProvider, hasEmailProvider } from './config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +48,7 @@ export function createApiApp() {
       paymentsEnvironment: saspayEnvironment,
       serviceRoleConfigured: hasServiceRole,
       aiConfigured: hasAiProvider,
+      emailConfigured: hasEmailProvider,
       timestamp: new Date().toISOString()
     });
   });
@@ -56,6 +58,7 @@ export function createApiApp() {
   api.use('/api/shipments', shipmentsRouter);
   api.use('/api/team', teamRouter);
   api.use('/api/ai', aiRouter);
+  api.use('/api/cron', cronRouter);
 
   api.use('/api', (_req: Request, res: Response) => {
     res.status(404).json({ success: false, error: 'Route API inconnue.' });

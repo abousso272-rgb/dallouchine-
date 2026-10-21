@@ -39,7 +39,7 @@ export function SiteFooter() {
           links={[
             ['/sourcing', 'Sourcing personnalisé'],
             ['/pro', 'Commandes professionnelles'],
-            ['/#fonctionnement', 'Comment ça marche']
+            ['/guide', 'Comment ça marche']
           ]}
         />
         <FooterCol

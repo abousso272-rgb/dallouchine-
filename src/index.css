@@ -184,3 +184,40 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ---- Scènes animées du guide « Comment ça marche » (boucles douces, pas de vidéo à charger) ---- */
+@keyframes gs-in {
+  0%, 4% { opacity: 0; transform: translateY(8px); }
+  12%, 86% { opacity: 1; transform: none; }
+  96%, 100% { opacity: 0; transform: translateY(0); }
+}
+@keyframes gs-grow {
+  0%, 4% { transform: scaleX(0); }
+  55%, 90% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes gs-travel {
+  0%, 6% { offset-distance: 0%; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  96%, 100% { offset-distance: 100%; opacity: 0; }
+}
+@keyframes gs-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+@keyframes gs-tick {
+  0%, 30% { stroke-dashoffset: 30; }
+  45%, 90% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 30; }
+}
+.gs-in { animation: gs-in 8s ease-out infinite both; animation-delay: var(--d, 0s); transform-box: fill-box; }
+.gs-grow { animation: gs-grow 8s ease-in-out infinite both; animation-delay: var(--d, 0s); transform-origin: left center; transform-box: fill-box; }
+.gs-travel { offset-rotate: 0deg; animation: gs-travel 8s ease-in-out infinite both; animation-delay: var(--d, 0s); }
+.gs-pulse { animation: gs-pulse 2.4s ease-in-out infinite; animation-delay: var(--d, 0s); transform-origin: center; transform-box: fill-box; }
+.gs-tick { stroke-dasharray: 30; animation: gs-tick 8s ease-in-out infinite both; animation-delay: var(--d, 0s); }
+@media (prefers-reduced-motion: reduce) {
+  .gs-in, .gs-grow, .gs-travel, .gs-pulse, .gs-tick { animation: none !important; opacity: 1; transform: none; }
+  .gs-tick { stroke-dashoffset: 0; }
+  .gs-travel { offset-distance: 100%; }
+}

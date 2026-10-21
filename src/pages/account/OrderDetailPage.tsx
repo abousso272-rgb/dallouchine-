@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, MapPin, Package, Truck } from 'lucide-react';
+import { CreditCard, MapPin, Package, RotateCcw, Truck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAsync, usePolling } from '../../lib/hooks';
 import { getOrder } from '../../services/orders';
@@ -18,7 +18,8 @@ import { MessageThread } from '../../components/requests/MessageThread';
 import { PaymentLogos } from '../../components/commerce/PaymentLogos';
 
 export default function OrderDetailPage({ id }: { id: string }) {
-  const { user, toast } = useApp();
+  const { user, toast, cart, setCartQuantity, navigate } = useApp();
+  const [reordering, setReordering] = useState(false);
   const { data: order, loading, error, reload } = useAsync(() => getOrder(id), [id]);
   usePolling(reload, 45000);
   const participation = useAsync(async () => (order?.kind === 'groupage' ? (await listMyParticipations(user!.id)).find(p => p.orderId === order.id) || null : null), [order?.id]);
@@ -32,6 +33,25 @@ export default function OrderDetailPage({ id }: { id: string }) {
   const unpaid = order.orderStatus === 'pending_payment' && !['paid', 'cancelled'].includes(order.paymentStatus);
   const step = order.orderStatus === 'cancelled' ? 0 : currentStepIndex(ORDER_STEPS, order.orderStatus, ['delivered']);
   const hub = hubs.data?.find(h => h.id === order.hubId);
+
+  // Articles du catalogue uniquement : un groupage a une date limite et ne se recommande pas.
+  const reorderable = order.items.filter(i => i.productId && !i.groupageId);
+
+  async function reorder() {
+    setReordering(true);
+    try {
+      for (const i of reorderable) {
+        const inCart = cart.find(l => l.productId === i.productId)?.quantity || 0;
+        await setCartQuantity(i.productId!, inCart + i.quantity);
+      }
+      toast('success', 'Articles remis au panier', 'Vérifiez les prix et quantités avant de commander.');
+      navigate('/panier');
+    } catch (err) {
+      toast('error', 'Impossible de recommander', friendlyError(err));
+    } finally {
+      setReordering(false);
+    }
+  }
 
   async function pay() {
     setBusy('pay');
@@ -119,7 +139,17 @@ export default function OrderDetailPage({ id }: { id: string }) {
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.3fr_1fr]">
         <Card>
-          <CardTitle>Articles</CardTitle>
+          <CardTitle
+            action={
+              reorderable.length > 0 && order.paymentStatus === 'paid' ? (
+                <Button size="sm" variant="secondary" icon={<RotateCcw className="h-3.5 w-3.5" />} onClick={reorder} loading={reordering}>
+                  Recommander
+                </Button>
+              ) : undefined
+            }
+          >
+            Articles
+          </CardTitle>
           <ul className="divide-y divide-line">
             {order.items.map(i => (
               <li key={i.id} className="flex gap-3 py-3">

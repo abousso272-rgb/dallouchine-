@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BellRing, CalendarClock, ChevronRight, Info, MapPin, Plane, ScrollText, Ship, ShieldCheck, Users } from 'lucide-react';
+import { BellRing, CalendarClock, ChevronRight, Info, MapPin, Plane, ScrollText, Share2, Ship, ShieldCheck, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAsync, usePolling } from '../../lib/hooks';
 import { getGroupage, isJoinable, joinGroupage, listGroupageEvents, listMyParticipations } from '../../services/groupages';
@@ -229,6 +229,18 @@ export default function GroupagePage({ id }: { id: string }) {
             <div className="mt-5">
               <GroupageMeter reserved={g.reservedQuantity} target={g.targetQuantity} />
             </div>
+
+            {['open', 'almost_full'].includes(g.status) && (
+              <Button
+                className="mt-4"
+                block
+                variant="whatsapp"
+                icon={<Share2 className="h-4 w-4" />}
+                to={`https://wa.me/?text=${encodeURIComponent(`Je rejoins le groupage « ${g.product?.name || g.title} » : ${formatXOF(g.unitPriceXOF)} l’unité, livré à Dakar. Plus on est nombreux, plus c’est sûr d’être lancé (${g.reservedQuantity}/${g.targetQuantity}). ${window.location.origin}/groupages/${g.id}`)}`}
+              >
+                Inviter des amis sur WhatsApp
+              </Button>
+            )}
 
             <div className="mt-4 flex items-center justify-between text-[13px]">
               <span className="inline-flex items-center gap-1.5 text-muted">

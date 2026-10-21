@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Boxes,
+  Calculator,
   Car,
   ClipboardList,
   CreditCard,
@@ -11,6 +12,7 @@ import {
   Menu,
   Package,
   ShieldAlert,
+  TrendingUp,
   UserCog,
   Users,
   UsersRound,
@@ -41,6 +43,8 @@ import VehicleEditorPage from './VehicleEditorPage';
 import StaffPaymentsPage from './StaffPaymentsPage';
 import CustomersPage from './CustomersPage';
 import TeamPage from './TeamPage';
+import FinancePage from './FinancePage';
+import PricingCalculatorPage from './PricingCalculatorPage';
 import type { RequestType } from '../../lib/status';
 
 const ALL: AppRole[] = ['admin', 'transitaire', 'groupage_manager'];
@@ -53,6 +57,8 @@ export const PRO_NAV: { to: string; label: string; icon: React.ElementType; role
   { to: '/espace-pro/produits', label: 'Produits', icon: Boxes, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/categories', label: 'Catégories', icon: FolderTree, roles: ['admin'] },
   { to: '/espace-pro/vehicules', label: 'Automobile', icon: Car, roles: ['admin', 'transitaire'] },
+  { to: '/espace-pro/finance', label: 'Finance', icon: TrendingUp, roles: ['admin'] },
+  { to: '/espace-pro/calculateur', label: 'Calculateur de prix', icon: Calculator, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/paiements', label: 'Paiements', icon: CreditCard, roles: ['admin'] },
   { to: '/espace-pro/clients', label: 'Clients', icon: UsersRound, roles: ['admin'] },
   { to: '/espace-pro/equipe', label: 'Équipe', icon: UserCog, roles: ['admin'] }
@@ -81,6 +87,8 @@ const ROUTES: ProRoute[] = [
   { pattern: '/espace-pro/categories', roles: ['admin'], render: () => <CategoriesPage /> },
   { pattern: '/espace-pro/vehicules', roles: ['admin', 'transitaire'], render: () => <StaffVehiclesPage /> },
   { pattern: '/espace-pro/vehicules/:id', roles: ['admin', 'transitaire'], render: p => <VehicleEditorPage id={p.id} /> },
+  { pattern: '/espace-pro/finance', roles: ['admin'], render: () => <FinancePage /> },
+  { pattern: '/espace-pro/calculateur', roles: ['admin', 'transitaire'], render: () => <PricingCalculatorPage /> },
   { pattern: '/espace-pro/paiements', roles: ['admin'], render: () => <StaffPaymentsPage /> },
   { pattern: '/espace-pro/clients', roles: ['admin'], render: () => <CustomersPage /> },
   { pattern: '/espace-pro/equipe', roles: ['admin'], render: () => <TeamPage /> }

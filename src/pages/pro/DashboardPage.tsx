@@ -20,6 +20,8 @@ import { getAdminStats, getStaffStats, type ActivityItem } from '../../services/
 import { listRequests } from '../../services/requests';
 import { listOrders } from '../../services/orders';
 import { listStaffGroupages } from '../../services/groupages';
+import { getManagerGroupages, getTransitaireOverview, type GroupageMetrics } from '../../services/finance';
+import { GroupageRiskBadge } from '../../components/pro/GroupageCockpit';
 import { formatDate, formatNumber, formatXOF, formatXOFCompact, percent, timeAgo } from '../../lib/format';
 import { ORDER_STATUS, REQUEST_STATUS, SOURCING_STATUS, GROUPAGE_STATUS } from '../../lib/status';
 import { PageHeader, Stat, Card, CardTitle } from '../../components/ui/Layout';
@@ -85,7 +87,8 @@ function AdminDashboard() {
     );
   }
 
-  const marginPct = s && s.revenue_xof > 0 ? percent(s.margin_xof, s.revenue_xof) : 0;
+  const revenueWithCosts = s ? (s.revenue_xof * (s.margin_coverage_pct ?? 100)) / 100 : 0;
+  const marginPct = s && revenueWithCosts > 0 ? Math.round((s.margin_xof / revenueWithCosts) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -117,10 +120,16 @@ function AdminDashboard() {
               hint={s.estimated_purchase_xof > 0 ? `dont ${formatXOFCompact(s.estimated_purchase_xof)} estimés via fiches coûts` : 'Coûts saisis sur les commandes'}
             />
             <Stat
-              label="Marge brute"
+              label="Marge nette"
               value={formatXOFCompact(s.margin_xof)}
-              hint={s.revenue_xof > 0 ? `${marginPct} % du CA encaissé` : 'Aucune vente encaissée'}
-              tone={s.margin_xof > 0 ? 'default' : 'default'}
+              hint={
+                s.revenue_xof <= 0
+                  ? 'Aucune vente encaissée'
+                  : s.orders_missing_costs > 0
+                    ? `${marginPct} % · calculée sur ${Math.round(s.margin_coverage_pct)} % du CA (${s.orders_missing_costs} commande(s) sans coût)`
+                    : `${marginPct} % du CA encaissé`
+              }
+              to="/espace-pro/finance"
             />
           </>
         )}
@@ -224,6 +233,8 @@ function TransitaireDashboard() {
         )}
       </div>
 
+      <ResponseTimes />
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card>
           <CardTitle action={<Link to="/espace-pro/demandes?type=sourcing&statut=new" className="text-[13px] font-semibold hover:text-brand">Tout voir</Link>}>Nouvelles demandes de sourcing</CardTitle>
@@ -285,6 +296,59 @@ function RequestMiniList({ loading, rows, empty }: { loading: boolean; rows: Awa
   );
 }
 
+function ResponseTimes() {
+  const o = useAsync(() => getTransitaireOverview(), []);
+  usePolling(() => o.reload(), 120000);
+  if (o.loading && !o.data) return <Skeleton className="h-40" />;
+  if (o.error || !o.data) return null;
+  const d = o.data;
+  const slow = d.waiting_over_24h > 0;
+  const TYPE_LABEL = { sourcing: 'Sourcing', b2b: 'B2B', vehicle: 'Automobile' } as const;
+  return (
+    <Card>
+      <CardTitle>Réactivité</CardTitle>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="rounded-2xl bg-paper p-3.5">
+          <p className="text-[12px] text-muted">Délai moyen de premier devis</p>
+          <p className="num mt-1 text-xl font-bold">{d.avg_response_hours !== null ? (d.avg_response_hours < 48 ? `${Math.round(d.avg_response_hours)} h` : `${(d.avg_response_hours / 24).toFixed(1)} j`) : '—'}</p>
+          <p className="text-[11.5px] text-subtle">sur 90 jours</p>
+        </div>
+        <div className={`rounded-2xl p-3.5 ${slow ? 'bg-amber-50' : 'bg-paper'}`}>
+          <p className="text-[12px] text-muted">Demandes en attente +24 h</p>
+          <p className={`num mt-1 text-xl font-bold ${slow ? 'text-ochre' : ''}`}>{d.waiting_over_24h}</p>
+          <p className="text-[11.5px] text-subtle">dont {d.waiting_over_48h} depuis plus de 48 h</p>
+        </div>
+        <div className="rounded-2xl bg-paper p-3.5">
+          <p className="text-[12px] text-muted">Devis acceptés</p>
+          <p className="num mt-1 text-xl font-bold">{d.quote_conversion_pct !== null ? `${Math.round(d.quote_conversion_pct)} %` : '—'}</p>
+          <p className="text-[11.5px] text-subtle">{d.quotes_resolved_90d} devis conclus (90 j)</p>
+        </div>
+        <div className={`rounded-2xl p-3.5 ${d.quotes_expiring_3d > 0 ? 'bg-amber-50' : 'bg-paper'}`}>
+          <p className="text-[12px] text-muted">Devis ouverts</p>
+          <p className="num mt-1 text-xl font-bold">{d.quotes_open_count}</p>
+          <p className={`text-[11.5px] ${d.quotes_expiring_3d > 0 ? 'text-ochre' : 'text-subtle'}`}>{d.quotes_expiring_3d > 0 ? `${d.quotes_expiring_3d} expirent sous 3 jours : relancez` : formatXOFCompact(d.quotes_open_xof)}</p>
+        </div>
+      </div>
+      {d.queue.length > 0 && (
+        <ul className="mt-4 divide-y divide-line">
+          {d.queue.map(q => (
+            <li key={q.id}>
+              <Link to={`/espace-pro/demandes/${q.type}/${q.id}`} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-brand">
+                <span className="min-w-0 truncate">
+                  <span className="num font-semibold">{q.code}</span> <span className="text-muted">{TYPE_LABEL[q.type]}{q.label ? ` · ${q.label}` : ''}</span>
+                </span>
+                <span className={`num shrink-0 text-[12.5px] font-semibold ${q.age_hours >= 48 ? 'text-red-700' : q.age_hours >= 24 ? 'text-ochre' : 'text-muted'}`}>
+                  {q.age_hours < 1 ? 'à l’instant' : q.age_hours < 48 ? `${Math.round(q.age_hours)} h` : `${Math.floor(q.age_hours / 24)} j`}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Gestionnaire des groupages
 // ---------------------------------------------------------------------------
@@ -292,19 +356,27 @@ function RequestMiniList({ loading, rows, empty }: { loading: boolean; rows: Awa
 function ManagerDashboard() {
   const { user } = useApp();
   const stats = useAsync(() => getStaffStats(), []);
-  const groupages = useAsync(() => listStaffGroupages({ managerId: user!.id }), [user?.id]);
+  const groupages = useAsync(() => getManagerGroupages(), [user?.id]);
   const s = stats.data;
   usePolling(() => {
     stats.reload();
     groupages.reload();
   }, 60000);
   const canCreate = user?.permissions.includes('create_groupages');
-  const active = (groupages.data || []).filter(g => !['completed', 'cancelled'].includes(g.status));
+  const list = groupages.data || [];
+  const urgent = list.filter(g => ['critical', 'at_risk', 'failed'].includes(g.risk));
+  const expiring = list.reduce((n, g) => n + g.expiring_count, 0);
+  const ready = list.filter(g => g.risk === 'reached' && ['open', 'almost_full'].includes(g.status));
+  const todo = [
+    ...ready.map(g => ({ key: `r${g.id}`, tone: 'success' as const, g, text: 'Quantité minimale atteinte : vous pouvez valider le groupage.' })),
+    ...urgent.map(g => ({ key: `u${g.id}`, tone: 'warning' as const, g, text: g.risk === 'failed' ? 'Date limite dépassée sans la quantité minimale.' : `Prévision ${g.projected_quantity} / ${g.supplier_moq} unités : il faut accélérer.` })),
+    ...list.filter(g => g.expiring_count > 0).map(g => ({ key: `e${g.id}`, tone: 'warning' as const, g, text: `${g.expiring_count} réservation(s) expirent dans moins de 24 h (${formatXOFCompact(g.expiring_xof)}).` }))
+  ];
 
   return (
     <div className="space-y-6">
       <Greeting
-        subtitle="Vos groupages : progression, participants et prochaines étapes."
+        subtitle="Vos groupages : progression, prévision de la quantité minimale, argent encaissé et ce qui demande votre attention."
         actions={
           canCreate ? (
             <Button to="/espace-pro/groupages/nouveau" size="sm" icon={<Plus className="h-4 w-4" />}>
@@ -329,26 +401,54 @@ function ManagerDashboard() {
         )}
       </div>
 
+      {todo.length > 0 && (
+        <Card>
+          <CardTitle>À traiter aujourd’hui</CardTitle>
+          <ul className="space-y-2">
+            {todo.map(t => (
+              <li key={t.key}>
+                <Link to={`/espace-pro/groupages/${t.g.id}`} className="lift flex items-center justify-between gap-3 rounded-2xl border border-line p-3.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{t.g.title}</p>
+                    <p className={`text-[12.5px] ${t.tone === 'success' ? 'text-jade' : 'text-ochre'}`}>{t.text}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-subtle" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {expiring > 0 && <p className="mt-3 text-[12.5px] text-muted">Ouvrez le groupage concerné pour relancer les participants par notification ou WhatsApp.</p>}
+        </Card>
+      )}
+
       <Card>
         <CardTitle action={<Link to="/espace-pro/groupages" className="text-[13px] font-semibold hover:text-brand">Tous mes groupages</Link>}>Groupages en cours</CardTitle>
-        {groupages.loading ? (
+        {groupages.loading && !groupages.data ? (
           <Skeleton className="h-48" />
-        ) : !active.length ? (
+        ) : groupages.error ? (
+          <InlineAlert tone="warning">{groupages.error}</InlineAlert>
+        ) : !list.length ? (
           <p className="py-6 text-center text-sm text-muted">Aucun groupage en cours ne vous est attribué.</p>
         ) : (
           <ul className="divide-y divide-line">
-            {active.map(g => (
+            {list.map((g: GroupageMetrics) => (
               <li key={g.id}>
-                <Link to={`/espace-pro/groupages/${g.id}`} className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-[1fr_260px_auto] sm:items-center">
+                <Link to={`/espace-pro/groupages/${g.id}`} className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-[1fr_240px_auto] sm:items-center">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{g.product?.name || g.title}</p>
+                    <p className="truncate text-sm font-semibold">{g.title}</p>
                     <p className="text-[12.5px] text-muted">
-                      <span className="num">{g.code}</span> · limite {formatDate(g.deadline)} · {g.participantsCount} participant(s)
+                      <span className="num">{g.code}</span> · {g.days_left >= 1 ? `${Math.ceil(g.days_left)} j restants` : 'dernier jour'} · encaissé {formatXOFCompact(g.collected_xof)}
+                      {g.expiring_count > 0 && <span className="text-ochre"> · {g.expiring_count} réservation(s) expirent</span>}
                     </p>
                   </div>
-                  <GroupageMeter reserved={g.reservedQuantity} target={g.targetQuantity} compact />
+                  <div>
+                    <GroupageMeter reserved={g.active_quantity} target={g.supplier_moq} compact />
+                    <p className="mt-1 text-[11.5px] text-muted">
+                      {g.active_quantity} / {g.supplier_moq} minimum · prévision {formatNumber(g.projected_quantity)}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <StatusBadge map={GROUPAGE_STATUS} status={g.status} />
+                    <GroupageRiskBadge risk={g.risk} />
                     <ArrowRight className="hidden h-4 w-4 text-subtle sm:block" />
                   </div>
                 </Link>

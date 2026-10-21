@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { PrefsProvider } from './context/PrefsContext';
 import { SiteHeader } from './components/layout/SiteHeader';
 import { SiteFooter } from './components/layout/SiteFooter';
 import { MobileTabBar } from './components/layout/MobileTabBar';
@@ -16,6 +17,7 @@ const ProductPage = lazy(() => import('./pages/public/ProductPage'));
 const GroupagesPage = lazy(() => import('./pages/public/GroupagesPage'));
 const GroupagePage = lazy(() => import('./pages/public/GroupagePage'));
 const SourcingPage = lazy(() => import('./pages/public/SourcingPage'));
+const GuidePage = lazy(() => import('./pages/public/GuidePage'));
 const ProPage = lazy(() => import('./pages/public/ProPage'));
 const VehiclesPage = lazy(() => import('./pages/public/VehiclesPage'));
 const VehiclePage = lazy(() => import('./pages/public/VehiclePage'));
@@ -46,6 +48,7 @@ const PUBLIC_ROUTES: Route[] = [
   { pattern: '/groupages', render: () => <GroupagesPage /> },
   { pattern: '/groupages/:id', render: p => <GroupagePage id={p.id} /> },
   { pattern: '/sourcing', render: () => <SourcingPage /> },
+  { pattern: '/guide', render: () => <GuidePage /> },
   { pattern: '/pro', render: () => <ProPage /> },
   { pattern: '/automobile', render: () => <VehiclesPage /> },
   { pattern: '/automobile/:slug', render: p => <VehiclePage slug={p.slug} /> },
@@ -174,10 +177,12 @@ function usePrefetchRoutes() {
 export default function App() {
   usePrefetchRoutes();
   return (
-    <AppProvider>
-      <Router />
-      <AuthModal />
-      <Toasts />
-    </AppProvider>
+    <PrefsProvider>
+      <AppProvider>
+        <Router />
+        <AuthModal />
+        <Toasts />
+      </AppProvider>
+    </PrefsProvider>
   );
 }
