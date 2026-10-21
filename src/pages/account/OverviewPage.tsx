@@ -13,6 +13,7 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { Link } from '../../components/ui/Link';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/States';
+import { FavoritesAndRecent, ProfileChecklist } from '../../components/account/DashboardExtras';
 
 export default function OverviewPage() {
   const { user } = useApp();
@@ -57,6 +58,8 @@ export default function OverviewPage() {
           </>
         )}
       </div>
+
+      <ProfileChecklist />
 
       {(toPay.length > 0 || quotesToReview.length > 0) && (
         <section className="card p-5">
@@ -167,6 +170,8 @@ export default function OverviewPage() {
           )}
         </section>
       </div>
+
+      <FavoritesAndRecent />
 
       <section className="card p-5">
         <div className="mb-3 flex items-center justify-between">

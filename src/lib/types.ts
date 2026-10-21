@@ -14,6 +14,22 @@ export interface AppUser {
   rawRole: string;
   permissions: string[];
   status: string;
+  /** Date de création du compte (ISO). */
+  createdAt: string;
+  /** Réponses de personnalisation (écran de bienvenue). Préférences uniquement, jamais utilisées pour des droits. */
+  onboarding: Onboarding;
+}
+
+export type OnboardingGoal = 'pro' | 'personal' | 'groupage';
+
+export interface Onboarding {
+  done: boolean;
+  skipped: boolean;
+  goal: OnboardingGoal | null;
+  /** Slugs des catégories qui intéressent le client. */
+  categories: string[];
+  /** Volume mensuel annoncé (professionnels). */
+  volume: string | null;
 }
 
 export interface Category {

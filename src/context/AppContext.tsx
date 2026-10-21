@@ -2,7 +2,7 @@ import React, { useLayoutEffect, createContext, useCallback, useContext, useEffe
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { friendlyError, AppError } from '../lib/db';
-import type { AppRole, AppUser, CartLine, Category, Product } from '../lib/types';
+import type { AppRole, AppUser, CartLine, Category, Onboarding, Product } from '../lib/types';
 import * as cartApi from '../services/cart';
 import { listCategories } from '../services/catalog';
 import { countUnreadNotifications } from '../services/account';
@@ -104,7 +104,20 @@ async function loadProfile(authUser: User): Promise<AppUser> {
     role: profile?.status === 'suspended' ? 'client' : toAppRole(rawRole, profile?.roles),
     rawRole,
     permissions: profile?.permissions || [],
-    status: profile?.status || 'active'
+    status: profile?.status || 'active',
+    createdAt: authUser.created_at || profile?.created_at || '',
+    onboarding: readOnboarding(authUser.user_metadata)
+  };
+}
+
+function readOnboarding(meta: unknown): Onboarding {
+  const raw = ((meta || {}) as { onboarding?: Partial<Onboarding> }).onboarding || {};
+  return {
+    done: Boolean(raw.done),
+    skipped: Boolean(raw.skipped),
+    goal: raw.goal === 'pro' || raw.goal === 'personal' || raw.goal === 'groupage' ? raw.goal : null,
+    categories: Array.isArray(raw.categories) ? raw.categories.filter(c => typeof c === 'string').slice(0, 12) : [],
+    volume: typeof raw.volume === 'string' ? raw.volume : null
   };
 }
 

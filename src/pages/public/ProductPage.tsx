@@ -16,7 +16,6 @@ import { PageLoader, EmptyState, ErrorState } from '../../components/ui/States';
 import { QuantityInput } from '../../components/commerce/QuantityInput';
 import { ProductCard, availabilityLabel } from '../../components/commerce/ProductCard';
 import { PaymentLogos } from '../../components/commerce/PaymentLogos';
-import { TRANSPORT_LABEL } from '../../lib/status';
 
 const dayFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
 const dayFmtEn = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
@@ -85,12 +84,17 @@ export default function ProductPage({ slug }: { slug: string }) {
     );
   }
 
-  const avail = availabilityLabel(product);
+  const availRaw = availabilityLabel(product);
+  const avail = {
+    tone: availRaw.tone,
+    label: product.availableQuantity <= 0 ? t('product.availOrder') : product.availableQuantity <= 5 ? t('product.availLow', { n: product.availableQuantity }) : t('product.availOk')
+  };
+  const modeLabel = (m: 'air' | 'sea' | 'express') => t(`product.mode.${m}` as const);
   const TransportIcon = product.transportMode === 'sea' ? Ship : Plane;
   const specs = Object.entries(product.specifications);
   const keySpecs = [
-    ...(product.sku ? ([['Référence', product.sku]] as [string, string][]) : []),
-    ...(product.weightKg > 0 ? ([['Poids unitaire', `${product.weightKg.toLocaleString('fr-FR')} kg`]] as [string, string][]) : []),
+    ...(product.sku ? ([[t('product.specRef'), product.sku]] as [string, string][]) : []),
+    ...(product.weightKg > 0 ? ([[t('product.specWeight'), `${product.weightKg.toLocaleString('fr-FR')} kg`]] as [string, string][]) : []),
     ...specs
   ].slice(0, 6);
   const chatText = `Bonjour Dallou Chine, je suis intéressé par « ${product.name} » (${qty} unité${qty > 1 ? 's' : ''}). ${window.location.origin}/produit/${product.slug}`;
@@ -138,8 +142,8 @@ export default function ProductPage({ slug }: { slug: string }) {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_340px] xl:gap-10">
         {/* Galerie : vignettes à gauche sur grand écran */}
         <div className="flex flex-col gap-3 md:flex-row-reverse">
-          <div className="relative aspect-square min-w-0 flex-1 overflow-hidden rounded-[24px] border border-line bg-white">
-            <img src={product.images[imageIndex]} alt={product.name} className="h-full w-full object-contain p-2" />
+          <div className="relative aspect-square min-w-0 flex-1 overflow-hidden rounded-[24px] border border-line bg-paper-2">
+            <img src={product.images[imageIndex]} alt={product.name} className="h-full w-full object-cover" />
             {product.compareAtPriceXOF && product.compareAtPriceXOF > product.priceXOF && (
               <span className="absolute left-4 top-4 rounded-lg bg-brand px-2 py-1 text-xs font-bold text-white">Promotion</span>
             )}
@@ -189,20 +193,20 @@ export default function ProductPage({ slug }: { slug: string }) {
               label={t('product.transport')}
               value={
                 <span className="inline-flex items-center gap-1.5">
-                  <TransportIcon className="h-4 w-4" /> {TRANSPORT_LABEL[product.transportMode]}
+                  <TransportIcon className="h-4 w-4" /> {modeLabel(product.transportMode)}
                 </span>
               }
             />
-            <InfoTile label={t('product.delay')} value={product.deliveryDelay || '—'} />
+            <InfoTile label={t('product.delay')} value={(product.deliveryDelay || '—').replace(/jours?/i, t('product.days'))} />
             <InfoTile label={t('product.moq')} value={`${product.moq} ${t('product.units')}`} />
           </div>
 
           {keySpecs.length > 0 && (
             <div className="mt-6">
               <h2 className="text-[15px] font-bold">{t('product.specs')}</h2>
-              <dl className="mt-2.5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-3">
+              <dl className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {keySpecs.map(([k, v]) => (
-                  <div key={k} className="bg-white p-3.5">
+                  <div key={k} className="rounded-xl border border-line bg-white p-3.5">
                     <dt className="text-[11.5px] font-medium text-muted">{k}</dt>
                     <dd className="mt-0.5 break-words text-[13.5px] font-semibold text-ink">{v}</dd>
                   </div>
@@ -260,7 +264,7 @@ export default function ProductPage({ slug }: { slug: string }) {
                   <p className="mt-1.5 text-muted">{t('product.shipEstimate', { n: qty })}</p>
                   <p className="num mt-0.5 font-display text-[18px] font-bold">{money(ship.data.customer_shipping_fee)}</p>
                   <p className="mt-0.5 text-[12px] text-muted">
-                    {t('product.shipMode')} : {TRANSPORT_LABEL[shipMode]}
+                    {t('product.shipMode')} : {modeLabel(shipMode)}
                   </p>
                 </>
               ) : (
@@ -317,8 +321,8 @@ export default function ProductPage({ slug }: { slug: string }) {
         <section className="card p-5 sm:p-7">
           <h2 className="text-lg font-semibold">{t('product.specs')}</h2>
           <dl className="mt-3 divide-y divide-line text-[14px]">
-            {product.sku && <SpecRow label="Référence" value={product.sku} />}
-            {product.weightKg > 0 && <SpecRow label="Poids unitaire" value={`${product.weightKg.toLocaleString('fr-FR')} kg`} />}
+            {product.sku && <SpecRow label={t('product.specRef')} value={product.sku} />}
+            {product.weightKg > 0 && <SpecRow label={t('product.specWeight')} value={`${product.weightKg.toLocaleString('fr-FR')} kg`} />}
             {specs.map(([k, v]) => (
               <SpecRow key={k} label={k} value={v} />
             ))}

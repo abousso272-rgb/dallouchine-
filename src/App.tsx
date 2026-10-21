@@ -4,6 +4,7 @@ import { PrefsProvider } from './context/PrefsContext';
 import { SiteHeader } from './components/layout/SiteHeader';
 import { SiteFooter } from './components/layout/SiteFooter';
 import { MobileTabBar } from './components/layout/MobileTabBar';
+import { AssistantWidget } from './components/assistant/AssistantWidget';
 import { Toasts } from './components/ui/Toasts';
 import { AuthModal } from './components/auth/AuthModal';
 import { PageLoader } from './components/ui/States';
@@ -146,6 +147,7 @@ function Router() {
       </main>
       <SiteFooter />
       <MobileTabBar />
+      <AssistantWidget />
     </div>
   );
 }

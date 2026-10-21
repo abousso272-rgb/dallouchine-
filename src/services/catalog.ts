@@ -118,6 +118,15 @@ export async function listProducts(q: ProductQuery = {}): Promise<{ items: Produ
   return { items: (data || []).map(mapProduct), total: count ?? (data || []).length };
 }
 
+export async function listProductsByIds(ids: string[]): Promise<Product[]> {
+  if (!ids.length) return [];
+  const { data, error } = await supabase.from('products').select(PRODUCT_COLUMNS).in('id', ids).eq('is_active', true);
+  if (error) throw new AppError(friendlyError(error), error.code);
+  const byId = new Map((data || []).map(r => [r.id as string, mapProduct(r)]));
+  // On garde l'ordre des identifiants demandés (les plus récents d'abord)
+  return ids.map(id => byId.get(id)).filter((p): p is Product => Boolean(p));
+}
+
 export async function getProduct(slugOrId: string): Promise<Product | null> {
   const isUuid = /^[0-9a-f-]{36}$/i.test(slugOrId);
   const { data, error } = await supabase

@@ -6,6 +6,7 @@ import { paymentsRouter } from './api/paymentsRouter';
 import { teamRouter } from './api/teamRouter';
 import { aiRouter } from './api/aiRouter';
 import { cronRouter } from './api/cronRouter';
+import { assistantRouter } from './api/assistantRouter';
 import { paymentService } from './services/PaymentService';
 import { hasServiceRole, hasSasPayCredentials, hasSasPayWebhookSecret, saspayEnvironment, hasAiProvider, hasEmailProvider } from './config';
 
@@ -59,6 +60,7 @@ export function createApiApp() {
   api.use('/api/team', teamRouter);
   api.use('/api/ai', aiRouter);
   api.use('/api/cron', cronRouter);
+  api.use('/api/assistant', assistantRouter);
 
   api.use('/api', (_req: Request, res: Response) => {
     res.status(404).json({ success: false, error: 'Route API inconnue.' });
