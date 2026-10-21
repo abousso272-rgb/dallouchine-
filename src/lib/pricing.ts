@@ -70,6 +70,8 @@ export interface PricingInput {
   paymentFeePct: number;
   /** Coûts supplémentaires libres (emballage, livraison locale…). */
   extraCostXOF: number;
+  /** Coût de cargo par unité imposé (tarif transporteur connu) : remplace le calcul d'après la grille. */
+  freightPerUnitOverrideXOF?: number;
 }
 
 export interface PricingLine {
@@ -130,8 +132,11 @@ export function computePricing(i: PricingInput): PricingResult {
   if (qty < 1) errors.push('Indiquez une quantité.');
   if (!(i.unitPriceCNY > 0)) errors.push('Indiquez le prix unitaire en yuans.');
   if (!(i.cnyToXof > 0)) errors.push('Le taux de change yuan → FCFA est manquant.');
-  if (!i.rate) errors.push('Aucune grille de transport active pour ce mode.');
-  if (!(i.weightKg > 0) && !(i.cbm > 0)) errors.push('Indiquez le poids ou le volume d’une unité pour calculer le fret.');
+  const override = i.freightPerUnitOverrideXOF !== undefined && i.freightPerUnitOverrideXOF > 0 ? i.freightPerUnitOverrideXOF : null;
+  if (override === null) {
+    if (!i.rate) errors.push('Aucune grille de transport active pour ce mode.');
+    if (!(i.weightKg > 0) && !(i.cbm > 0)) errors.push('Indiquez le poids ou le volume d’une unité pour calculer le fret.');
+  }
   const feePct = Math.max(0, i.paymentFeePct);
   const marginPct = Math.max(0, i.marginPct);
   if (marginPct + feePct >= 95) errors.push('La marge et les frais de paiement dépassent 95 % du prix.');
@@ -147,7 +152,7 @@ export function computePricing(i: PricingInput): PricingResult {
   const goods = i.unitPriceCNY * qty * effectiveFx;
   const totalWeight = i.weightKg * qty;
   const totalCbm = i.cbm * qty;
-  const freight = computeFreight(i.rate, totalWeight, totalCbm);
+  const freight = override !== null ? { xof: override * qty, label: 'cargo saisi' } : computeFreight(i.rate, totalWeight, totalCbm);
   const customs = (i.fees.customs_percent / 100) * (goods + freight.xof) + i.fees.customs_fixed_xof;
   const inspection = i.fees.inspection_fixed_xof;
   const consolidation = totalCbm > 0 ? i.fees.consolidation_cbm_xof * totalCbm : 0;
@@ -165,9 +170,9 @@ export function computePricing(i: PricingInput): PricingResult {
   const paymentFee = (selling * feePct) / 100;
   const margin = selling - landed - paymentFee;
 
-  if (!i.weightKg || i.weightKg <= 0) warnings.push('Poids unitaire absent : le fret est calculé sur le volume seul.');
-  if (!i.cbm || i.cbm <= 0) warnings.push('Volume unitaire absent : le fret est calculé sur le poids seul (risque de sous-estimer un colis volumineux).');
-  if (i.rate && i.rate.min_charge_xof > 0 && freight.xof === i.rate.min_charge_xof) warnings.push('Le minimum de perception du transporteur s’applique : le fret par unité baisse avec la quantité.');
+  if (override === null && (!i.weightKg || i.weightKg <= 0)) warnings.push('Poids unitaire absent : le fret est calculé sur le volume seul.');
+  if (override === null && (!i.cbm || i.cbm <= 0)) warnings.push('Volume unitaire absent : le fret est calculé sur le poids seul (risque de sous-estimer un colis volumineux).');
+  if (override === null && i.rate && i.rate.min_charge_xof > 0 && freight.xof === i.rate.min_charge_xof) warnings.push('Le minimum de perception du transporteur s’applique : le fret par unité baisse avec la quantité.');
 
   const lines: PricingLine[] = [
     { key: 'goods', label: 'Marchandise', amountXOF: round(goods), hint: `${qty} × ${i.unitPriceCNY} ¥ × ${effectiveFx.toFixed(2)} (taux + tampon ${i.fees.buffer_percent} %)` },

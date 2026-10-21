@@ -22,6 +22,7 @@ import { listOrders } from '../../services/orders';
 import { listStaffGroupages } from '../../services/groupages';
 import { getManagerGroupages, getTransitaireOverview, type GroupageMetrics } from '../../services/finance';
 import { GroupageRiskBadge } from '../../components/pro/GroupageCockpit';
+import { QuickActions } from '../../components/pro/QuickActions';
 import { formatDate, formatNumber, formatXOF, formatXOFCompact, percent, timeAgo } from '../../lib/format';
 import { ORDER_STATUS, REQUEST_STATUS, SOURCING_STATUS, GROUPAGE_STATUS } from '../../lib/status';
 import { PageHeader, Stat, Card, CardTitle } from '../../components/ui/Layout';
@@ -105,6 +106,8 @@ function AdminDashboard() {
           </>
         }
       />
+
+      <QuickActions />
 
       {/* Finances */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -215,6 +218,7 @@ function TransitaireDashboard() {
   return (
     <div className="space-y-6">
       <Greeting subtitle="Vos demandes à traiter, vos recherches en cours et les commandes à expédier." />
+      <QuickActions />
       {stats.error && <InlineAlert tone="warning">{stats.error}</InlineAlert>}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.loading || !s ? (
@@ -385,6 +389,7 @@ function ManagerDashboard() {
           ) : undefined
         }
       />
+      <QuickActions />
       {stats.error && <InlineAlert tone="warning">{stats.error}</InlineAlert>}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {stats.loading || !s ? (

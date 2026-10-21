@@ -552,11 +552,13 @@ BEGIN
 END;
 $$;
 
+-- Le taux de change est un outil de travail du transitaire (qui fait aussi le sourcing) : admin ET transitaire peuvent le modifier.
+-- Chaque changement est tracé (historique avec l'auteur) et limité à ±30 % pour éviter une faute de frappe.
 CREATE OR REPLACE FUNCTION public.admin_set_exchange_rate(p_cny_to_xof numeric, p_usd_to_xof numeric DEFAULT NULL)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_old jsonb; v_new jsonb; v_prev numeric;
 BEGIN
-  IF NOT public.is_admin() THEN RAISE EXCEPTION 'PERMISSION_DENIED' USING ERRCODE = '42501'; END IF;
+  IF NOT (public.is_admin() OR public.is_transitaire()) THEN RAISE EXCEPTION 'PERMISSION_DENIED' USING ERRCODE = '42501'; END IF;
   IF p_cny_to_xof IS NULL OR p_cny_to_xof <= 0 THEN RAISE EXCEPTION 'INVALID_RATE: le taux doit être positif' USING ERRCODE = '22023'; END IF;
   IF p_usd_to_xof IS NOT NULL AND p_usd_to_xof <= 0 THEN RAISE EXCEPTION 'INVALID_RATE: le taux doit être positif' USING ERRCODE = '22023'; END IF;
   SELECT value INTO v_old FROM public.platform_settings WHERE key = 'exchange_rates' LIMIT 1;

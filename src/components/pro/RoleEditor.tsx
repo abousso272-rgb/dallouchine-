@@ -14,10 +14,35 @@ export const PERMISSIONS: Record<string, { key: string; label: string; descripti
   ],
   groupage_manager: [
     { key: 'create_groupages', label: 'Créer des groupages', description: 'Lancer de nouvelles campagnes (attribuées automatiquement).' },
-    { key: 'set_groupage_prices', label: 'Modifier prix et objectifs', description: 'Changer le prix ou l’objectif d’un groupage déjà publié.' }
+    { key: 'set_groupage_prices', label: 'Modifier prix et objectifs', description: 'Changer le prix ou l’objectif d’un groupage déjà publié.' },
+    { key: 'manage_products', label: 'Gérer ses produits', description: 'Créer des produits et saisir leurs coûts dans le tableur (toujours en brouillon : la publication reste à l’équipe).' },
+    { key: 'view_margins', label: 'Voir la rentabilité', description: 'Afficher la marge par unité et l’argent à verser au fournisseur dans le cockpit de ses groupages.' }
   ],
   admin: []
 };
+
+/** Toutes les permissions d'un rôle : profil « autonome » (aucune dépendance à l'administrateur au quotidien). */
+export const allPermissions = (role: string) => (PERMISSIONS[role] || []).map(p => p.key);
+
+/** Choix rapide : profil autonome (recommandé) ou encadré (aucune permission complémentaire). */
+export function PermissionPresets({ role, perms, onChange }: { role: string; perms: string[]; onChange: (next: string[]) => void }) {
+  const all = allPermissions(role);
+  if (!all.length) return null;
+  const autonomous = all.every(k => perms.includes(k));
+  const none = perms.filter(k => all.includes(k)).length === 0;
+  const btn = (on: boolean) => `rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${on ? 'border-brand bg-brand-50 text-brand-700' : 'border-line bg-white text-muted hover:text-ink'}`;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button type="button" className={btn(autonomous)} onClick={() => onChange(all)} aria-pressed={autonomous}>
+        Autonome (recommandé)
+      </button>
+      <button type="button" className={btn(none)} onClick={() => onChange([])} aria-pressed={none}>
+        Encadré
+      </button>
+      <span className="text-[12px] text-muted">{autonomous ? 'Travaille sans attendre l’administrateur.' : none ? 'L’administrateur valide publication et prix.' : 'Personnalisé.'}</span>
+    </div>
+  );
+}
 
 export const ROLE_OPTIONS = [
   { value: 'transitaire', title: 'Transitaire / Sourceur', description: 'Sourcing, B2B, automobile, produits, commandes et logistique.' },
@@ -90,12 +115,16 @@ export function RoleEditor({
         <ChoiceCards
           columns={1}
           value={role}
-          onChange={setRole}
+          onChange={r => {
+            setRole(r);
+            setPerms(allPermissions(r));
+          }}
           options={[...ROLE_OPTIONS.map(o => ({ value: o.value as string, title: o.title, description: o.description })), { value: 'client', title: 'Client (aucun accès équipe)', description: 'Retire l’accès à l’espace professionnel.' }]}
         />
         {(PERMISSIONS[role] || []).length > 0 && (
           <div className="space-y-3 rounded-2xl bg-paper p-4">
             <p className="text-[12px] font-bold uppercase tracking-wide text-muted">Permissions complémentaires</p>
+            <PermissionPresets role={role} perms={perms} onChange={setPerms} />
             {PERMISSIONS[role].map(p => (
               <Checkbox
                 key={p.key}

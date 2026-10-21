@@ -11,6 +11,7 @@ import { Button } from '../ui/Button';
 import { Card, CardTitle } from '../ui/Layout';
 import { ErrorState, InlineAlert, Skeleton } from '../ui/States';
 import { Sparkline } from '../ui/Charts';
+import { Link } from '../ui/Link';
 
 const RISK: Record<GroupageRisk, { label: string; tone: Tone }> = {
   confirmed: { label: 'Confirmé', tone: 'success' },
@@ -151,7 +152,13 @@ export function GroupageCockpit({ groupageId, onChanged }: { groupageId: string;
                 <Line label={coverage! >= 0 ? 'Reste après le fournisseur' : 'Il manque pour payer le fournisseur'} value={formatXOF(Math.abs(coverage!))} tone={coverage! >= 0 ? undefined : 'danger'} />
               </>
             ) : (
-              <p className="rounded-xl bg-paper p-3 text-[12.5px] text-muted">Le coût d’achat de ce produit n’est pas renseigné : demandez à l’équipe de le saisir (fiche produit, coûts) pour voir ce que doit couvrir l’encaissement.</p>
+              <p className="rounded-xl bg-paper p-3 text-[12.5px] text-muted">
+                Le coût d’achat de ce produit n’est pas renseigné : saisissez-le dans le{' '}
+                <Link to="/espace-pro/tableur" className="font-semibold text-brand-700 underline">
+                  tableur produits
+                </Link>{' '}
+                (prix négocié, poids, cargo) pour voir ce que doit couvrir l’encaissement.
+              </p>
             )}
             {c.margin_visible && c.unit_margin_xof !== undefined && (
               <>

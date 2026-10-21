@@ -1,4 +1,4 @@
-import { rpc } from '../lib/db';
+import { AppError, friendlyError, rpc, supabase } from '../lib/db';
 import type { FinanceContext } from '../lib/pricing';
 
 // ---------------------------------------------------------------------------
@@ -200,12 +200,55 @@ export function getTransitaireOverview() {
 // Contexte de prix (taux de change, grille de fret, frais) et réglages
 // ---------------------------------------------------------------------------
 
-export function getFinanceContext() {
-  return rpc<FinanceContext>('get_finance_context');
+/**
+ * Taux de change, grille de fret et frais. Utilise la fonction SQL dédiée ; tant qu'elle n'est pas installée,
+ * lit directement les mêmes réglages (publics) : le tableur, le calculateur et les devis fonctionnent dans les deux cas.
+ */
+export async function getFinanceContext(): Promise<FinanceContext> {
+  const res = await supabase.rpc('get_finance_context');
+  if (!res.error) return res.data as FinanceContext;
+  if (!(res.error.code === 'PGRST202' || res.error.code === '42883' || /could not find the function|schema cache/i.test(res.error.message))) {
+    throw new AppError(friendlyError(res.error), res.error.code);
+  }
+  const [settings, rates] = await Promise.all([
+    supabase.from('platform_settings').select('key, value').in('key', ['exchange_rates', 'fees_structure', 'finance_targets']),
+    supabase.from('transport_rates').select('*').eq('active', true)
+  ]);
+  if (settings.error) throw new AppError(friendlyError(settings.error), settings.error.code);
+  const by = Object.fromEntries((settings.data || []).map(r => [r.key as string, r.value])) as Record<string, any>;
+  return {
+    fx: by.exchange_rates || {},
+    targets: by.finance_targets || {},
+    fees: by.fees_structure || {},
+    freight: ((rates.data || []) as any[])
+      .filter(r => !r.valid_until || new Date(r.valid_until) > new Date())
+      .map(r => ({
+        transport_mode: r.transport_mode,
+        pricing_unit: r.pricing_unit,
+        rate_xof: Number(r.rate_xof),
+        min_charge_xof: Number(r.min_charge_xof || 0),
+        volumetric_factor: Number(r.volumetric_factor || 0),
+        days_min: r.base_transit_days_min,
+        days_max: r.base_transit_days_max
+      })),
+    fx_history: []
+  };
 }
 
-export function setExchangeRate(cnyToXof: number, usdToXof?: number | null) {
-  return rpc('admin_set_exchange_rate', { p_cny_to_xof: cnyToXof, p_usd_to_xof: usdToXof ?? null });
+export async function setExchangeRate(cnyToXof: number, usdToXof?: number | null) {
+  const res = await supabase.rpc('admin_set_exchange_rate', { p_cny_to_xof: cnyToXof, p_usd_to_xof: usdToXof ?? null });
+  if (!res.error) return res.data;
+  if (!(res.error.code === 'PGRST202' || res.error.code === '42883' || /could not find the function|schema cache/i.test(res.error.message))) {
+    throw new AppError(friendlyError(res.error), res.error.code);
+  }
+  // Fonction SQL pas encore installée : l'administrateur peut modifier le réglage directement, pas le transitaire
+  const current = await supabase.from('platform_settings').select('value').eq('key', 'exchange_rates').maybeSingle();
+  const value = { ...(current.data?.value as object | undefined), cny_to_xof: cnyToXof, ...(usdToXof ? { usd_to_xof: usdToXof } : {}) };
+  const upd = await supabase.from('platform_settings').update({ value }).eq('key', 'exchange_rates').select('key');
+  if (upd.error || !upd.data?.length) {
+    throw new AppError('Votre profil ne peut pas encore modifier le taux : la mise à jour de la base (migration) doit être appliquée par l’administrateur.');
+  }
+  return value;
 }
 
 export function updateFinanceTargets(targets: Record<string, number>) {

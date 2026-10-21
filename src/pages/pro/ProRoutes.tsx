@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Boxes,
   Calculator,
+  FileSpreadsheet,
   Car,
   ClipboardList,
   CreditCard,
@@ -45,6 +46,7 @@ import CustomersPage from './CustomersPage';
 import TeamPage from './TeamPage';
 import FinancePage from './FinancePage';
 import PricingCalculatorPage from './PricingCalculatorPage';
+import CostSheetPage from './CostSheetPage';
 import type { RequestType } from '../../lib/status';
 
 const ALL: AppRole[] = ['admin', 'transitaire', 'groupage_manager'];
@@ -55,6 +57,7 @@ export const PRO_NAV: { to: string; label: string; icon: React.ElementType; role
   { to: '/espace-pro/demandes', label: 'Demandes & devis', icon: ClipboardList, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/groupages', label: 'Groupages', icon: Users, roles: ['admin', 'groupage_manager'] },
   { to: '/espace-pro/produits', label: 'Produits', icon: Boxes, roles: ['admin', 'transitaire'] },
+  { to: '/espace-pro/tableur', label: 'Tableur produits', icon: FileSpreadsheet, roles: ['admin', 'transitaire', 'groupage_manager'] },
   { to: '/espace-pro/categories', label: 'Catégories', icon: FolderTree, roles: ['admin'] },
   { to: '/espace-pro/vehicules', label: 'Automobile', icon: Car, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/finance', label: 'Finance', icon: TrendingUp, roles: ['admin'] },
@@ -82,6 +85,7 @@ const ROUTES: ProRoute[] = [
   },
   { pattern: '/espace-pro/groupages', roles: ['admin', 'groupage_manager'], render: () => <StaffGroupagesPage /> },
   { pattern: '/espace-pro/groupages/:id', roles: ['admin', 'groupage_manager'], render: p => <GroupageEditorPage id={p.id} /> },
+  { pattern: '/espace-pro/tableur', roles: ['admin', 'transitaire', 'groupage_manager'], render: () => <CostSheetPage /> },
   { pattern: '/espace-pro/produits', roles: ['admin', 'transitaire'], render: () => <StaffProductsPage /> },
   { pattern: '/espace-pro/produits/:id', roles: ['admin', 'transitaire'], render: p => <ProductEditorPage id={p.id} /> },
   { pattern: '/espace-pro/categories', roles: ['admin'], render: () => <CategoriesPage /> },

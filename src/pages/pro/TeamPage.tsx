@@ -11,7 +11,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Checkbox, ChoiceCards, Input } from '../../components/ui/Field';
 import { EmptyState, ErrorState, InlineAlert, Skeleton } from '../../components/ui/States';
-import { PERMISSIONS, ROLE_OPTIONS, RoleEditor, normalizeRole } from '../../components/pro/RoleEditor';
+import { PERMISSIONS, PermissionPresets, ROLE_OPTIONS, RoleEditor, allPermissions, normalizeRole } from '../../components/pro/RoleEditor';
 import type { TeamMember } from '../../lib/types';
 
 const PERM_LABEL = Object.fromEntries(Object.values(PERMISSIONS).flat().map(p => [p.key, p.label]));
@@ -25,7 +25,7 @@ export default function TeamPage() {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<string>('transitaire');
-  const [perms, setPerms] = useState<string[]>([]);
+  const [perms, setPerms] = useState<string[]>(() => allPermissions('transitaire'));
   const [inviting, setInviting] = useState(false);
   const [result, setResult] = useState<(InviteResult & { email: string }) | null>(null);
 
@@ -128,7 +128,16 @@ export default function TeamPage() {
                 <Input label="Email" required type="email" value={email} onChange={e => setEmail(e.target.value)} />
                 <Input label="Nom (optionnel)" value={fullName} onChange={e => setFullName(e.target.value)} />
               </div>
-              <ChoiceCards columns={1} value={role} onChange={setRole} options={ROLE_OPTIONS.map(o => ({ value: o.value as string, title: o.title, description: o.description }))} />
+              <ChoiceCards
+                columns={1}
+                value={role}
+                onChange={r => {
+                  setRole(r);
+                  setPerms(allPermissions(r));
+                }}
+                options={ROLE_OPTIONS.map(o => ({ value: o.value as string, title: o.title, description: o.description }))}
+              />
+              <PermissionPresets role={role} perms={perms} onChange={setPerms} />
               {(PERMISSIONS[role] || []).map(p => (
                 <Checkbox key={p.key} label={p.label} description={p.description} checked={perms.includes(p.key)} onChange={v => setPerms(prev => (v ? [...prev, p.key] : prev.filter(x => x !== p.key)))} />
               ))}
