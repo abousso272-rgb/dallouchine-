@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Banknote, Calculator, ClipboardList, FileSpreadsheet, LineChart, PackagePlus, UserPlus, Users } from 'lucide-react';
+import { Banknote, Calculator, ClipboardList, FileSpreadsheet, Globe, LineChart, PackagePlus, UserPlus, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAsync } from '../../lib/hooks';
 import { getFinanceContext } from '../../services/finance';
@@ -35,6 +35,7 @@ export function QuickActions() {
       fxAction,
       { icon: Users, title: 'Nouveau groupage', hint: 'Lancer une campagne', to: '/espace-pro/groupages/nouveau' },
       { icon: LineChart, title: 'Finance', hint: 'Marges, trésorerie, prévisions', to: '/espace-pro/finance' },
+      { icon: Globe, title: 'Audience du site', hint: 'Visites, provenance, pays', to: '/espace-pro/audience' },
       { icon: UserPlus, title: 'Inviter un membre', hint: 'Transitaire, gestionnaire…', to: '/espace-pro/equipe' }
     ];
   } else if (role === 'transitaire') {
@@ -43,13 +44,15 @@ export function QuickActions() {
       { icon: FileSpreadsheet, title: 'Tableur produits', hint: 'Importer Excel, saisir plusieurs produits', to: '/espace-pro/tableur' },
       fxAction,
       { icon: Calculator, title: 'Calculateur de prix', hint: 'Prix de vente depuis le coût réel', to: '/espace-pro/calculateur' },
+      { icon: Users, title: 'Simuler un groupage', hint: 'Proposer une campagne rentable', to: '/espace-pro/simulateur-groupage' },
       { icon: ClipboardList, title: 'Demandes à traiter', hint: 'Sourcing, B2B, devis', to: '/espace-pro/demandes' }
     ];
   } else if (role === 'groupage_manager') {
     actions = [
-      ...(perms.includes('create_groupages') ? [{ icon: Users, title: 'Nouveau groupage', hint: 'Lancer une campagne', to: '/espace-pro/groupages/nouveau' }] : []),
+      { icon: Users, title: 'Nouveau groupage', hint: 'Produit, coûts, rentabilité, campagne', to: '/espace-pro/groupages/nouveau' },
       ...(perms.includes('manage_products') ? [{ icon: FileSpreadsheet, title: 'Mes produits et coûts', hint: 'Tableur : prix, poids, cargo, marge', to: '/espace-pro/tableur' }] : []),
-      { icon: Users, title: 'Mes groupages', hint: 'Progression, relances, participants', to: '/espace-pro/groupages' }
+      { icon: Users, title: 'Mes groupages', hint: 'Progression, relances, participants', to: '/espace-pro/groupages' },
+      { icon: Calculator, title: 'Simuler un groupage', hint: 'Tester un prix avant de lancer', to: '/espace-pro/simulateur-groupage' }
     ];
   }
   if (!actions.length) return null;

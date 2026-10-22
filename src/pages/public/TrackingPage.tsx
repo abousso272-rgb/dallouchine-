@@ -11,8 +11,10 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { Stepper, Timeline } from '../../components/ui/Stepper';
 import { EmptyState, InlineAlert } from '../../components/ui/States';
 import { Link } from '../../components/ui/Link';
+import { useSeo } from '../../lib/seo';
 
 export default function TrackingPage() {
+  useSeo({ title: 'Suivre une commande', description: 'Suivez votre commande Chine – Dakar avec votre code de suivi, sans créer de compte.', path: '/suivi' }, []);
   const { query, navigate, user, path } = useApp();
   const initial = query.get('code') || '';
   const [code, setCode] = useState(initial);

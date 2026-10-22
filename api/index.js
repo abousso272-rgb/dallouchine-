@@ -1,6 +1,6 @@
 // server/app.ts
 import express from "express";
-import path from "path";
+import path2 from "path";
 import { fileURLToPath } from "url";
 
 // server/api/shipmentsRouter.ts
@@ -108,6 +108,15 @@ async function requireAuth(req, res, next) {
     console.error("[auth] requireAuth error:", err?.message || err);
     res.status(500).json({ success: false, error: "Erreur lors de la v\xE9rification de la session." });
   }
+}
+async function optionalAuth(req, _res, next) {
+  try {
+    const user = await resolveUser(req);
+    if (user) req.user = user;
+  } catch (err) {
+    console.warn("[auth] optionalAuth:", err?.message || err);
+  }
+  next();
 }
 function requireRole(...roles) {
   return async (req, res, next) => {
@@ -545,9 +554,9 @@ var SasPayProvider = class _SasPayProvider {
   headers(extra = {}) {
     return { Authorization: `Bearer ${config.saspaySecretKey}`, "Content-Type": "application/json", Accept: "application/json", ...extra };
   }
-  async call(method, path2, body, extraHeaders = {}, viaFixedIp = false) {
+  async call(method, path3, body, extraHeaders = {}, viaFixedIp = false) {
     const dispatcher = viaFixedIp ? proxyDispatcher() : void 0;
-    const res = await fetch(`${this.baseUrl}${path2}`, {
+    const res = await fetch(`${this.baseUrl}${path3}`, {
       method,
       headers: this.headers(extraHeaders),
       body: body !== void 0 ? JSON.stringify(body) : void 0,
@@ -1476,12 +1485,12 @@ Termine TOUJOURS en appelant l'outil report_product_analysis.`;
 var rateBucket = /* @__PURE__ */ new Map();
 function checkRateLimit(key, max = 12, windowMs = 60 * 60 * 1e3) {
   const now = Date.now();
-  const hits = (rateBucket.get(key) || []).filter((t) => now - t < windowMs);
-  if (hits.length >= max) {
+  const hits2 = (rateBucket.get(key) || []).filter((t) => now - t < windowMs);
+  if (hits2.length >= max) {
     throw new AnalysisError("Limite atteinte : 12 analyses par heure. R\xE9essayez un peu plus tard ou envoyez directement votre demande.", "RATE_LIMITED", 429);
   }
-  hits.push(now);
-  rateBucket.set(key, hits);
+  hits2.push(now);
+  rateBucket.set(key, hits2);
 }
 function decodeEntities(s) {
   return s.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
@@ -1907,10 +1916,10 @@ function checkAssistantLimit(ip) {
   }
   if (dayCount >= DAILY_CAP) return "daily";
   const now = Date.now();
-  const hits = (ipHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1e3);
-  if (hits.length >= 20) return "ip";
-  hits.push(now);
-  ipHits.set(ip, hits);
+  const hits2 = (ipHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1e3);
+  if (hits2.length >= 20) return "ip";
+  hits2.push(now);
+  ipHits.set(ip, hits2);
   dayCount++;
   if (ipHits.size > 5e3) {
     for (const [k, v] of ipHits) if (!v.some((t) => now - t < 10 * 60 * 1e3)) ipHits.delete(k);
@@ -1942,9 +1951,345 @@ assistantRouter.post("/chat", async (req, res) => {
   }
 });
 
+// server/api/seoRouter.ts
+import { Router as Router7 } from "express";
+import { readFile } from "fs/promises";
+import path from "path";
+import { createClient as createClient4 } from "@supabase/supabase-js";
+
+// server/services/AudienceService.ts
+var SEARCH = ["google", "bing", "yahoo", "duckduckgo", "ecosia", "qwant", "yandex", "baidu"];
+var SOCIAL = [
+  [/(^|\.)whatsapp\.(com|net)$|(^|\.)wa\.me$/, "whatsapp"],
+  [/(^|\.)(facebook|fb)\.(com|me)$|(^|\.)fbcdn\.net$/, "facebook"],
+  [/(^|\.)instagram\.com$/, "instagram"],
+  [/(^|\.)tiktok\.com$/, "tiktok"],
+  [/(^|\.)(youtube\.com|youtu\.be)$/, "youtube"],
+  [/(^|\.)(t\.co|twitter\.com|x\.com)$/, "x"],
+  [/(^|\.)linkedin\.com$|(^|\.)lnkd\.in$/, "linkedin"],
+  [/(^|\.)snapchat\.com$/, "snapchat"],
+  [/(^|\.)telegram\.(org|me)$|(^|\.)t\.me$/, "telegram"]
+];
+function classifySource(referrer, utmSource, ownHost) {
+  const utm = utmSource.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 40);
+  let host = null;
+  try {
+    host = referrer ? new URL(referrer).hostname.toLowerCase().replace(/^www\./, "") : null;
+  } catch {
+    host = null;
+  }
+  if (host && ownHost && (host === ownHost || host.endsWith("." + ownHost))) host = null;
+  if (utm) {
+    const alias = { wa: "whatsapp", ig: "instagram", fb: "facebook", tt: "tiktok" };
+    return { source: alias[utm] || utm, medium: null, host };
+  }
+  if (!host) return { source: "direct", medium: null, host: null };
+  const engine = SEARCH.find((e) => host.split(".").includes(e));
+  if (engine) return { source: engine, medium: "organic", host };
+  for (const [re, name] of SOCIAL) if (re.test(host)) return { source: name, medium: "social", host };
+  return { source: host.slice(0, 60), medium: "referral", host };
+}
+function classifyDevice(ua) {
+  if (/ipad|tablet|playbook|silk|(android(?!.*mobile))/i.test(ua)) return "tablette";
+  if (/mobi|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(ua)) return "mobile";
+  return "ordinateur";
+}
+var isBot = (ua) => !ua || /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|preview|lighthouse|headless|pingdom|uptime|curl|wget|python-requests|axios/i.test(ua);
+var ALLOWED_EVENTS = /* @__PURE__ */ new Set(["page_view", "add_to_cart", "begin_checkout", "sign_up", "login", "request_quote", "join_groupage", "search", "assistant_question", "whatsapp_click"]);
+var hits = /* @__PURE__ */ new Map();
+function rateLimited(key) {
+  const now = Date.now();
+  const list = (hits.get(key) || []).filter((t) => now - t < 6e4);
+  if (list.length >= 60) return true;
+  list.push(now);
+  hits.set(key, list);
+  if (hits.size > 1e4) {
+    for (const [k, v] of hits) if (!v.some((t) => now - t < 6e4)) hits.delete(k);
+  }
+  return false;
+}
+async function recordEvent(input, meta) {
+  if (!hasServiceRole || isBot(meta.ua) || rateLimited(meta.ip)) return "skipped";
+  if (!/^[a-z0-9-]{8,64}$/i.test(input.sid)) return "skipped";
+  const event = ALLOWED_EVENTS.has(input.event) ? input.event : null;
+  if (!event) return "skipped";
+  const path3 = (input.path || "/").split("?")[0].split("#")[0].slice(0, 200) || "/";
+  const safePath = /^\/(compte|espace-pro|commande|paiement|bienvenue|invitation|mot-de-passe)/.test(path3) ? `/${path3.split("/")[1]}` : path3;
+  const { source, medium, host } = classifySource(input.referrer, input.utmSource, meta.ownHost);
+  const country = meta.country && /^[A-Z]{2}$/.test(meta.country) ? meta.country : null;
+  const { error } = await getSupabaseServerClient().from("analytics_events").insert({
+    session_id: input.sid,
+    event,
+    path: safePath,
+    source,
+    medium: input.utmMedium.slice(0, 40) || medium,
+    campaign: input.utmCampaign.slice(0, 80) || null,
+    referrer_host: host,
+    country,
+    device: classifyDevice(meta.ua),
+    lang: input.lang.slice(0, 8) || null,
+    is_new_session: Boolean(input.newSession),
+    user_id: meta.userId
+  });
+  if (error) {
+    if (error.code !== "42P01" && error.code !== "PGRST205") console.warn("[audience]", error.message);
+    return "skipped";
+  }
+  return "ok";
+}
+
+// server/api/seoRouter.ts
+var seoRouter = Router7();
+var publicDb2 = createClient4(config.supabaseUrl, config.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+var SITE = "Dallou Chine";
+var BASE = () => config.appUrl;
+var esc2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+var clip = (s, n) => s.length > n ? s.slice(0, n - 1).trimEnd() + "\u2026" : s;
+var plain = (s) => (s || "").replace(/\s+/g, " ").trim();
+var PRIVATE = ["/compte", "/espace-pro", "/panier", "/commande", "/paiement", "/connexion", "/inscription", "/mot-de-passe", "/invitation", "/bienvenue", "/api/"];
+seoRouter.get("/robots.txt", (_req, res) => {
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.send(["User-agent: *", "Allow: /", ...PRIVATE.map((p) => `Disallow: ${p}`), "", `Sitemap: ${BASE()}/sitemap.xml`, ""].join("\n"));
+});
+var sitemapCache = null;
+seoRouter.get("/sitemap.xml", async (_req, res) => {
+  try {
+    if (!sitemapCache || Date.now() - sitemapCache.at > 30 * 60 * 1e3) {
+      const [products, groupages, vehicles, categories] = await Promise.all([
+        publicDb2.from("products").select("slug, updated_at").eq("is_active", true).limit(5e3),
+        publicDb2.from("groupages").select("id, updated_at, status").in("status", ["open", "almost_full", "full", "validated"]).limit(2e3),
+        publicDb2.from("vehicles").select("slug, updated_at").eq("is_published", true).limit(2e3),
+        publicDb2.from("categories").select("slug, updated_at").eq("is_active", true).limit(500)
+      ]);
+      const day = (d) => d ? new Date(d).toISOString().slice(0, 10) : (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+      const urls = [
+        { loc: "/", priority: "1.0", freq: "daily" },
+        { loc: "/catalogue", priority: "0.9", freq: "daily" },
+        { loc: "/groupages", priority: "0.9", freq: "daily" },
+        { loc: "/sourcing", priority: "0.8", freq: "monthly" },
+        { loc: "/pro", priority: "0.7", freq: "monthly" },
+        { loc: "/automobile", priority: "0.7", freq: "weekly" },
+        { loc: "/guide", priority: "0.6", freq: "monthly" },
+        { loc: "/suivi", priority: "0.4", freq: "yearly" },
+        ...(categories.data || []).map((c) => ({ loc: `/catalogue?categorie=${encodeURIComponent(c.slug)}`, lastmod: day(c.updated_at), priority: "0.7", freq: "weekly" })),
+        ...(products.data || []).map((p) => ({ loc: `/produit/${encodeURIComponent(p.slug)}`, lastmod: day(p.updated_at), priority: "0.8", freq: "weekly" })),
+        ...(groupages.data || []).map((g) => ({ loc: `/groupages/${g.id}`, lastmod: day(g.updated_at), priority: g.status === "open" || g.status === "almost_full" ? "0.8" : "0.5", freq: "daily" })),
+        ...(vehicles.data || []).map((v) => ({ loc: `/automobile/${encodeURIComponent(v.slug)}`, lastmod: day(v.updated_at), priority: "0.6", freq: "weekly" }))
+      ];
+      const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.map((u) => `  <url><loc>${esc2(BASE() + u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}<changefreq>${u.freq}</changefreq><priority>${u.priority}</priority></url>`).join("\n") + "\n</urlset>\n";
+      sitemapCache = { xml, at: Date.now() };
+    }
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=1800");
+    res.send(sitemapCache.xml);
+  } catch (err) {
+    console.error("[seo] sitemap:", err.message);
+    res.status(500).type("text/plain").send("Sitemap indisponible");
+  }
+});
+var shell = null;
+async function getShell() {
+  if (shell && Date.now() - shell.at < 10 * 60 * 1e3) return shell.html;
+  if (!process.env.VERCEL) {
+    try {
+      const html = await readFile(path.resolve(process.cwd(), "dist", "index.html"), "utf8");
+      shell = { html, at: Date.now() };
+      return html;
+    } catch {
+    }
+  }
+  try {
+    const r = await fetch(`${BASE()}/index.html`, { signal: AbortSignal.timeout(3500) });
+    if (r.ok) {
+      const html = await r.text();
+      if (html.includes('id="root"')) {
+        shell = { html, at: Date.now() };
+        return html;
+      }
+    }
+  } catch (err) {
+    console.warn("[seo] index.html indisponible:", err.message);
+  }
+  return shell?.html ?? null;
+}
+function injectMeta(html, m) {
+  const url = BASE() + m.path;
+  const image = m.image && /^https?:\/\//.test(m.image) ? m.image : `${BASE()}/brand/og.jpg`;
+  const title = m.title.length <= 70 ? m.title : clip(m.title.replace(/\s*\|\s*Dallou Chine[^|]*$/, ""), 70);
+  const description = clip(m.description, 160);
+  const block = [
+    `<title>${esc2(title)}</title>`,
+    `<meta name="description" content="${esc2(description)}" />`,
+    `<link rel="canonical" href="${esc2(url)}" />`,
+    `<meta property="og:site_name" content="${SITE}" />`,
+    `<meta property="og:type" content="${m.type || "website"}" />`,
+    `<meta property="og:title" content="${esc2(title)}" />`,
+    `<meta property="og:description" content="${esc2(description)}" />`,
+    `<meta property="og:url" content="${esc2(url)}" />`,
+    `<meta property="og:image" content="${esc2(image)}" />`,
+    `<meta property="og:locale" content="fr_SN" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${esc2(title)}" />`,
+    `<meta name="twitter:description" content="${esc2(description)}" />`,
+    `<meta name="twitter:image" content="${esc2(image)}" />`,
+    m.jsonLd ? `<script type="application/ld+json" id="seo-jsonld">${JSON.stringify(m.jsonLd).replace(/</g, "\\u003c")}</script>` : ""
+  ].filter(Boolean).join("\n    ");
+  return html.replace(/<title>[\s\S]*?<\/title>\s*/i, "").replace(/<meta\s+(?:name|property)="(?:description|og:[^"]+|twitter:[^"]+)"[^>]*>\s*/gi, "").replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "").replace(/<script type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>\s*/gi, "").replace(/(<meta charset="[^"]*"\s*\/?>)/i, `$1
+    ${block}`);
+}
+function fallbackPage(m) {
+  return injectMeta(
+    `<!doctype html><html lang="fr"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body><p><a href="/#!${esc2(m.path)}">${esc2(m.title)}</a></p><script>location.replace('/#!' + ${JSON.stringify(m.path)})</script></body></html>`,
+    m
+  );
+}
+async function sendPage(res, meta, path3) {
+  const html = await getShell();
+  const m = meta || { title: `${SITE} \u2014 Votre passerelle entre la Chine et l\u2019Afrique`, description: "Catalogue, groupages, sourcing sur mesure, B2B et automobile : l\u2019import Chine\u2013Afrique, simple et suivi.", path: path3 };
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=86400");
+  if (!meta) res.status(404);
+  res.send(html ? injectMeta(html, m) : fallbackPage(m));
+}
+var xof = (n) => `${new Intl.NumberFormat("fr-FR").format(Math.round(Number(n) || 0))} FCFA`;
+seoRouter.get("/produit/:slug", async (req, res) => {
+  const path3 = `/produit/${encodeURIComponent(req.params.slug)}`;
+  try {
+    const { data: p } = await publicDb2.from("products").select("id, name, slug, sku, short_description, description, price_xof, moq, stock_quantity, estimated_delivery_days, categories(name), product_images(image_url, sort_order, is_primary)").eq("slug", req.params.slug).eq("is_active", true).maybeSingle();
+    if (!p) return sendPage(res, null, path3);
+    const imgs = (p.product_images || []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order).map((i) => i.image_url);
+    const desc = plain(p.short_description) || plain(p.description) || `${p.name} import\xE9 de Chine, livr\xE9 \xE0 Dakar.`;
+    await sendPage(
+      res,
+      {
+        title: `${p.name} \u2014 ${xof(p.price_xof)} | ${SITE}`,
+        description: `${clip(desc, 110)} Prix : ${xof(p.price_xof)}${p.moq > 1 ? `, d\xE8s ${p.moq} unit\xE9s` : ""}. Livraison \xE0 Dakar.`,
+        path: path3,
+        image: imgs[0],
+        type: "product",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: p.name,
+          sku: p.sku || void 0,
+          description: clip(desc, 500),
+          image: imgs.slice(0, 5),
+          category: p.categories?.name || void 0,
+          offers: {
+            "@type": "Offer",
+            url: BASE() + path3,
+            priceCurrency: "XOF",
+            price: Math.round(Number(p.price_xof) || 0),
+            availability: Number(p.stock_quantity) > 0 ? "https://schema.org/InStock" : "https://schema.org/PreOrder",
+            seller: { "@type": "Organization", name: SITE }
+          }
+        }
+      },
+      path3
+    );
+  } catch (err) {
+    console.error("[seo] produit:", err.message);
+    await sendPage(res, { title: SITE, description: "Import Chine\u2013Afrique", path: path3 }, path3);
+  }
+});
+seoRouter.get("/groupages/:id", async (req, res) => {
+  const path3 = `/groupages/${encodeURIComponent(req.params.id)}`;
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return sendPage(res, null, path3);
+    const { data: g } = await publicDb2.from("groupages").select("id, title, description, unit_price_xof, original_price_xof, target_quantity, reserved_quantity, deadline, status, image_url, products(name, product_images(image_url, is_primary, sort_order))").eq("id", req.params.id).neq("status", "draft").maybeSingle();
+    if (!g) return sendPage(res, null, path3);
+    const prod = g.products;
+    const img = g.image_url || (prod?.product_images || []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary))[0]?.image_url;
+    const name = prod?.name || g.title;
+    const saving = Number(g.original_price_xof) > Number(g.unit_price_xof) ? Math.round((g.original_price_xof - g.unit_price_xof) / g.original_price_xof * 100) : 0;
+    await sendPage(
+      res,
+      {
+        title: `Groupage ${name} \u2014 ${xof(g.unit_price_xof)}${saving ? ` (\u2212${saving} %)` : ""} | ${SITE}`,
+        description: `${clip(plain(g.description) || `Commande group\xE9e : ${name}.`, 100)} ${g.reserved_quantity}/${g.target_quantity} r\xE9serv\xE9s. Rejoignez avant le ${g.deadline ? new Date(g.deadline).toLocaleDateString("fr-FR") : "bouclage"}.`,
+        path: path3,
+        image: img,
+        type: "product",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: `Groupage : ${name}`,
+          image: img ? [img] : void 0,
+          description: clip(plain(g.description) || name, 500),
+          offers: {
+            "@type": "Offer",
+            url: BASE() + path3,
+            priceCurrency: "XOF",
+            price: Math.round(Number(g.unit_price_xof) || 0),
+            availability: ["open", "almost_full"].includes(g.status) ? "https://schema.org/LimitedAvailability" : "https://schema.org/SoldOut",
+            priceValidUntil: g.deadline ? new Date(g.deadline).toISOString().slice(0, 10) : void 0
+          }
+        }
+      },
+      path3
+    );
+  } catch (err) {
+    console.error("[seo] groupage:", err.message);
+    await sendPage(res, { title: SITE, description: "Groupages Chine\u2013Afrique", path: path3 }, path3);
+  }
+});
+seoRouter.get("/automobile/:slug", async (req, res) => {
+  const path3 = `/automobile/${encodeURIComponent(req.params.slug)}`;
+  try {
+    const { data: v } = await publicDb2.from("vehicles").select("*").eq("slug", req.params.slug).eq("is_published", true).maybeSingle();
+    if (!v) return sendPage(res, null, path3);
+    const price = v.price_xof && !v.price_on_request ? ` \u2014 ${xof(v.price_xof)}` : "";
+    await sendPage(
+      res,
+      {
+        title: `${v.title}${price} | ${SITE} Automobile`,
+        description: clip(plain(v.description) || `${v.title} import\xE9 de Chine, livr\xE9 au S\xE9n\xE9gal. Devis sur demande.`, 160),
+        path: path3,
+        image: Array.isArray(v.images) ? v.images[0] : null,
+        type: "product"
+      },
+      path3
+    );
+  } catch (err) {
+    console.error("[seo] v\xE9hicule:", err.message);
+    await sendPage(res, { title: SITE, description: "Automobile", path: path3 }, path3);
+  }
+});
+seoRouter.post("/api/track", optionalAuth, async (req, res) => {
+  const b = req.body || {};
+  const str = (v, n) => typeof v === "string" ? v.slice(0, n) : "";
+  let ownHost = "";
+  try {
+    ownHost = new URL(BASE()).hostname.replace(/^www\./, "");
+  } catch {
+  }
+  await recordEvent(
+    {
+      sid: str(b.sid, 64),
+      event: str(b.event, 40) || "page_view",
+      path: str(b.path, 300),
+      referrer: str(b.referrer, 500),
+      utmSource: str(b.utm_source, 60),
+      utmMedium: str(b.utm_medium, 60),
+      utmCampaign: str(b.utm_campaign, 100),
+      lang: str(b.lang, 12),
+      newSession: Boolean(b.new_session)
+    },
+    {
+      ip: String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim(),
+      ua: String(req.headers["user-agent"] || ""),
+      country: String(req.headers["x-vercel-ip-country"] || req.headers["cf-ipcountry"] || "") || null,
+      ownHost,
+      userId: req.user?.id || null
+    }
+  ).catch((err) => console.warn("[audience] track:", err.message));
+  res.status(204).end();
+});
+
 // server/app.ts
 var __filename = fileURLToPath(import.meta.url);
-var __dirname = path.dirname(__filename);
+var __dirname = path2.dirname(__filename);
 function createApiApp() {
   const api = express();
   api.use(
@@ -1980,6 +2325,7 @@ function createApiApp() {
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
     });
   });
+  api.use(seoRouter);
   api.use("/api/payments", paymentsRouter);
   api.use("/api", paymentsRouter);
   api.use("/api/shipments", shipmentsRouter);
@@ -1995,10 +2341,10 @@ function createApiApp() {
 var app = express();
 app.use(createApiApp());
 if (!process.env.VERCEL) {
-  const distPath = path.resolve(__dirname, "..", "dist");
+  const distPath = path2.resolve(__dirname, "..", "dist");
   app.use(express.static(distPath));
   app.get("*", (_req, res) => {
-    res.sendFile(path.join(distPath, "index.html"), (err) => {
+    res.sendFile(path2.join(distPath, "index.html"), (err) => {
       if (err) res.status(404).send("Application non construite. Ex\xE9cutez npm run build.");
     });
   });

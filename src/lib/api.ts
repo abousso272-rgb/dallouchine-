@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { AppError } from './db';
+import { trackEvent } from './analytics';
 
 /** Appel authentifié à l'API Dallou Chine (Express) avec le jeton de session Supabase. */
 export async function apiFetch<T = unknown>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
@@ -88,6 +89,7 @@ export interface CheckoutPayload {
  * sinon renvoie l'identifiant de commande (paiement relançable depuis « Mes commandes »).
  */
 export async function checkoutAndPay(p: CheckoutPayload): Promise<{ orderId: string; paymentError?: string }> {
+  trackEvent('begin_checkout', { currency: 'XOF' });
   const hide = showPaymentOverlay('Création de votre commande…');
   try {
     const res = await apiFetch<{ orderId: string; checkoutUrl: string | null; paymentError?: string }>('/api/payments/checkout', { method: 'POST', body: p });

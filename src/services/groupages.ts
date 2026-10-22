@@ -1,6 +1,7 @@
 import { supabase, rpc, unwrap, AppError, friendlyError } from '../lib/db';
 import type { Groupage, GroupageEvent } from '../lib/types';
 import { mapProduct } from './catalog';
+import { trackEvent } from '../lib/analytics';
 
 const GROUPAGE_COLUMNS = `
   *,
@@ -141,6 +142,7 @@ export function joinGroupage(params: {
   city?: string;
   hubId?: string | null;
 }): Promise<JoinResult> {
+  trackEvent('join_groupage', { groupage_id: params.groupageId, quantity: params.quantity });
   return rpc<JoinResult>('join_groupage', {
     p_groupage_id: params.groupageId,
     p_quantity: params.quantity,
@@ -287,4 +289,98 @@ export interface GroupageParticipantRow {
 
 export function listGroupageParticipants(groupageId: string): Promise<GroupageParticipantRow[]> {
   return rpc<GroupageParticipantRow[]>('get_groupage_participants', { p_groupage_id: groupageId });
+}
+
+// ---------------------------------------------------------------------------
+// Rentabilité d'un groupage (hypothèses visibles par l'équipe uniquement)
+// ---------------------------------------------------------------------------
+
+export interface GroupageEconomicsRecord {
+  purchasePriceCNY: number | null;
+  weightKg: number | null;
+  cbm: number | null;
+  cargoUnitXOF: number | null;
+  fixedCostsXOF: number;
+  paymentFeePct: number;
+  targetMarginPct: number | null;
+  notes: string | null;
+}
+
+export async function getGroupageEconomics(groupageId: string): Promise<GroupageEconomicsRecord | null> {
+  const { data, error } = await supabase.from('groupage_economics').select('*').eq('groupage_id', groupageId).maybeSingle();
+  if (error || !data) return null;
+  const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return {
+    purchasePriceCNY: num(data.purchase_price_cny),
+    weightKg: num(data.weight_kg),
+    cbm: num(data.cbm),
+    cargoUnitXOF: num(data.cargo_unit_xof),
+    fixedCostsXOF: Number(data.fixed_costs_xof || 0),
+    paymentFeePct: Number(data.payment_fee_pct ?? 2),
+    targetMarginPct: num(data.target_margin_pct),
+    notes: data.notes || null
+  };
+}
+
+export async function saveGroupageEconomics(
+  groupageId: string,
+  e: GroupageEconomicsRecord & { fxCnyXof: number; transportMode: string; landedUnitXOF: number | null; breakevenQuantity: number | null }
+): Promise<void> {
+  unwrap(
+    await supabase.from('groupage_economics').upsert({
+      groupage_id: groupageId,
+      purchase_price_cny: e.purchasePriceCNY,
+      fx_cny_xof: e.fxCnyXof || null,
+      weight_kg: e.weightKg,
+      cbm: e.cbm,
+      transport_mode: e.transportMode,
+      cargo_unit_xof: e.cargoUnitXOF,
+      fixed_costs_xof: Math.max(0, Math.round(e.fixedCostsXOF || 0)),
+      payment_fee_pct: e.paymentFeePct,
+      target_margin_pct: e.targetMarginPct,
+      landed_unit_xof: e.landedUnitXOF,
+      breakeven_quantity: e.breakevenQuantity,
+      notes: e.notes,
+      updated_at: new Date().toISOString()
+    })
+  );
+}
+
+export interface DraftProductInput {
+  name: string;
+  categoryId: string;
+  description?: string;
+  imageUrl?: string | null;
+  weightKg?: number | null;
+  cbm?: number | null;
+  transportMode: 'air' | 'sea' | 'express';
+  purchasePriceCNY?: number | null;
+  listPriceCNY?: number | null;
+  cargoUnitXOF?: number | null;
+  supplierName?: string;
+  supplierUrl?: string;
+  priceXOF?: number | null;
+  moq?: number | null;
+}
+
+/** Crée un produit brouillon (et ses coûts) pour un nouveau groupage : accessible au gestionnaire de groupages. */
+export function createDraftProduct(p: DraftProductInput) {
+  return rpc<{ id: string; slug: string }>('staff_create_draft_product', {
+    p: {
+      name: p.name.trim(),
+      category_id: p.categoryId,
+      description: p.description?.trim() || '',
+      image_url: p.imageUrl || null,
+      weight_kg: p.weightKg ?? null,
+      cbm: p.cbm ?? null,
+      transport_mode: p.transportMode,
+      purchase_price_cny: p.purchasePriceCNY ?? null,
+      list_price_cny: p.listPriceCNY ?? null,
+      cargo_unit_xof: p.cargoUnitXOF ?? null,
+      supplier_name: p.supplierName?.trim() || null,
+      supplier_url: p.supplierUrl?.trim() || null,
+      price_xof: p.priceXOF ?? null,
+      moq: p.moq ?? null
+    }
+  });
 }

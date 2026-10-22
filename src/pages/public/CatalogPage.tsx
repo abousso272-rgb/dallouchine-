@@ -11,6 +11,7 @@ import { Modal } from '../../components/ui/Modal';
 import { EmptyState, ErrorState } from '../../components/ui/States';
 import { friendlyError } from '../../lib/db';
 import { formatNumber } from '../../lib/format';
+import { useSeo } from '../../lib/seo';
 
 const PAGE_SIZE = 24;
 
@@ -42,6 +43,15 @@ export default function CatalogPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const category = categories.find(c => c.slug === categorySlug) || null;
+  useSeo(
+    {
+      title: category ? `${category.name} importés de Chine` : query.get('q') ? `Recherche « ${query.get('q')} »` : 'Catalogue de produits importés de Chine',
+      description: category?.description || `Produits importés de Chine avec prix en FCFA et livraison à Dakar${category ? ` : ${category.name}` : ''}. Paiement Wave, Orange Money ou carte.`,
+      path: category ? `/catalogue?categorie=${category.slug}` : '/catalogue',
+      noindex: Boolean(query.get('q'))
+    },
+    [category?.id, query.get('q')]
+  );
 
   function setParam(updates: Record<string, string | null>) {
     const p = new URLSearchParams(query);

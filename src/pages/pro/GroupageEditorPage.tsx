@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Ban, BellRing, Download, ExternalLink, Lock, Megaphone, MessageCircle, Phone, ReceiptText, Save, UserMinus, Users } from 'lucide-react';
+import { Ban, BellRing, Copy, Download, ExternalLink, Lock, Megaphone, MessageCircle, PackagePlus, Phone, ReceiptText, Save, UserMinus, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAsync } from '../../lib/hooks';
 import {
+  getGroupageEconomics,
+  saveGroupageEconomics,
   cancelParticipant,
   getGroupage,
   listGroupageEvents,
@@ -28,6 +30,11 @@ import { Checkbox, Input, Select, Textarea } from '../../components/ui/Field';
 import { Modal } from '../../components/ui/Modal';
 import { RefundModal } from '../../components/pro/RefundModal';
 import { GroupageCockpit } from '../../components/pro/GroupageCockpit';
+import { EMPTY_ECO, GroupageProfitability, runEconomics, type EcoState } from '../../components/pro/GroupageProfitability';
+import { NewGroupageProductModal } from '../../components/pro/NewGroupageProductModal';
+import { getFinanceContext } from '../../services/finance';
+import { parseNumber } from '../../lib/costSheet';
+import { GROUPAGE_DRAFT_KEY } from './GroupageSimulatorPage';
 import { MediaGalleryInput } from '../../components/ui/Uploads';
 import { EmptyState, ErrorState, InlineAlert, PageLoader, Skeleton } from '../../components/ui/States';
 import { Link } from '../../components/ui/Link';
@@ -45,12 +52,16 @@ function newCode() {
 }
 
 export default function GroupageEditorPage({ id }: { id: string }) {
-  const { user, toast, navigate } = useApp();
+  const { user, toast, navigate, query } = useApp();
   const isNew = id === 'nouveau';
+  const copyFrom = isNew ? query.get('copie') : null;
   const isAdmin = user?.role === 'admin';
   const canSetPrices = isAdmin || user?.permissions.includes('set_groupage_prices');
 
   const existing = useAsync(() => (isNew ? Promise.resolve(null) : getGroupage(id)), [id]);
+  const source = useAsync(() => (copyFrom ? getGroupage(copyFrom) : Promise.resolve(null)), [copyFrom]);
+  const finance = useAsync(() => getFinanceContext(), [], { cacheKey: 'finance:context', maxAge: 60000 });
+  const savedEco = useAsync(() => (isNew && !copyFrom ? Promise.resolve(null) : getGroupageEconomics(copyFrom || id)), [id, copyFrom]);
   const products = useAsync(() => listProducts({ includeInactive: true, pageSize: 100, sort: 'newest' }).then(r => r.items), []);
   const team = useAsync(() => (isAdmin ? listTeam() : Promise.resolve([])), [isAdmin]);
   const participants = useAsync(() => (isNew ? Promise.resolve([]) : listGroupageParticipants(id)), [id]);
@@ -93,6 +104,8 @@ export default function GroupageEditorPage({ id }: { id: string }) {
   const [actionBusy, setActionBusy] = useState(false);
   const [news, setNews] = useState({ title: '', message: '', isPublic: true, notify: true });
   const [posting, setPosting] = useState(false);
+  const [eco, setEco] = useState<EcoState>(EMPTY_ECO);
+  const [newProductOpen, setNewProductOpen] = useState(false);
 
   const g = existing.data;
   useEffect(() => {
@@ -126,16 +139,83 @@ export default function GroupageEditorPage({ id }: { id: string }) {
     setHighlights(g.highlights.join('\n'));
   }, [g]);
 
+  // Création depuis le simulateur : reprend les chiffres testés
+  useEffect(() => {
+    if (!isNew || query.get('simulation') !== '1') return;
+    try {
+      const d = JSON.parse(sessionStorage.getItem(GROUPAGE_DRAFT_KEY) || 'null');
+      if (!d) return;
+      sessionStorage.removeItem(GROUPAGE_DRAFT_KEY);
+      setForm(f => ({
+        ...f,
+        title: d.name ? `Groupage : ${d.name}` : f.title,
+        unitPriceXOF: Number(d.price) || f.unitPriceXOF,
+        originalPriceXOF: Number(d.original) || f.originalPriceXOF,
+        supplierMoq: Number(d.moq) || f.supplierMoq,
+        targetQuantity: Number(d.target) || f.targetQuantity,
+        transportMode: ['air', 'sea', 'express'].includes(d.mode) ? d.mode : f.transportMode
+      }));
+      if (d.eco) setEco(e => ({ ...e, ...d.eco }));
+    } catch {
+      /* brouillon illisible : formulaire vierge */
+    }
+  }, [isNew]);
+
+  // Relancer une campagne : mêmes réglages, nouveau code et nouvelle date limite
+  useEffect(() => {
+    const src = source.data;
+    if (!src) return;
+    setForm(f => ({
+      ...f,
+      productId: src.productId,
+      title: src.title,
+      description: src.description,
+      targetQuantity: src.targetQuantity,
+      minPerUser: src.minPerUser,
+      maxPerUser: src.maxPerUser,
+      unitPriceXOF: src.unitPriceXOF,
+      originalPriceXOF: src.originalPriceXOF,
+      supplierMoq: src.supplierMoq,
+      transportMode: src.transportMode,
+      route: src.route,
+      guaranteeNote: src.guaranteeNote || '',
+      highlights: src.highlights,
+      reservationHours: src.reservationHours,
+      terms: src.terms || ''
+    }));
+    setImages(src.image && src.image !== src.product?.images[0] ? [src.image] : []);
+    setHighlights(src.highlights.join('\n'));
+  }, [source.data]);
+
+  useEffect(() => {
+    const e = savedEco.data;
+    if (!e) return;
+    const t = (v: number | null) => (v === null || v === undefined ? '' : String(v));
+    setEco({
+      purchaseCny: t(e.purchasePriceCNY),
+      weightKg: t(e.weightKg),
+      cbm: t(e.cbm),
+      cargoUnit: t(e.cargoUnitXOF),
+      fixedCosts: e.fixedCostsXOF ? String(e.fixedCostsXOF) : '',
+      feePct: String(e.paymentFeePct ?? 2),
+      targetMargin: t(e.targetMarginPct),
+      notes: e.notes || ''
+    });
+  }, [savedEco.data]);
+
   const product = useMemo(() => (products.data || []).find(p => p.id === form.productId), [products.data, form.productId]);
+
+  // Produit choisi : son poids sert de point de départ au calcul de rentabilité
+  useEffect(() => {
+    if (product && product.weightKg > 0) setEco(e => (e.weightKg ? e : { ...e, weightKg: String(product.weightKg) }));
+  }, [product?.id]);
+
   const set = <K extends keyof GroupageInput>(k: K, v: GroupageInput[K]) => setForm(f => ({ ...f, [k]: v }));
   const priceLocked = !isNew && !canSetPrices && form.status !== 'draft';
 
   if (existing.loading) return <PageLoader />;
   if (existing.error) return <ErrorState message={existing.error} onRetry={existing.reload} />;
   if (!isNew && !g) return <EmptyState icon={<Users className="h-5 w-5" />} title="Groupage introuvable" action={<Button to="/espace-pro/groupages">Retour</Button>} />;
-  if (isNew && !isAdmin && !user?.permissions.includes('create_groupages')) {
-    return <EmptyState title="Création non autorisée" description="Votre rôle permet de gérer les groupages qui vous sont attribués. Demandez la permission « créer des groupages » à l’administrateur." action={<Button to="/espace-pro/groupages">Retour</Button>} />;
-  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -149,7 +229,30 @@ export default function GroupageEditorPage({ id }: { id: string }) {
         { ...form, imageUrl: images[0] || null, highlights: highlights.split('\n').map(h => h.trim()).filter(Boolean) },
         isAdmin
       );
-      toast('success', isNew ? 'Groupage créé (brouillon)' : 'Groupage enregistré', isNew ? 'Publiez-le quand il est prêt.' : undefined);
+      let ecoWarning: string | undefined;
+      if (finance.data && Object.entries(eco).some(([k, v]) => k !== 'feePct' && String(v).trim())) {
+        const r = runEconomics(eco, { unitPriceXOF: form.unitPriceXOF, originalPriceXOF: form.originalPriceXOF, supplierMoq: form.supplierMoq, targetQuantity: form.targetQuantity, mode: form.transportMode }, finance.data);
+        try {
+          await saveGroupageEconomics(savedId, {
+            purchasePriceCNY: parseNumber(eco.purchaseCny),
+            weightKg: parseNumber(eco.weightKg),
+            cbm: parseNumber(eco.cbm),
+            cargoUnitXOF: parseNumber(eco.cargoUnit),
+            fixedCostsXOF: parseNumber(eco.fixedCosts) ?? 0,
+            paymentFeePct: parseNumber(eco.feePct) ?? 2,
+            targetMarginPct: parseNumber(eco.targetMargin),
+            notes: eco.notes.trim() || null,
+            fxCnyXof: finance.data.fx.cny_to_xof ?? 0,
+            transportMode: form.transportMode,
+            landedUnitXOF: r.atMoq?.landedUnitXOF ?? null,
+            breakevenQuantity: r.breakevenQuantity
+          });
+        } catch (err) {
+          ecoWarning = `Groupage enregistré, mais pas sa rentabilité : ${friendlyError(err)}`;
+        }
+      }
+      if (ecoWarning) toast('error', 'Rentabilité non enregistrée', ecoWarning);
+      else toast('success', isNew ? 'Groupage créé (brouillon)' : 'Groupage enregistré', isNew ? 'Publiez-le quand il est prêt.' : undefined);
       if (isNew) navigate(`/espace-pro/groupages/${savedId}`, { replace: true });
       else existing.reload();
     } catch (err) {
@@ -258,6 +361,9 @@ export default function GroupageEditorPage({ id }: { id: string }) {
           !isNew && g ? (
             <div className="flex flex-wrap gap-2">
               <StatusBadge map={GROUPAGE_STATUS} status={g.status} />
+              <Button to={`/espace-pro/groupages/nouveau?copie=${g.id}`} size="sm" variant="secondary" icon={<Copy className="h-3.5 w-3.5" />}>
+                Relancer
+              </Button>
               {g.status !== 'draft' && (
                 <Button to={`/groupages/${g.id}`} size="sm" variant="secondary" icon={<ExternalLink className="h-3.5 w-3.5" />}>
                   Page publique
@@ -402,8 +508,11 @@ export default function GroupageEditorPage({ id }: { id: string }) {
                 }}
                 placeholder={products.loading ? 'Chargement…' : 'Choisir un produit'}
                 options={(products.data || []).map(p => ({ value: p.id, label: `${p.name}${p.isActive ? '' : ' (brouillon)'} — ${formatXOF(p.priceXOF)}` }))}
-                hint={!isNew ? undefined : 'Le produit apporte photos et fiche technique. Créez-le d’abord dans Produits si besoin.'}
+                hint={!isNew ? undefined : 'Le produit apporte photos et fiche technique.'}
               />
+              <button type="button" onClick={() => setNewProductOpen(true)} className="-mt-2 inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-brand-700 hover:underline">
+                <PackagePlus className="h-4 w-4" /> Nouveau produit (pas encore dans le catalogue)
+              </button>
               <Input label="Titre" required value={form.title} onChange={e => set('title', e.target.value)} />
               <Textarea label="Description" value={form.description} onChange={e => set('description', e.target.value)} rows={4} placeholder="Ce que comprend le groupage, qualité, conditionnement…" />
               <Textarea label="Points forts (un par ligne)" value={highlights} onChange={e => setHighlights(e.target.value)} rows={3} />
@@ -480,7 +589,35 @@ export default function GroupageEditorPage({ id }: { id: string }) {
             </Button>
           </div>
         </div>
+        <div className="xl:col-span-2">
+          {finance.data ? (
+              <GroupageProfitability
+                eco={eco}
+                onEco={patch => setEco(e => ({ ...e, ...patch }))}
+                params={{ unitPriceXOF: form.unitPriceXOF, originalPriceXOF: form.originalPriceXOF, supplierMoq: form.supplierMoq, targetQuantity: form.targetQuantity, mode: form.transportMode }}
+                context={finance.data}
+                priceLocked={priceLocked}
+                onApplyPrice={price => set('unitPriceXOF', price)}
+              />
+            ) : finance.error ? (
+              <InlineAlert tone="warning">Calcul de rentabilité indisponible : {finance.error}</InlineAlert>
+            ) : (
+              <Skeleton className="h-64" />
+            )}
+        </div>
       </form>
+
+      <NewGroupageProductModal
+        open={newProductOpen}
+        onClose={() => setNewProductOpen(false)}
+        transportMode={form.transportMode}
+        onCreated={p => {
+          products.reload();
+          setForm(f => ({ ...f, productId: p.id, title: f.title || `Groupage : ${p.name}` }));
+          if (p.image && !images.length) setImages([p.image]);
+          setEco(e => ({ ...e, purchaseCny: e.purchaseCny || p.purchaseCny, weightKg: e.weightKg || p.weightKg, cbm: e.cbm || p.cbm, cargoUnit: e.cargoUnit || p.cargoUnit }));
+        }}
+      />
 
       {!isNew && (
         <Card>

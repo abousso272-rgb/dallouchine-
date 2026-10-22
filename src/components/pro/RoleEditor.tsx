@@ -13,7 +13,6 @@ export const PERMISSIONS: Record<string, { key: string; label: string; descripti
     { key: 'set_margins', label: 'Fixer les prix publics', description: 'Modifier le prix de vente (et donc la marge) des produits publiés.' }
   ],
   groupage_manager: [
-    { key: 'create_groupages', label: 'Créer des groupages', description: 'Lancer de nouvelles campagnes (attribuées automatiquement).' },
     { key: 'set_groupage_prices', label: 'Modifier prix et objectifs', description: 'Changer le prix ou l’objectif d’un groupage déjà publié.' },
     { key: 'manage_products', label: 'Gérer ses produits', description: 'Créer des produits et saisir leurs coûts dans le tableur (toujours en brouillon : la publication reste à l’équipe).' },
     { key: 'view_margins', label: 'Voir la rentabilité', description: 'Afficher la marge par unité et l’argent à verser au fournisseur dans le cockpit de ses groupages.' }

@@ -5,6 +5,9 @@ import { SiteHeader } from './components/layout/SiteHeader';
 import { SiteFooter } from './components/layout/SiteFooter';
 import { MobileTabBar } from './components/layout/MobileTabBar';
 import { AssistantWidget } from './components/assistant/AssistantWidget';
+import { ConsentBanner } from './components/layout/ConsentBanner';
+import { initAnalytics, trackPageView } from './lib/analytics';
+import { applySeo, isPrivatePath } from './lib/seo';
 import { Toasts } from './components/ui/Toasts';
 import { AuthModal } from './components/auth/AuthModal';
 import { PageLoader } from './components/ui/States';
@@ -111,6 +114,13 @@ function Router() {
     if (!busy) navigate('/bienvenue', { replace: true });
   }, [authLoading, user, normalized, navigate]);
 
+  // Mesure d'audience : une page vue par changement d'écran
+  useEffect(() => {
+    trackPageView(normalized);
+    // Pages privées : jamais indexées par les moteurs de recherche
+    if (isPrivatePath(normalized)) applySeo({ title: 'Espace sécurisé', noindex: true });
+  }, [normalized]);
+
   // Titre de page
   useEffect(() => {
     if (normalized.startsWith('/espace-pro')) document.title = 'Espace pro — Dallou Chine';
@@ -167,6 +177,7 @@ function Router() {
       <SiteFooter />
       <MobileTabBar />
       <AssistantWidget />
+      <ConsentBanner />
     </div>
   );
 }
@@ -197,6 +208,7 @@ function usePrefetchRoutes() {
 
 export default function App() {
   usePrefetchRoutes();
+  useEffect(() => initAnalytics(), []);
   return (
     <PrefsProvider>
       <AppProvider>

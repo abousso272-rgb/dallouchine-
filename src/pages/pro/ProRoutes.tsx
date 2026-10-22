@@ -3,6 +3,7 @@ import {
   Boxes,
   Calculator,
   FileSpreadsheet,
+  Globe,
   Car,
   ClipboardList,
   CreditCard,
@@ -47,6 +48,8 @@ import TeamPage from './TeamPage';
 import FinancePage from './FinancePage';
 import PricingCalculatorPage from './PricingCalculatorPage';
 import CostSheetPage from './CostSheetPage';
+import GroupageSimulatorPage from './GroupageSimulatorPage';
+import AudiencePage from './AudiencePage';
 import type { RequestType } from '../../lib/status';
 
 const ALL: AppRole[] = ['admin', 'transitaire', 'groupage_manager'];
@@ -56,11 +59,13 @@ export const PRO_NAV: { to: string; label: string; icon: React.ElementType; role
   { to: '/espace-pro/commandes', label: 'Commandes', icon: Package, roles: ALL },
   { to: '/espace-pro/demandes', label: 'Demandes & devis', icon: ClipboardList, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/groupages', label: 'Groupages', icon: Users, roles: ['admin', 'groupage_manager'] },
+  { to: '/espace-pro/simulateur-groupage', label: 'Simulateur de groupage', icon: Calculator, roles: ALL },
   { to: '/espace-pro/produits', label: 'Produits', icon: Boxes, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/tableur', label: 'Tableur produits', icon: FileSpreadsheet, roles: ['admin', 'transitaire', 'groupage_manager'] },
   { to: '/espace-pro/categories', label: 'Catégories', icon: FolderTree, roles: ['admin'] },
   { to: '/espace-pro/vehicules', label: 'Automobile', icon: Car, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/finance', label: 'Finance', icon: TrendingUp, roles: ['admin'] },
+  { to: '/espace-pro/audience', label: 'Audience du site', icon: Globe, roles: ['admin'] },
   { to: '/espace-pro/calculateur', label: 'Calculateur de prix', icon: Calculator, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/paiements', label: 'Paiements', icon: CreditCard, roles: ['admin'] },
   { to: '/espace-pro/clients', label: 'Clients', icon: UsersRound, roles: ['admin'] },
@@ -83,6 +88,7 @@ const ROUTES: ProRoute[] = [
     roles: ['admin', 'transitaire'],
     render: p => (['sourcing', 'b2b', 'vehicle'].includes(p.type) ? <StaffRequestDetailPage type={p.type as RequestType} id={p.id} /> : <NotFound />)
   },
+  { pattern: '/espace-pro/simulateur-groupage', roles: ALL, render: () => <GroupageSimulatorPage /> },
   { pattern: '/espace-pro/groupages', roles: ['admin', 'groupage_manager'], render: () => <StaffGroupagesPage /> },
   { pattern: '/espace-pro/groupages/:id', roles: ['admin', 'groupage_manager'], render: p => <GroupageEditorPage id={p.id} /> },
   { pattern: '/espace-pro/tableur', roles: ['admin', 'transitaire', 'groupage_manager'], render: () => <CostSheetPage /> },
@@ -92,6 +98,7 @@ const ROUTES: ProRoute[] = [
   { pattern: '/espace-pro/vehicules', roles: ['admin', 'transitaire'], render: () => <StaffVehiclesPage /> },
   { pattern: '/espace-pro/vehicules/:id', roles: ['admin', 'transitaire'], render: p => <VehicleEditorPage id={p.id} /> },
   { pattern: '/espace-pro/finance', roles: ['admin'], render: () => <FinancePage /> },
+  { pattern: '/espace-pro/audience', roles: ['admin'], render: () => <AudiencePage /> },
   { pattern: '/espace-pro/calculateur', roles: ['admin', 'transitaire'], render: () => <PricingCalculatorPage /> },
   { pattern: '/espace-pro/paiements', roles: ['admin'], render: () => <StaffPaymentsPage /> },
   { pattern: '/espace-pro/clients', roles: ['admin'], render: () => <CustomersPage /> },

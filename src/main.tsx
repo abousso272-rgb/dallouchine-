@@ -18,6 +18,9 @@ document.addEventListener(
   true
 );
 
+// Lien de secours généré par le serveur (« /#!/produit/… ») : on revient à l'adresse réelle
+if (window.location.hash.startsWith('#!/')) window.history.replaceState(null, '', window.location.hash.slice(2));
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

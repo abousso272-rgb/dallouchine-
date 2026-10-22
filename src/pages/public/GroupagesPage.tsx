@@ -6,8 +6,10 @@ import { GroupageCard } from '../../components/commerce/GroupageCard';
 import { Tabs } from '../../components/ui/Tabs';
 import { EmptyState, ErrorState } from '../../components/ui/States';
 import { Button } from '../../components/ui/Button';
+import { useSeo } from '../../lib/seo';
 
 export default function GroupagesPage() {
+  useSeo({ title: 'Groupages : achetez ensemble, payez moins', description: 'Rejoignez une commande groupée depuis la Chine : prix réduit, paiement sécurisé en FCFA, remboursement si l’objectif n’est pas atteint.', path: '/groupages' }, []);
   const { data, loading, error, reload } = useAsync(() => listPublicGroupages(), [], { cacheKey: 'groupages:public' });
   usePolling(reload, 60000);
   const [tab, setTab] = useState<'open' | 'progress'>('open');

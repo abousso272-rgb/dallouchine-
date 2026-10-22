@@ -12,13 +12,14 @@ import { vehiclePriceLabel } from '../../components/commerce/VehicleCard';
 import { CONDITION_LABEL, FUEL_LABEL, TRANSMISSION_LABEL, VEHICLE_STATUS, VEHICLE_TYPE_LABEL } from '../../lib/status';
 import { formatNumber } from '../../lib/format';
 import { PLACEHOLDER_IMAGE } from '../../services/catalog';
+import { applySeo } from '../../lib/seo';
 
 export default function VehiclePage({ slug }: { slug: string }) {
   const { data: v, loading, error, reload } = useAsync(() => getVehicle(slug), [slug], { cacheKey: `vehicle:${slug}` });
   const [imageIndex, setImageIndex] = useState(0);
 
   useEffect(() => {
-    if (v) document.title = `${v.title} — Dallou Chine Automobile`;
+    if (v) applySeo({ title: `${v.title} — Automobile`, description: `${v.title} importé de Chine, livré au Sénégal. Prix, délais et devis personnalisé.`, path: `/automobile/${v.slug}`, image: v.images[0], type: 'product' });
   }, [v]);
 
   if (loading) return <PageLoader />;

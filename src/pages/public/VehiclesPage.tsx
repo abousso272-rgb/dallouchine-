@@ -8,6 +8,7 @@ import { ProductCard } from '../../components/commerce/ProductCard';
 import { listProducts } from '../../services/catalog';
 import { EmptyState, ErrorState } from '../../components/ui/States';
 import { VEHICLE_TYPE_LABEL } from '../../lib/status';
+import { useSeo } from '../../lib/seo';
 
 const TYPE_FILTERS = [
   { value: '', label: 'Tous' },
@@ -21,6 +22,7 @@ const TYPE_FILTERS = [
 ];
 
 export default function VehiclesPage() {
+  useSeo({ title: 'Voitures, motos et utilitaires importés de Chine', description: 'Véhicules électriques et thermiques importés de Chine, livrés au Sénégal : prix, délais et devis personnalisé.', path: '/automobile' }, []);
   const [type, setType] = useState('');
   const [search, setSearch] = useState('');
   const q = useDebounced(search, 350);

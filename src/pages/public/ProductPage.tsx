@@ -8,6 +8,7 @@ import { listPublicGroupages, isJoinable } from '../../services/groupages';
 import { estimateShipping, type ShippingEstimate } from '../../services/orders';
 import { addFavorite, listFavoriteIds, removeFavorite } from '../../services/favorites';
 import { pushRecent } from '../../lib/recent';
+import { applySeo, productJsonLd } from '../../lib/seo';
 import { whatsappLink } from '../../lib/config';
 import { Link } from '../../components/ui/Link';
 import { Button } from '../../components/ui/Button';
@@ -50,7 +51,23 @@ export default function ProductPage({ slug }: { slug: string }) {
     if (product) {
       setQty(product.moq);
       setImageIndex(0);
-      document.title = `${product.name} — Dallou Chine`;
+      applySeo({
+        title: `${product.name} — ${product.priceXOF.toLocaleString('fr-FR')} FCFA`,
+        description: `${product.shortDescription || product.name}. Livraison à Dakar, paiement Wave, Orange Money ou carte.`,
+        path: `/produit/${product.slug}`,
+        image: product.images[0],
+        type: 'product',
+        jsonLd: productJsonLd({
+          name: product.name,
+          description: product.description || product.shortDescription || product.name,
+          images: product.images,
+          sku: product.sku,
+          priceXOF: product.priceXOF,
+          inStock: product.availableQuantity > 0,
+          category: product.categoryName,
+          url: `${window.location.origin}/produit/${product.slug}`
+        })
+      });
       pushRecent({ id: product.id, slug: product.slug, name: product.name, image: product.images[0] || null, priceXOF: product.priceXOF });
     }
   }, [product]);

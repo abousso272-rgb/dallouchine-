@@ -12,8 +12,10 @@ import { Stepper } from '../../components/ui/Stepper';
 import { SOURCING_STEPS } from '../../lib/status';
 import { ProductAnalyzer, type AnalyzerContext } from '../../components/requests/ProductAnalyzer';
 import { analysisToNotes, type ProductAnalysis } from '../../services/ai';
+import { useSeo } from '../../lib/seo';
 
 export default function SourcingPage() {
+  useSeo({ title: 'Sourcing en Chine sur mesure', description: 'Une photo ou un lien 1688 / Alibaba suffit : nous trouvons le fournisseur, négocions et vous envoyons un devis tout compris en FCFA, livré à Dakar.', path: '/sourcing' }, []);
   const { user, requireAuth, query, categories, toast } = useApp();
   const [title, setTitle] = useState(query.get('produit') || '');
   const [description, setDescription] = useState('');

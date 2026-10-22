@@ -254,3 +254,34 @@ export async function setExchangeRate(cnyToXof: number, usdToXof?: number | null
 export function updateFinanceTargets(targets: Record<string, number>) {
   return rpc('admin_update_finance_targets', { p_targets: targets });
 }
+
+// ---------------------------------------------------------------------------
+// Audience du site (statistiques maison)
+// ---------------------------------------------------------------------------
+
+export interface Audience {
+  days: number;
+  visits: number;
+  pageviews: number;
+  visits_today: number;
+  visits_prev: number;
+  bounce_pct: number | null;
+  pages_per_visit: number | null;
+  daily: { day: string; visits: number }[];
+  sources: { source: string; visits: number }[];
+  countries: { country: string; visits: number }[];
+  devices: { device: string; visits: number }[];
+  pages: { path: string; views: number }[];
+  landings: { path: string; visits: number }[];
+  campaigns: { campaign: string; source: string; visits: number }[];
+  events: Record<string, number>;
+  signups: number;
+  orders: number;
+  orders_paid: number;
+  requests: number;
+  first_event_at: string | null;
+}
+
+export function getAudience(days: number) {
+  return rpc<Audience>('admin_audience', { p_days: days });
+}

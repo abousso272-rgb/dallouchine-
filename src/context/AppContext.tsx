@@ -6,6 +6,7 @@ import type { AppRole, AppUser, CartLine, Category, Onboarding, Product } from '
 import * as cartApi from '../services/cart';
 import { listCategories } from '../services/catalog';
 import { countUnreadNotifications } from '../services/account';
+import { trackEvent } from '../lib/analytics';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -302,6 +303,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
       throw new AppError('Ce compte est suspendu. Contactez le support Dallou Chine.');
     }
+    trackEvent('login', { method: 'password' });
     return profile;
   }, []);
 
@@ -317,6 +319,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       });
       if (error) throw new AppError(friendlyError(error));
+      trackEvent('sign_up', { method: 'password' });
       if (data.user && data.session) {
         // Complète le profil créé par le déclencheur d'inscription (téléphone, ville)
         await supabase
@@ -371,6 +374,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setCart(await cartApi.hydrateGuestCart(guest));
         }
         toast('success', 'Ajouté au panier', `${product.name} × ${quantity}`);
+        trackEvent('add_to_cart', { currency: 'XOF', value: product.priceXOF * quantity, item_id: product.id });
       } catch (err) {
         toast('error', 'Ajout impossible', friendlyError(err));
       }

@@ -9,8 +9,10 @@ import { ClientFilesInput } from '../../components/ui/Uploads';
 import { InlineAlert } from '../../components/ui/States';
 import { Stepper } from '../../components/ui/Stepper';
 import { B2B_STEPS } from '../../lib/status';
+import { useSeo } from '../../lib/seo';
 
 export default function ProPage() {
+  useSeo({ title: 'Approvisionnement professionnel depuis la Chine (B2B)', description: 'Grandes quantités, marque privée, logo, emballage : devis B2B pour revendeurs et entreprises, contrôle qualité et livraison au Sénégal.', path: '/pro' }, []);
   const { user, requireAuth, toast } = useApp();
   const [company, setCompany] = useState('');
   const [sector, setSector] = useState('');

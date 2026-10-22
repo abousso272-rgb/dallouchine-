@@ -5,6 +5,7 @@ import type { TranslationKey } from '../../lib/i18n';
 import { Button } from '../../components/ui/Button';
 import { whatsappLink } from '../../lib/config';
 import { DeliveryScene, GroupageScene, PaymentScene, ShippingScene, SourcingScene, TrackingScene } from '../../components/guide/Scenes';
+import { applySeo } from '../../lib/seo';
 
 const STEPS: { n: number; Scene: React.ComponentType<{ label: string }>; to: string; cta: TranslationKey }[] = [
   { n: 1, Scene: SourcingScene, to: '/sourcing', cta: 'guide.ctaSourcing' },
@@ -28,7 +29,16 @@ export default function GuidePage() {
   const [active, setActive] = useState(1);
 
   useEffect(() => {
-    document.title = `${t('guide.eyebrow')} — Dallou Chine`;
+    applySeo({
+      title: t('guide.title'),
+      description: t('guide.subtitle'),
+      path: '/guide',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: t(q), acceptedAnswer: { '@type': 'Answer', text: t(a) } }))
+      }
+    });
   }, [t]);
 
   // Étape visible : met en avant la bonne entrée du sommaire

@@ -1,6 +1,7 @@
 import { supabase, rpc, unwrap, AppError, friendlyError, isMigrationError } from '../lib/db';
 import type { ClientRequest, Finding, Message, Quote } from '../lib/types';
 import type { RequestType } from '../lib/status';
+import { trackEvent } from '../lib/analytics';
 
 const TABLE: Record<RequestType, string> = {
   sourcing: 'sourcing_requests',
@@ -135,6 +136,7 @@ export interface SourcingInput {
 }
 
 export function submitSourcing(i: SourcingInput) {
+  trackEvent('request_quote', { type: 'sourcing' });
   return rpc<{ id: string; code: string }>('submit_sourcing_request', {
     p_title: i.title,
     p_description: i.description,
@@ -179,6 +181,7 @@ export interface B2BInput {
 }
 
 export function submitB2B(i: B2BInput) {
+  trackEvent('request_quote', { type: 'b2b' });
   return rpc<{ id: string; code: string }>('submit_b2b_request', {
     p_company_name: i.companyName,
     p_contact_name: i.contactName,
@@ -214,6 +217,7 @@ export interface VehicleRequestInput {
 }
 
 export function submitVehicleRequest(i: VehicleRequestInput) {
+  trackEvent('request_quote', { type: 'vehiclerequest' });
   return rpc<{ id: string; code: string }>('submit_vehicle_request', {
     p_contact_name: i.contactName,
     p_phone: i.phone,

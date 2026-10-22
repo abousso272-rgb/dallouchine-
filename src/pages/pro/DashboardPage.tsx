@@ -366,7 +366,6 @@ function ManagerDashboard() {
     stats.reload();
     groupages.reload();
   }, 60000);
-  const canCreate = user?.permissions.includes('create_groupages');
   const list = groupages.data || [];
   const urgent = list.filter(g => ['critical', 'at_risk', 'failed'].includes(g.risk));
   const expiring = list.reduce((n, g) => n + g.expiring_count, 0);
@@ -382,11 +381,9 @@ function ManagerDashboard() {
       <Greeting
         subtitle="Vos groupages : progression, prévision de la quantité minimale, argent encaissé et ce qui demande votre attention."
         actions={
-          canCreate ? (
-            <Button to="/espace-pro/groupages/nouveau" size="sm" icon={<Plus className="h-4 w-4" />}>
-              Nouveau groupage
-            </Button>
-          ) : undefined
+          <Button to="/espace-pro/groupages/nouveau" size="sm" icon={<Plus className="h-4 w-4" />}>
+            Nouveau groupage
+          </Button>
         }
       />
       <QuickActions />

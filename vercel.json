@@ -6,6 +6,26 @@
       "destination": "/api"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "/api"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api"
+    },
+    {
+      "source": "/produit/:slug",
+      "destination": "/api"
+    },
+    {
+      "source": "/groupages/:id",
+      "destination": "/api"
+    },
+    {
+      "source": "/automobile/:slug",
+      "destination": "/api"
+    },
+    {
       "source": "/((?!api/|assets/|logos/|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }

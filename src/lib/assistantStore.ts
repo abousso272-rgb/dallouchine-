@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { askAssistant, type AssistantReply } from '../services/assistant';
 import { AppError } from './db';
+import { trackEvent } from './analytics';
 
 export interface AssistantMsg {
   role: 'user' | 'assistant';
@@ -50,6 +51,7 @@ export const assistantStore = {
   async send(text: string, lang: 'fr' | 'en', errors: { generic: string; rateLimited: string }) {
     const q = text.trim();
     if (!q || state.busy) return;
+    trackEvent('assistant_question');
     const next: AssistantMsg[] = [...state.messages, { role: 'user', content: q }];
     set({ messages: next, busy: true });
     try {

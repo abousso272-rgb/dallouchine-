@@ -7,6 +7,7 @@ import { teamRouter } from './api/teamRouter';
 import { aiRouter } from './api/aiRouter';
 import { cronRouter } from './api/cronRouter';
 import { assistantRouter } from './api/assistantRouter';
+import { seoRouter } from './api/seoRouter';
 import { paymentService } from './services/PaymentService';
 import { hasServiceRole, hasSasPayCredentials, hasSasPayWebhookSecret, saspayEnvironment, hasAiProvider, hasEmailProvider } from './config';
 
@@ -53,6 +54,9 @@ export function createApiApp() {
       timestamp: new Date().toISOString()
     });
   });
+
+  // Référencement (sitemap, robots, pages avec métadonnées) et statistiques de visite
+  api.use(seoRouter);
 
   api.use('/api/payments', paymentsRouter);
   api.use('/api', paymentsRouter); // /api/webhooks/saspay

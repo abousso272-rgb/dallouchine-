@@ -2,8 +2,10 @@ import React from 'react';
 import { Compass } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/States';
+import { useSeo } from '../../lib/seo';
 
 export default function NotFoundPage() {
+  useSeo({ title: 'Page introuvable', noindex: true }, []);
   return (
     <div className="container-page max-w-xl py-16">
       <div className="card">

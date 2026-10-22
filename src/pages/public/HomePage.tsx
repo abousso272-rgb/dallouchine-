@@ -52,8 +52,10 @@ import { FlagCN, FlagSN } from '../../components/ui/Flags';
 import { Reveal } from '../../components/ui/Reveal';
 import { AiSearchBand } from '../../components/home/AiSearchBand';
 import type { Groupage } from '../../lib/types';
+import { useSeo } from '../../lib/seo';
 
 export function HomePage() {
+  useSeo({ title: 'Dallou Chine — Importez de Chine, livré à Dakar', description: 'Achetez des produits sélectionnés en Chine, rejoignez des commandes groupées pour payer moins, confiez-nous votre sourcing et suivez chaque étape jusqu’à Dakar.', path: '/' }, []);
   const products = useAsync(() => listFeaturedProducts(8), [], { cacheKey: 'home:products', maxAge: 60000 });
   const groupages = useAsync(() => listPublicGroupages(), [], { cacheKey: 'groupages:public' });
   const vehicles = useAsync(() => listVehicles({ limit: 3, featuredFirst: true }), [], { cacheKey: 'home:vehicles', maxAge: 60000 });

@@ -79,7 +79,7 @@ export function GroupageCockpit({ groupageId, onChanged }: { groupageId: string;
   const msg = riskMessage(c);
   const open = c.risk !== 'inactive' && c.risk !== 'confirmed';
   const remaining = Math.max(0, c.supplier_moq - c.active_quantity);
-  const shareText = `Rejoignez le groupage « ${c.title} » : ${formatXOF(c.unit_price_xof)} l’unité. ${remaining > 0 ? `Il manque ${remaining} unité(s) pour lancer la commande. ` : ''}Réservez avant le ${formatDate(c.deadline)} : ${window.location.origin}/groupages/${c.id}`;
+  const shareText = `Rejoignez le groupage « ${c.title} » : ${formatXOF(c.unit_price_xof)} l’unité. ${remaining > 0 ? `Il manque ${remaining} unité(s) pour lancer la commande. ` : ''}Réservez avant le ${formatDate(c.deadline)} : ${window.location.origin}/groupages/${c.id}?utm_source=whatsapp&utm_medium=partage&utm_campaign=${encodeURIComponent(c.code)}`;
   const coverage = c.supplier_due_estimate_xof !== null ? c.collected_xof - c.supplier_due_estimate_xof : null;
 
   async function remind() {

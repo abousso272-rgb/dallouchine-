@@ -26,7 +26,7 @@ const VIEWS: Record<View, string[]> = {
 export default function StaffGroupagesPage() {
   const { user } = useApp();
   const isAdmin = user?.role === 'admin';
-  const canCreate = isAdmin || user?.permissions.includes('create_groupages');
+  const canCreate = isAdmin || user?.role === 'groupage_manager';
   const { data, loading, error, reload } = useAsync(() => listStaffGroupages(isAdmin ? {} : { managerId: user!.id }), [user?.id, isAdmin]);
   const [view, setView] = useState<View>('actifs');
   const rows = (data || []).filter(g => VIEWS[view].includes(g.status));

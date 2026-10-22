@@ -18,6 +18,7 @@ import { PaymentLogos } from '../../components/commerce/PaymentLogos';
 import { deadlineLabel } from '../../components/commerce/GroupageCard';
 import { EmptyState, ErrorState, InlineAlert, PageLoader } from '../../components/ui/States';
 import { Select } from '../../components/ui/Field';
+import { applySeo } from '../../lib/seo';
 
 export default function GroupagePage({ id }: { id: string }) {
   const { user, requireAuth, toast, navigate } = useApp();
@@ -36,7 +37,14 @@ export default function GroupagePage({ id }: { id: string }) {
   useEffect(() => {
     if (g) {
       setQty(g.minPerUser);
-      document.title = `Groupage ${g.product?.name || g.title} — Dallou Chine`;
+      applySeo({
+        title: `Groupage ${g.product?.name || g.title} — ${g.unitPriceXOF.toLocaleString('fr-FR')} FCFA`,
+        description: `${g.description || `Commande groupée : ${g.product?.name || g.title}.`} ${g.reservedQuantity}/${g.targetQuantity} réservés.`,
+        path: `/groupages/${g.id}`,
+        image: g.image,
+        type: 'product',
+        noindex: g.status === 'draft' || g.status === 'cancelled'
+      });
     }
   }, [g]);
   useEffect(() => {
@@ -236,7 +244,7 @@ export default function GroupagePage({ id }: { id: string }) {
                 block
                 variant="whatsapp"
                 icon={<Share2 className="h-4 w-4" />}
-                to={`https://wa.me/?text=${encodeURIComponent(`Je rejoins le groupage « ${g.product?.name || g.title} » : ${formatXOF(g.unitPriceXOF)} l’unité, livré à Dakar. Plus on est nombreux, plus c’est sûr d’être lancé (${g.reservedQuantity}/${g.targetQuantity}). ${window.location.origin}/groupages/${g.id}`)}`}
+                to={`https://wa.me/?text=${encodeURIComponent(`Je rejoins le groupage « ${g.product?.name || g.title} » : ${formatXOF(g.unitPriceXOF)} l’unité, livré à Dakar. Plus on est nombreux, plus c’est sûr d’être lancé (${g.reservedQuantity}/${g.targetQuantity}). ${window.location.origin}/groupages/${g.id}?utm_source=whatsapp&utm_medium=partage`)}`}
               >
                 Inviter des amis sur WhatsApp
               </Button>
