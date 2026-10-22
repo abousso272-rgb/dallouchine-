@@ -17,7 +17,7 @@ export default function PricingCalculatorPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader guide="calculateur"
         eyebrow="Outils"
         title="Calculateur de prix"
         description="Du prix d’achat en yuans au prix de vente livré à Dakar : change, fret, douane et marge, avec la marge réelle affichée avant d’envoyer un devis."

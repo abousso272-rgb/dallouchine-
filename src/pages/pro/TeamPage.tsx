@@ -59,7 +59,7 @@ export default function TeamPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Équipe" description="Membres, rôles, permissions et invitations. Chaque rôle n’accède qu’aux données utiles à son travail." />
+      <PageHeader guide="equipe" title="Équipe" description="Membres, rôles, permissions et invitations. Chaque rôle n’accède qu’aux données utiles à son travail." />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_1fr]">
         <Card>

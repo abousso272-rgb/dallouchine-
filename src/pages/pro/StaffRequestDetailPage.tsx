@@ -122,7 +122,7 @@ export default function StaffRequestDetailPage({ type, id }: { type: RequestType
 
   return (
     <div className="space-y-5">
-      <PageHeader
+      <PageHeader guide="demandes"
         back={{ to: `/espace-pro/demandes?type=${type}`, label: 'Demandes' }}
         eyebrow={`${REQUEST_TYPE_LABEL[type]} · ${r.code} · reçue le ${formatDate(r.createdAt)}`}
         title={r.title}

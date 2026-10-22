@@ -11,6 +11,7 @@ import { Checkbox, Input, Select, Textarea } from '../../components/ui/Field';
 import { MediaGalleryInput } from '../../components/ui/Uploads';
 import { Badge } from '../../components/ui/Badge';
 import { ErrorState, InlineAlert, PageLoader } from '../../components/ui/States';
+import { NewCategoryButton } from '../../components/pro/QuickCategoryDialog';
 
 const EMPTY: ProductInput = {
   name: '',
@@ -136,7 +137,7 @@ export default function ProductEditorPage({ id }: { id: string }) {
 
   return (
     <form onSubmit={save} className="space-y-5">
-      <PageHeader
+      <PageHeader guide="produits"
         back={{ to: '/espace-pro/produits', label: 'Produits' }}
         title={isNew ? 'Nouveau produit' : form.name}
         actions={
@@ -166,7 +167,10 @@ export default function ProductEditorPage({ id }: { id: string }) {
                 }}
                 wrapperClassName="sm:col-span-2"
               />
-              <Select label="Catégorie" required value={form.categoryId} onChange={e => set('categoryId', e.target.value)} placeholder="Choisir" options={categories.map(c => ({ value: c.id, label: c.name }))} />
+              <div className="grid gap-1.5">
+                <Select label="Catégorie" required value={form.categoryId} onChange={e => set('categoryId', e.target.value)} placeholder="Choisir" options={categories.map(c => ({ value: c.id, label: c.name }))} />
+                <NewCategoryButton onCreated={c => set('categoryId', c.id)} />
+              </div>
               <Input label="Référence (SKU)" value={form.sku} onChange={e => set('sku', e.target.value)} />
               <Input
                 label="Adresse de la fiche"

@@ -43,7 +43,7 @@ export default function StaffOrdersPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader guide="commandes"
         title="Commandes"
         description={user?.role === 'groupage_manager' ? 'Commandes liées aux groupages dont vous avez la charge.' : 'Suivi des commandes, paiements et acheminement.'}
       />

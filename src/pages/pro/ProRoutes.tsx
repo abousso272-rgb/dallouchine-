@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  BookOpen,
   Boxes,
   Calculator,
   FileSpreadsheet,
@@ -50,6 +51,7 @@ import PricingCalculatorPage from './PricingCalculatorPage';
 import CostSheetPage from './CostSheetPage';
 import GroupageSimulatorPage from './GroupageSimulatorPage';
 import AudiencePage from './AudiencePage';
+import StaffGuidePage from './StaffGuidePage';
 import type { RequestType } from '../../lib/status';
 
 const ALL: AppRole[] = ['admin', 'transitaire', 'groupage_manager'];
@@ -62,7 +64,7 @@ export const PRO_NAV: { to: string; label: string; icon: React.ElementType; role
   { to: '/espace-pro/simulateur-groupage', label: 'Simulateur de groupage', icon: Calculator, roles: ALL },
   { to: '/espace-pro/produits', label: 'Produits', icon: Boxes, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/tableur', label: 'Tableur produits', icon: FileSpreadsheet, roles: ['admin', 'transitaire', 'groupage_manager'] },
-  { to: '/espace-pro/categories', label: 'Catégories', icon: FolderTree, roles: ['admin'] },
+  { to: '/espace-pro/categories', label: 'Catégories', icon: FolderTree, roles: ALL },
   { to: '/espace-pro/vehicules', label: 'Automobile', icon: Car, roles: ['admin', 'transitaire'] },
   { to: '/espace-pro/finance', label: 'Finance', icon: TrendingUp, roles: ['admin'] },
   { to: '/espace-pro/audience', label: 'Audience du site', icon: Globe, roles: ['admin'] },
@@ -80,6 +82,7 @@ interface ProRoute {
 
 const ROUTES: ProRoute[] = [
   { pattern: '/espace-pro', roles: ALL, render: () => <DashboardPage /> },
+  { pattern: '/espace-pro/guide', roles: ALL, render: () => <StaffGuidePage /> },
   { pattern: '/espace-pro/commandes', roles: ALL, render: () => <StaffOrdersPage /> },
   { pattern: '/espace-pro/commandes/:id', roles: ALL, render: p => <StaffOrderDetailPage id={p.id} /> },
   { pattern: '/espace-pro/demandes', roles: ['admin', 'transitaire'], render: () => <StaffRequestsPage /> },
@@ -94,7 +97,7 @@ const ROUTES: ProRoute[] = [
   { pattern: '/espace-pro/tableur', roles: ['admin', 'transitaire', 'groupage_manager'], render: () => <CostSheetPage /> },
   { pattern: '/espace-pro/produits', roles: ['admin', 'transitaire'], render: () => <StaffProductsPage /> },
   { pattern: '/espace-pro/produits/:id', roles: ['admin', 'transitaire'], render: p => <ProductEditorPage id={p.id} /> },
-  { pattern: '/espace-pro/categories', roles: ['admin'], render: () => <CategoriesPage /> },
+  { pattern: '/espace-pro/categories', roles: ALL, render: () => <CategoriesPage /> },
   { pattern: '/espace-pro/vehicules', roles: ['admin', 'transitaire'], render: () => <StaffVehiclesPage /> },
   { pattern: '/espace-pro/vehicules/:id', roles: ['admin', 'transitaire'], render: p => <VehicleEditorPage id={p.id} /> },
   { pattern: '/espace-pro/finance', roles: ['admin'], render: () => <FinancePage /> },
@@ -191,6 +194,16 @@ export default function ProRoutes({ path }: { path: string }) {
           </div>
         </div>
       </div>
+      <div className="mx-3 mb-3">
+        <Link
+          to="/espace-pro/guide"
+          className={`flex h-11 items-center justify-center gap-2 rounded-full border text-[13.5px] font-bold transition-colors ${
+            path === '/espace-pro/guide' ? 'border-transparent bg-white text-ink' : 'border-brand-400/60 bg-brand/15 text-white hover:bg-brand/25'
+          }`}
+        >
+          <BookOpen className="h-[18px] w-[18px]" /> Guide de mon espace
+        </Link>
+      </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3" aria-label="Espace professionnel">
         {nav.map(item => {
           const active = isActive(item.to, item.exact);
@@ -240,6 +253,9 @@ export default function ProRoutes({ path }: { path: string }) {
           </button>
           <Logo compact />
           <span className="truncate text-[13px] font-semibold text-muted">{ROLE_LABEL[user.role]}</span>
+          <Link to="/espace-pro/guide" className="ml-auto inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-3 text-[12.5px] font-bold text-brand-700" aria-label="Guide de mon espace">
+            <BookOpen className="h-4 w-4" /> Guide
+          </Link>
         </header>
         <main className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{content}</main>
       </div>

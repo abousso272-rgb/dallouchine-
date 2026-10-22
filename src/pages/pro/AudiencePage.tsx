@@ -62,7 +62,7 @@ export default function AudiencePage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader guide="audience"
         eyebrow="Pilotage"
         title="Audience du site"
         description="Combien de personnes visitent le site, d’où elles viennent (Google, WhatsApp, Facebook…), de quel pays, et combien deviennent clientes."

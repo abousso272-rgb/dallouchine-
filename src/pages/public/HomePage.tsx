@@ -383,6 +383,9 @@ function Journey() {
             Comment ça marche ?
           </h2>
           <p className="mt-2 text-[14.5px] text-muted">Un processus simple, de la Chine jusqu’à vous.</p>
+          <Button to="/guide" size="sm" variant="secondary" className="mt-4" icon={<ArrowRight className="h-3.5 w-3.5" />}>
+            Voir le guide complet
+          </Button>
         </div>
         <div className="relative">
           <div className="flex items-center gap-3">

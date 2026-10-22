@@ -34,7 +34,7 @@ export default function StaffGroupagesPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader guide="groupage-piloter"
         title="Groupages"
         description={isAdmin ? 'Toutes les campagnes d’achat groupé.' : 'Les campagnes dont vous avez la charge.'}
         actions={

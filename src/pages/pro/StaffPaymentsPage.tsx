@@ -34,7 +34,7 @@ export default function StaffPaymentsPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader guide="paiements"
         title="Paiements"
         description="Encaissements confirmés par la passerelle (notification signée, relue auprès de l’API) et règlements enregistrés manuellement."
         actions={

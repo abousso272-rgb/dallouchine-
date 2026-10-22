@@ -116,7 +116,7 @@ export default function StaffOrderDetailPage({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <PageHeader
+      <PageHeader guide="commandes"
         back={{ to: '/espace-pro/commandes', label: 'Commandes' }}
         eyebrow={`Créée le ${formatDateTime(order.createdAt)}`}
         title={<span className="num">{order.trackingCode}</span>}

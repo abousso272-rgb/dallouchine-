@@ -50,7 +50,7 @@ export default function StaffProductsPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader guide="produits"
         title="Produits"
         description={canPublish ? 'Catalogue, prix, coûts d’achat et publication.' : 'Ajoutez et complétez les produits : l’administration les publie.'}
         actions={

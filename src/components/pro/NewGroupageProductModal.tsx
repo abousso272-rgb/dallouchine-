@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import { Input, Select, Textarea } from '../ui/Field';
 import { InlineAlert } from '../ui/States';
 import { MediaGalleryInput } from '../ui/Uploads';
+import { NewCategoryButton } from './QuickCategoryDialog';
 
 export interface CreatedProduct {
   id: string;
@@ -94,7 +95,10 @@ export function NewGroupageProductModal({
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <Input label="Nom du produit" required value={f.name} onChange={e => set('name', e.target.value)} placeholder="Ex. Station solaire 1000 W" />
-          <Select label="Catégorie" required value={f.categoryId} onChange={e => set('categoryId', e.target.value)} placeholder="Choisir" options={roots.map(c => ({ value: c.id, label: c.name }))} />
+          <div className="grid gap-1.5">
+            <Select label="Catégorie" required value={f.categoryId} onChange={e => set('categoryId', e.target.value)} placeholder="Choisir" options={roots.map(c => ({ value: c.id, label: c.name }))} />
+            <NewCategoryButton onCreated={c => set('categoryId', c.id)} />
+          </div>
         </div>
         <div>
           <p className="mb-1.5 text-[13px] font-semibold">Photo</p>

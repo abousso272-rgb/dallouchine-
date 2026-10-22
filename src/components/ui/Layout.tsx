@@ -1,19 +1,23 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from './Link';
+import { GuideLink } from '../pro/GuideLink';
 
 export function PageHeader({
   eyebrow,
   title,
   description,
   actions,
-  back
+  back,
+  guide
 }: {
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
   back?: { to: string; label: string };
+  /** Module du guide de l'espace pro : affiche le bouton « Guide de cet écran ». */
+  guide?: string;
 }) {
   return (
     <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
@@ -27,7 +31,12 @@ export function PageHeader({
         <h1 className="text-[26px] font-bold leading-tight sm:text-[30px]">{title}</h1>
         {description && <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">{description}</p>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+      {(actions || guide) && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {guide && <GuideLink module={guide} />}
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

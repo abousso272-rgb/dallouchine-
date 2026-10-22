@@ -353,7 +353,7 @@ export default function GroupageEditorPage({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <PageHeader
+      <PageHeader guide="groupage-creer"
         back={{ to: '/espace-pro/groupages', label: 'Groupages' }}
         eyebrow={isNew ? 'Nouveau groupage' : g?.code}
         title={isNew ? 'Créer un groupage' : g?.product?.name || g?.title}

@@ -58,6 +58,8 @@ interface AppContextValue {
 
   // Données partagées
   categories: Category[];
+  /** Recharge les catégories (après création ou modification par l'équipe). */
+  refreshCategories: () => Promise<void>;
   unreadCount: number;
   refreshUnread: () => void;
 
@@ -412,6 +414,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // ---- Catégories (partagées par l'en-tête, le catalogue et l'accueil)
+  const refreshCategories = useCallback(async () => {
+    try {
+      setCategories(await listCategories());
+    } catch {
+      /* on garde la liste actuelle */
+    }
+  }, []);
   useEffect(() => {
     listCategories()
       .then(setCategories)
@@ -460,6 +469,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     clearCart,
     reloadCart,
     categories,
+    refreshCategories,
     unreadCount,
     refreshUnread,
     toasts,

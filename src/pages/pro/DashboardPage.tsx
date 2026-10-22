@@ -43,7 +43,7 @@ function Greeting({ subtitle, actions }: { subtitle: string; actions?: React.Rea
   const { user } = useApp();
   const first = (user?.fullName || '').split(' ')[0];
   return (
-    <PageHeader
+    <PageHeader guide="demarrer"
       eyebrow={
         <span className="inline-flex items-center gap-2">
           {formatDate(new Date())}

@@ -176,7 +176,7 @@ export async function listCategories(includeInactive = false): Promise<Category[
   return (data || []).map(mapCategory);
 }
 
-export async function saveCategory(input: Partial<Category> & { name: string; slug: string }): Promise<void> {
+export async function saveCategory(input: Partial<Category> & { name: string; slug: string }): Promise<string> {
   const row = {
     name: input.name.trim(),
     slug: input.slug.trim(),
@@ -185,8 +185,12 @@ export async function saveCategory(input: Partial<Category> & { name: string; sl
     is_active: input.isActive ?? true,
     sort_order: input.sortOrder ?? 0
   };
-  if (input.id) unwrap(await supabase.from('categories').update(row).eq('id', input.id));
-  else unwrap(await supabase.from('categories').insert(row));
+  if (input.id) {
+    unwrap(await supabase.from('categories').update(row).eq('id', input.id));
+    return input.id;
+  }
+  const created = unwrap(await supabase.from('categories').insert(row).select('id').single());
+  return created.id as string;
 }
 
 export async function deleteCategory(id: string): Promise<void> {

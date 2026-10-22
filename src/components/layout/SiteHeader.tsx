@@ -15,7 +15,7 @@ export const MAIN_NAV: { to: string; labelKey: TranslationKey; match: string[]; 
   { to: '/sourcing', labelKey: 'nav.sourcing', match: ['/sourcing'] },
   { to: '/automobile', labelKey: 'nav.auto', match: ['/automobile'] },
   { to: '/pro', labelKey: 'nav.b2b', match: ['/pro'] },
-  { to: '/guide', labelKey: 'nav.guide', match: ['/guide'], wide: true }
+  { to: '/guide', labelKey: 'nav.guideShort', match: ['/guide'] }
 ];
 
 function isActive(path: string, match: string[]) {
@@ -329,7 +329,7 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
                   <div key={item.to}>
                     <div className={row}>
                       <Link to={item.to} className="flex-1">
-                        {t(item.labelKey)}
+                        {t(item.to === '/guide' ? 'nav.guide' : item.labelKey)}
                       </Link>
                       <button type="button" onClick={() => setCatsOpen(v => !v)} aria-expanded={catsOpen} aria-label={t('mega.allCategories')} className="-mr-2 rounded-lg p-2 hover:bg-ink/5">
                         <ChevronDown className={`h-4 w-4 text-subtle transition-transform ${catsOpen ? 'rotate-180' : ''}`} />
@@ -352,7 +352,7 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
               }
               return (
                 <Link key={item.to} to={item.to} className={row}>
-                  {t(item.labelKey)}
+                  {t(item.to === '/guide' ? 'nav.guide' : item.labelKey)}
                   <ChevronRight className="h-4 w-4 text-subtle" />
                 </Link>
               );

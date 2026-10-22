@@ -15,7 +15,8 @@ import { MediaGalleryInput } from '../../components/ui/Uploads';
 import { EmptyState, ErrorState, Skeleton } from '../../components/ui/States';
 
 export default function CategoriesPage() {
-  const { toast } = useApp();
+  const { toast, user, refreshCategories } = useApp();
+  const isAdmin = user?.role === 'admin';
   const { data, loading, error, reload } = useAsync(() => listCategories(true), []);
   const [editing, setEditing] = useState<Partial<Category> | null>(null);
   const [saving, setSaving] = useState(false);
@@ -28,8 +29,10 @@ export default function CategoriesPage() {
       toast('success', 'Catégorie enregistrée');
       setEditing(null);
       reload();
+      refreshCategories();
     } catch (err) {
-      toast('error', 'Enregistrement impossible', friendlyError(err));
+      const msg = friendlyError(err);
+      toast('error', 'Enregistrement impossible', /row-level security|42501|permission/i.test(msg) ? 'Votre profil ne peut pas encore modifier les catégories : la mise à jour de la base doit être appliquée par l’administrateur.' : msg);
     } finally {
       setSaving(false);
     }
@@ -48,7 +51,7 @@ export default function CategoriesPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader guide="categories"
         title="Catégories"
         description="Organisation du catalogue (affichées dans les filtres et sur la page d’accueil)."
         actions={
@@ -78,9 +81,11 @@ export default function CategoriesPage() {
               <button type="button" onClick={() => setEditing(c)} className="rounded-lg p-2 text-muted hover:bg-paper hover:text-ink" aria-label="Modifier">
                 <Pencil className="h-4 w-4" />
               </button>
-              <button type="button" onClick={() => remove(c)} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-700" aria-label="Supprimer">
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {isAdmin && (
+                <button type="button" onClick={() => remove(c)} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-700" aria-label="Supprimer">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </li>
           ))}
         </ul>

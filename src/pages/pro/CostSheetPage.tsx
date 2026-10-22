@@ -27,6 +27,7 @@ import { Button } from '../../components/ui/Button';
 import { Link } from '../../components/ui/Link';
 import { ErrorState, InlineAlert, Skeleton } from '../../components/ui/States';
 import { ExchangeRateDialog } from '../../components/pro/ExchangeRateDialog';
+import { NewCategoryButton } from '../../components/pro/QuickCategoryDialog';
 
 /** Colonnes secondaires, masquées par défaut (toujours importées et enregistrées). */
 const ADVANCED = new Set<ColumnKey>(['sku', 'supplier', 'supplierUrl', 'listCny', 'delay', 'stock', 'notes']);
@@ -237,7 +238,7 @@ export default function CostSheetPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader guide="tableur"
         eyebrow="Produits"
         title="Tableur produits"
         description="Une ligne par produit : prix négocié, poids, cargo, prix de vente. Le coût livré et la marge se calculent tout seuls."
@@ -270,6 +271,7 @@ export default function CostSheetPage() {
               Modifier le taux
             </button>
           )}
+          <NewCategoryButton />
           <button type="button" onClick={() => setShowAdvanced(v => !v)} aria-pressed={showAdvanced} className="font-semibold text-muted hover:text-ink">
             {showAdvanced ? 'Moins de colonnes' : 'Plus de colonnes (référence, fournisseur, délai…)'}
           </button>

@@ -32,7 +32,7 @@ export default function GroupageSimulatorPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader guide="simulateur"
         eyebrow="Groupages"
         title="Simulateur de groupage"
         description="Testez un groupage avant de le lancer : à partir de combien de participants il devient rentable, quel prix fixer, quel bénéfice attendre."

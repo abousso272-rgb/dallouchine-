@@ -44,7 +44,7 @@ export default function StaffRequestsPage() {
 
   return (
     <div>
-      <PageHeader title="Demandes & devis" description="Analysez les besoins, recherchez les fournisseurs, envoyez les devis et échangez avec les clients." />
+      <PageHeader guide="demandes" title="Demandes & devis" description="Analysez les besoins, recherchez les fournisseurs, envoyez les devis et échangez avec les clients." />
       <Tabs
         value={type}
         onChange={v => setParam({ type: v, statut: null })}

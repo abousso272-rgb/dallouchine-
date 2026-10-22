@@ -47,7 +47,7 @@ export default function FinancePage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader guide="finance"
         eyebrow="Pilotage"
         title="Finance"
         description="Ce que vous encaissez, ce que ça vous coûte vraiment, ce qui reste, et ce qui devrait rentrer dans les 30 prochains jours."
