@@ -39,15 +39,17 @@ export function createApiApp() {
 
   api.get('/api/health', async (_req: Request, res: Response) => {
     const paymentsReady = await paymentService.readiness();
+    const gateway = paymentService.activeProvider;
     res.json({
       paymentsReady,
       status: 'online',
       service: 'Dallou Chine API',
-      gateway: 'SasPay',
-      paymentsConfigured: hasSasPayCredentials && hasSasPayWebhookSecret,
-      saspayKey: hasSasPayCredentials,
-      saspayWebhookSecret: hasSasPayWebhookSecret,
-      paymentsEnvironment: saspayEnvironment,
+      gateway: gateway === 'paytech' ? 'PayTech' : 'SasPay',
+      paymentsConfigured: paymentService.isConfigured,
+      paytechConfigured: hasPayTechCredentials,
+      paytechEnv: config.paytechEnv,
+      saspayConfigured: hasSasPayCredentials && hasSasPayWebhookSecret,
+      paymentsEnvironment: gateway === 'paytech' ? config.paytechEnv : saspayEnvironment,
       serviceRoleConfigured: hasServiceRole,
       aiConfigured: hasAiProvider,
       emailConfigured: hasEmailProvider,
