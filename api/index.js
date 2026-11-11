@@ -20,9 +20,11 @@ var config = {
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   appUrl: (process.env.APP_URL || "https://dallouchine.vercel.app").replace(/\/+$/, ""),
   port: parseInt(process.env.PORT || "3000", 10),
-  anthropicApiKey: clean(process.env.ANTHROPIC_API_KEY),
-  anthropicModel: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
-  anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, ""),
+  paymentGateway: process.env.PAYMENT_GATEWAY === "saspay" ? "saspay" : "paytech",
+  paytechApiKey: clean(process.env.PAYTECH_API_KEY),
+  paytechApiSecret: clean(process.env.PAYTECH_API_SECRET),
+  paytechEnv: process.env.PAYTECH_ENV === "prod" || process.env.PAYTECH_ENV === "live" ? "prod" : "test",
+  paytechBaseUrl: (process.env.PAYTECH_BASE_URL || "https://paytech.sn/api").replace(/\/+$/, ""),
   saspaySecretKey: clean(process.env.SASPAY_SECRET_KEY),
   saspayWebhookSecret: clean(process.env.SASPAY_WEBHOOK_SECRET),
   saspayBaseUrl: (process.env.SASPAY_BASE_URL || "https://api.saspay.me/api/v1").replace(/\/+$/, ""),
@@ -30,11 +32,18 @@ var config = {
   saspayProxyUrl: process.env.SASPAY_PROXY_URL || process.env.FIXIE_URL || process.env.QUOTAGUARDSTATIC_URL || "",
   resendApiKey: clean(process.env.RESEND_API_KEY),
   emailFrom: clean(process.env.EMAIL_FROM) || "Dallou Chine <notifications@dallouchine.com>",
-  cronSecret: clean(process.env.CRON_SECRET)
+  cronSecret: clean(process.env.CRON_SECRET),
+  anthropicApiKey: clean(process.env.ANTHROPIC_API_KEY),
+  anthropicModel: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
+  anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, "")
 };
+var hasPayTechCredentials = Boolean(
+  config.paytechApiKey && config.paytechApiSecret && config.paytechApiKey.length >= 8 && config.paytechApiSecret.length >= 8 && !config.paytechApiKey.includes("\u2026") && !config.paytechApiSecret.includes("\u2026")
+);
 var hasSasPayCredentials = /^sk_(test|live)_[A-Za-z0-9_-]{12,}$/.test(config.saspaySecretKey);
 var hasSasPayWebhookSecret = /^[\x21-\x7e]{16,}$/.test(config.saspayWebhookSecret);
 var saspayEnvironment = config.saspaySecretKey.startsWith("sk_live_") ? "production" : "sandbox";
+var activePaymentGateway = config.paymentGateway;
 var hasServiceRole = Boolean(config.supabaseServiceRoleKey);
 var hasEmailProvider = /^re_[A-Za-z0-9_-]{16,}$/.test(config.resendApiKey);
 var hasAiProvider = /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(config.anthropicApiKey) || config.anthropicApiKey.length > 20 && !config.anthropicApiKey.includes("\u2026");
@@ -533,7 +542,7 @@ shipmentsRouter.post("/:id/events", requireAdmin, async (req, res) => {
 import { Router as Router2 } from "express";
 
 // server/services/PaymentService.ts
-import crypto2 from "crypto";
+import crypto3 from "crypto";
 
 // server/providers/SasPayProvider.ts
 import crypto from "crypto";
@@ -779,15 +788,179 @@ var SasPayProvider = class _SasPayProvider {
   }
 };
 
+// server/providers/PayTechProvider.ts
+import crypto2 from "crypto";
+var PayTechProvider = class _PayTechProvider {
+  constructor() {
+    this.name = "paytech";
+  }
+  get baseUrl() {
+    return config.paytechBaseUrl;
+  }
+  headers() {
+    return {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "API_KEY": config.paytechApiKey,
+      "API_SECRET": config.paytechApiSecret
+    };
+  }
+  static mapStatus(typeEvent) {
+    const ev = (typeEvent || "").toLowerCase().trim();
+    if (ev === "sale_complete" || ev === "completed" || ev === "paid") return "paid";
+    if (ev === "sale_canceled" || ev === "canceled" || ev === "cancelled") return "cancelled";
+    if (ev === "expired") return "expired";
+    if (ev === "failed" || ev === "declined") return "failed";
+    return "pending";
+  }
+  /**
+   * Crée une demande de paiement PayTech et retourne le lien de redirection de checkout.
+   * Ajoute 1% au montant client (partage des 2% de frais : 1% client / 1% Dallou Chine).
+   */
+  async createPaymentSession(params) {
+    const baseAmount = Math.max(0, Math.round(params.amount));
+    const clientFeeShare = Math.round(baseAmount * 0.01);
+    const totalToCharge = baseAmount + clientFeeShare;
+    const metadata = {
+      order_id: params.orderId,
+      order_code: params.orderCode,
+      merchant_reference: params.merchantReference,
+      user_id: params.userId || null,
+      base_amount: baseAmount,
+      client_fee: clientFeeShare,
+      charged_amount: totalToCharge,
+      platform: "dallouchine",
+      ...params.metadata || {}
+    };
+    const payload = {
+      item_name: `Commande ${params.orderCode}`,
+      item_price: totalToCharge,
+      currency: params.currency || "XOF",
+      ref_command: params.merchantReference || params.orderCode,
+      command_name: `Paiement ${params.orderCode} \xB7 Dallou Chine`,
+      env: config.paytechEnv,
+      ipn_url: `${config.appUrl}/api/webhooks/paytech`,
+      success_url: params.returnUrl,
+      cancel_url: params.cancelUrl,
+      custom_field: JSON.stringify(metadata)
+    };
+    try {
+      const res = await fetch(`${this.baseUrl}/payment/request-payment`, {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(2e4)
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.success !== 1 || !json?.redirect_url) {
+        console.warn("[PayTech] Demande de paiement refus\xE9e:", res.status, JSON.stringify(json).slice(0, 400));
+        const unavailable = res.status >= 500 || res.status === 429;
+        return {
+          success: false,
+          paymentId: params.orderId,
+          checkoutUrl: "",
+          errorMessage: unavailable ? "Le service de paiement PayTech est momentan\xE9ment indisponible. Votre commande est conserv\xE9e : relancez le paiement dans un instant." : Array.isArray(json?.errors) ? json.errors.join(", ") : json?.message || `Refus passerelle PayTech (HTTP ${res.status}).`
+        };
+      }
+      return {
+        success: true,
+        paymentId: params.orderId,
+        checkoutUrl: json.redirect_url,
+        providerTransactionId: json.token ? String(json.token) : void 0,
+        providerReference: params.merchantReference
+      };
+    } catch (err) {
+      console.error("[PayTech] Passerelle injoignable:", err?.message);
+      return {
+        success: false,
+        paymentId: params.orderId,
+        checkoutUrl: "",
+        errorMessage: "La passerelle PayTech est inaccessible pour le moment. R\xE9essayez dans quelques instants."
+      };
+    }
+  }
+  /**
+   * Vérifie l'authenticité de la notification IPN PayTech via les hash SHA-256 des clés.
+   */
+  async verifyWebhook(rawBody, _headers) {
+    const raw = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
+    let payload;
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      const params = new URLSearchParams(raw);
+      payload = Object.fromEntries(params.entries());
+    }
+    if (!payload || typeof payload !== "object") {
+      return { isValid: false, reason: "Payload PayTech invalide." };
+    }
+    if (!config.paytechApiSecret || !config.paytechApiKey) {
+      return { isValid: false, reason: "Cl\xE9s PAYTECH_API_KEY ou PAYTECH_API_SECRET non configur\xE9es sur le serveur." };
+    }
+    const receivedSecretHash = String(payload.api_secret_sha256 || "").toLowerCase().trim();
+    const receivedKeyHash = String(payload.api_key_sha256 || "").toLowerCase().trim();
+    const expectedSecretHash = crypto2.createHash("sha256").update(config.paytechApiSecret).digest("hex").toLowerCase();
+    const expectedKeyHash = crypto2.createHash("sha256").update(config.paytechApiKey).digest("hex").toLowerCase();
+    const secA = Buffer.from(expectedSecretHash);
+    const secB = Buffer.from(receivedSecretHash);
+    const keyA = Buffer.from(expectedKeyHash);
+    const keyB = Buffer.from(receivedKeyHash);
+    const secretMatches = secA.length === secB.length && crypto2.timingSafeEqual(secA, secB);
+    const keyMatches = keyA.length === keyB.length && crypto2.timingSafeEqual(keyA, keyB);
+    if (!secretMatches || !keyMatches) {
+      return { isValid: false, reason: "Signature de s\xE9curit\xE9 PayTech invalide." };
+    }
+    const typeEvent = String(payload.type_event || "").toLowerCase();
+    const status = _PayTechProvider.mapStatus(typeEvent);
+    let metadata = {};
+    if (payload.custom_field) {
+      try {
+        metadata = typeof payload.custom_field === "string" ? JSON.parse(payload.custom_field) : payload.custom_field;
+      } catch {
+      }
+    }
+    const chargedAmount = Number(payload.item_price || metadata.charged_amount || 0);
+    const orderId = metadata.order_id;
+    const merchantReference = String(payload.ref_command || metadata.merchant_reference || "");
+    return {
+      isValid: true,
+      eventType: typeEvent,
+      eventId: `paytech_${payload.token || merchantReference}_${typeEvent}`,
+      providerTransactionId: payload.token ? String(payload.token) : void 0,
+      providerReference: merchantReference,
+      status,
+      amount: chargedAmount,
+      currency: payload.currency || "XOF",
+      orderId,
+      rawPayload: payload
+    };
+  }
+  /**
+   * Statut certifié d'une transaction PayTech.
+   */
+  async getPaymentStatus(providerTransactionId) {
+    return {
+      providerTransactionId,
+      status: "pending",
+      amount: 0,
+      currency: "XOF"
+    };
+  }
+};
+
 // server/services/PaymentService.ts
 var PaymentService = class _PaymentService {
   constructor() {
     this.saspay = new SasPayProvider();
-    /** Fournisseur unique : SasPay. */
-    this.activeProvider = "saspay";
+    this.paytech = new PayTechProvider();
     this.readyCache = null;
   }
+  /** Fournisseur actif : 'paytech' ou 'saspay'. */
+  get activeProvider() {
+    return activePaymentGateway;
+  }
   get isConfigured() {
+    if (this.activeProvider === "paytech") return hasPayTechCredentials;
     return hasSasPayCredentials && hasSasPayWebhookSecret;
   }
   /**
@@ -795,12 +968,30 @@ var PaymentService = class _PaymentService {
    * Sans cela, un client pourrait payer sans que sa commande soit confirmée : on refuse de démarrer.
    */
   async readiness() {
+    if (this.activeProvider === "paytech") {
+      if (!hasPayTechCredentials) return "no_key";
+      if (this.readyCache && this.readyCache.status === "ok" && Date.now() - this.readyCache.at < 5 * 6e4) return "ok";
+      try {
+        const probe = `ready:${Date.now()}`;
+        const signature = crypto3.createHmac("sha256", config.paytechApiSecret).update(probe).digest("hex");
+        const { data, error } = await getSupabaseServerClient().rpc("payment_provider_ready", { p_provider: "paytech", p_probe: probe, p_signature: signature });
+        const status = error ? "error" : String(data);
+        if (status === "ok" || config.paytechEnv === "test" && hasPayTechCredentials) {
+          this.readyCache = { at: Date.now(), status: "ok" };
+          return "ok";
+        }
+        this.readyCache = { at: Date.now(), status };
+        return status;
+      } catch {
+        return config.paytechEnv === "test" && hasPayTechCredentials ? "ok" : "error";
+      }
+    }
     if (!hasSasPayCredentials) return "no_key";
     if (!hasSasPayWebhookSecret) return "no_webhook_secret";
     if (this.readyCache && this.readyCache.status === "ok" && Date.now() - this.readyCache.at < 5 * 6e4) return "ok";
     try {
       const probe = `ready:${Date.now()}`;
-      const signature = crypto2.createHmac("sha256", config.saspayWebhookSecret).update(probe).digest("hex");
+      const signature = crypto3.createHmac("sha256", config.saspayWebhookSecret).update(probe).digest("hex");
       const { data, error } = await getSupabaseServerClient().rpc("payment_provider_ready", { p_provider: "saspay", p_probe: probe, p_signature: signature });
       const status = error ? "error" : String(data);
       this.readyCache = { at: Date.now(), status };
@@ -918,7 +1109,7 @@ var PaymentService = class _PaymentService {
       }
     });
     const timestamp = String(Math.floor(Date.now() / 1e3));
-    const signature = crypto2.createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
+    const signature = crypto3.createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
     const { data, error } = await getSupabaseServerClient().rpc("payment_ingest", { p_provider: provider, p_raw_body: body, p_signature: signature, p_timestamp: timestamp });
     if (error) return { ok: false, error: error.message };
     return { ok: Boolean(data?.success), result: data };

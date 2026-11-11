@@ -6,9 +6,11 @@ export interface ServerConfig {
   supabaseServiceRoleKey: string;
   appUrl: string;
   port: number;
-  anthropicApiKey: string;
-  anthropicModel: string;
-  anthropicBaseUrl: string;
+  paymentGateway: 'paytech' | 'saspay';
+  paytechApiKey: string;
+  paytechApiSecret: string;
+  paytechEnv: 'test' | 'prod';
+  paytechBaseUrl: string;
   saspaySecretKey: string;
   saspayWebhookSecret: string;
   saspayBaseUrl: string;
@@ -21,6 +23,9 @@ export interface ServerConfig {
   emailFrom: string;
   /** Secret du déclencheur /api/cron/notifications (Vercel Cron l'envoie en Authorization: Bearer). */
   cronSecret: string;
+  anthropicApiKey: string;
+  anthropicModel: string;
+  anthropicBaseUrl: string;
 }
 
 // Clé publique du projet Supabase Dallou Chine (non secrète : déjà embarquée dans le front).
@@ -36,9 +41,11 @@ export const config: ServerConfig = {
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   appUrl: (process.env.APP_URL || 'https://dallouchine.vercel.app').replace(/\/+$/, ''),
   port: parseInt(process.env.PORT || '3000', 10),
-  anthropicApiKey: clean(process.env.ANTHROPIC_API_KEY),
-  anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
-  anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/+$/, ''),
+  paymentGateway: (process.env.PAYMENT_GATEWAY === 'saspay' ? 'saspay' : 'paytech'),
+  paytechApiKey: clean(process.env.PAYTECH_API_KEY),
+  paytechApiSecret: clean(process.env.PAYTECH_API_SECRET),
+  paytechEnv: (process.env.PAYTECH_ENV === 'prod' || process.env.PAYTECH_ENV === 'live') ? 'prod' : 'test',
+  paytechBaseUrl: (process.env.PAYTECH_BASE_URL || 'https://paytech.sn/api').replace(/\/+$/, ''),
   saspaySecretKey: clean(process.env.SASPAY_SECRET_KEY),
   saspayWebhookSecret: clean(process.env.SASPAY_WEBHOOK_SECRET),
   saspayBaseUrl: (process.env.SASPAY_BASE_URL || 'https://api.saspay.me/api/v1').replace(/\/+$/, ''),
@@ -46,14 +53,31 @@ export const config: ServerConfig = {
   saspayProxyUrl: process.env.SASPAY_PROXY_URL || process.env.FIXIE_URL || process.env.QUOTAGUARDSTATIC_URL || '',
   resendApiKey: clean(process.env.RESEND_API_KEY),
   emailFrom: clean(process.env.EMAIL_FROM) || 'Dallou Chine <notifications@dallouchine.com>',
-  cronSecret: clean(process.env.CRON_SECRET)
+  cronSecret: clean(process.env.CRON_SECRET),
+  anthropicApiKey: clean(process.env.ANTHROPIC_API_KEY),
+  anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
+  anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/+$/, '')
 };
+
+/** Clés PayTech configurées (mode test ou prod). */
+export const hasPayTechCredentials = Boolean(
+  config.paytechApiKey &&
+  config.paytechApiSecret &&
+  config.paytechApiKey.length >= 8 &&
+  config.paytechApiSecret.length >= 8 &&
+  !config.paytechApiKey.includes('…') &&
+  !config.paytechApiSecret.includes('…')
+);
 
 /** Une vraie clé SasPay (et non un exemple recopié tel quel). */
 export const hasSasPayCredentials = /^sk_(test|live)_[A-Za-z0-9_-]{12,}$/.test(config.saspaySecretKey);
 /** Secret de signature des webhooks plausible (ASCII, assez long). */
 export const hasSasPayWebhookSecret = /^[\x21-\x7e]{16,}$/.test(config.saspayWebhookSecret);
 export const saspayEnvironment: 'sandbox' | 'production' = config.saspaySecretKey.startsWith('sk_live_') ? 'production' : 'sandbox';
+
+export const activePaymentGateway: 'paytech' | 'saspay' = config.paymentGateway;
+export const hasActivePaymentCredentials = activePaymentGateway === 'paytech' ? hasPayTechCredentials : hasSasPayCredentials;
+
 export const hasServiceRole = Boolean(config.supabaseServiceRoleKey);
 export const hasEmailProvider = /^re_[A-Za-z0-9_-]{16,}$/.test(config.resendApiKey);
 export const hasAiProvider = /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(config.anthropicApiKey) || (config.anthropicApiKey.length > 20 && !config.anthropicApiKey.includes('…'));
@@ -61,8 +85,9 @@ export const hasAiProvider = /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(config.anthropic
 // Journalisation sans jamais afficher de secret
 export function logServerConfig(): void {
   console.log('[Server Config]', {
-    paymentProvider: 'saspay',
-    saspayEnvironment,
+    activePaymentGateway,
+    hasPayTechCredentials,
+    paytechEnv: config.paytechEnv,
     hasSasPayCredentials,
     hasSasPayWebhookSecret,
     hasAiProvider,

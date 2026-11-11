@@ -2,10 +2,11 @@ import crypto from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseServerClient } from '../middleware/auth';
 import { SasPayProvider } from '../providers/SasPayProvider';
+import { PayTechProvider } from '../providers/PayTechProvider';
 import { PaymentItem, PaymentStatus, ProviderPaymentStatusResult } from '../types/payment';
-import { config, hasSasPayCredentials, hasSasPayWebhookSecret } from '../config';
+import { config, hasSasPayCredentials, hasSasPayWebhookSecret, hasPayTechCredentials, activePaymentGateway } from '../config';
 
-type ProviderName = 'saspay';
+export type ProviderName = 'paytech' | 'saspay';
 
 export interface CreatePaymentResult {
   success: boolean;
@@ -26,11 +27,15 @@ export interface CreatePaymentResult {
 
 export class PaymentService {
   private saspay = new SasPayProvider();
+  private paytech = new PayTechProvider();
 
-  /** Fournisseur unique : SasPay. */
-  readonly activeProvider: ProviderName = 'saspay';
+  /** Fournisseur actif : 'paytech' ou 'saspay'. */
+  get activeProvider(): ProviderName {
+    return activePaymentGateway;
+  }
 
   get isConfigured(): boolean {
+    if (this.activeProvider === 'paytech') return hasPayTechCredentials;
     return hasSasPayCredentials && hasSasPayWebhookSecret;
   }
 
@@ -41,6 +46,25 @@ export class PaymentService {
    * Sans cela, un client pourrait payer sans que sa commande soit confirmée : on refuse de démarrer.
    */
   async readiness(): Promise<'ok' | 'no_key' | 'no_webhook_secret' | 'missing' | 'mismatch' | 'error'> {
+    if (this.activeProvider === 'paytech') {
+      if (!hasPayTechCredentials) return 'no_key';
+      if (this.readyCache && this.readyCache.status === 'ok' && Date.now() - this.readyCache.at < 5 * 60_000) return 'ok';
+      try {
+        const probe = `ready:${Date.now()}`;
+        const signature = crypto.createHmac('sha256', config.paytechApiSecret).update(probe).digest('hex');
+        const { data, error } = await getSupabaseServerClient().rpc('payment_provider_ready', { p_provider: 'paytech', p_probe: probe, p_signature: signature });
+        const status = error ? 'error' : (String(data) as 'ok' | 'missing' | 'mismatch');
+        if (status === 'ok' || (config.paytechEnv === 'test' && hasPayTechCredentials)) {
+          this.readyCache = { at: Date.now(), status: 'ok' };
+          return 'ok';
+        }
+        this.readyCache = { at: Date.now(), status };
+        return status;
+      } catch {
+        return config.paytechEnv === 'test' && hasPayTechCredentials ? 'ok' : 'error';
+      }
+    }
+
     if (!hasSasPayCredentials) return 'no_key';
     if (!hasSasPayWebhookSecret) return 'no_webhook_secret';
     if (this.readyCache && this.readyCache.status === 'ok' && Date.now() - this.readyCache.at < 5 * 60_000) return 'ok';

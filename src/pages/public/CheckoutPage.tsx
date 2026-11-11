@@ -114,7 +114,10 @@ export default function CheckoutPage() {
   const contactComplete = name.trim().length >= 2 && phone.replace(/\D/g, '').length >= 8;
   const showContactForm = editContact || !contactComplete || Boolean(errors.name || errors.phone || errors.email);
   const shipping = estimates[transport]?.customer_shipping_fee ?? null;
-  const total = cartTotal + (shipping || 0);
+  const subtotalWithShipping = cartTotal + (shipping || 0);
+  // Partage des frais PayTech : 1% pris en charge par le client, 1% par Dallou Chine
+  const paymentFeeShare = Math.round(subtotalWithShipping * 0.01);
+  const total = subtotalWithShipping + paymentFeeShare;
 
   function validate() {
     const e: Record<string, string> = {};
@@ -326,12 +329,19 @@ export default function CheckoutPage() {
                 <dt className="text-muted">Transport ({transport === 'air' ? 'aérien' : 'maritime'})</dt>
                 <dd className="num font-semibold">{estimating ? '…' : shipping !== null ? formatXOF(shipping) : 'À confirmer'}</dd>
               </div>
+              <div className="flex items-center justify-between text-[13px] text-muted">
+                <dt className="flex items-center gap-1">
+                  <span>Frais mobile money (1 %)</span>
+                  <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-[11px] font-semibold text-brand">50/50</span>
+                </dt>
+                <dd className="num font-semibold text-ink">{formatXOF(paymentFeeShare)}</dd>
+              </div>
               <div className="flex items-baseline justify-between border-t border-line pt-3">
                 <dt className="font-bold">Total</dt>
                 <dd className="num font-display text-[26px] font-bold text-brand-600">{formatXOF(total)}</dd>
               </div>
             </dl>
-            <p className="mt-2 text-[12px] leading-relaxed text-muted">Montant recalculé par nos serveurs à la validation : c’est lui qui s’affiche sur la page de paiement.</p>
+            <p className="mt-2 text-[12px] leading-relaxed text-muted">Frais PayTech partagés : 1 % client / 1 % pris en charge par Dallou Chine.</p>
             {submitError && (
               <div className="mt-4">
                 <InlineAlert tone="danger">{submitError}</InlineAlert>
