@@ -14,7 +14,7 @@ import "dotenv/config";
 var PUBLIC_SUPABASE_URL = "https://splsjtguapquznbiacad.supabase.co";
 var PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbHNqdGd1YXBxdXpuYmlhY2FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NzYwNjYsImV4cCI6MjEwNTM1MjA2Nn0.yr8irdxSNMFI-N3K7ueOZV72uKQSVQykDpX9ioY1C4A";
 var clean = (v) => (v || "").trim();
-var config2 = {
+var config = {
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || PUBLIC_SUPABASE_URL,
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
@@ -37,16 +37,16 @@ var config2 = {
   anthropicModel: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
   anthropicBaseUrl: (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, "")
 };
-var hasPayTechCredentials2 = Boolean(
-  config2.paytechApiKey && config2.paytechApiSecret && config2.paytechApiKey.length >= 8 && config2.paytechApiSecret.length >= 8 && !config2.paytechApiKey.includes("\u2026") && !config2.paytechApiSecret.includes("\u2026")
+var hasPayTechCredentials = Boolean(
+  config.paytechApiKey && config.paytechApiSecret && config.paytechApiKey.length >= 8 && config.paytechApiSecret.length >= 8 && !config.paytechApiKey.includes("\u2026") && !config.paytechApiSecret.includes("\u2026")
 );
-var hasSasPayCredentials = /^sk_(test|live)_[A-Za-z0-9_-]{12,}$/.test(config2.saspaySecretKey);
-var hasSasPayWebhookSecret = /^[\x21-\x7e]{16,}$/.test(config2.saspayWebhookSecret);
-var saspayEnvironment = config2.saspaySecretKey.startsWith("sk_live_") ? "production" : "sandbox";
-var activePaymentGateway = config2.paymentGateway;
-var hasServiceRole = Boolean(config2.supabaseServiceRoleKey);
-var hasEmailProvider = /^re_[A-Za-z0-9_-]{16,}$/.test(config2.resendApiKey);
-var hasAiProvider = /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(config2.anthropicApiKey) || config2.anthropicApiKey.length > 20 && !config2.anthropicApiKey.includes("\u2026");
+var hasSasPayCredentials = /^sk_(test|live)_[A-Za-z0-9_-]{12,}$/.test(config.saspaySecretKey);
+var hasSasPayWebhookSecret = /^[\x21-\x7e]{16,}$/.test(config.saspayWebhookSecret);
+var saspayEnvironment = config.saspaySecretKey.startsWith("sk_live_") ? "production" : "sandbox";
+var activePaymentGateway = config.paymentGateway;
+var hasServiceRole = Boolean(config.supabaseServiceRoleKey);
+var hasEmailProvider = /^re_[A-Za-z0-9_-]{16,}$/.test(config.resendApiKey);
+var hasAiProvider = /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(config.anthropicApiKey) || config.anthropicApiKey.length > 20 && !config.anthropicApiKey.includes("\u2026");
 
 // server/middleware/auth.ts
 var ADMIN_ROLES = ["admin", "super_admin", "operations", "commercial", "finance"];
@@ -61,14 +61,14 @@ function toAppRole(rawRole, roles) {
 var serviceClient = null;
 function getSupabaseServerClient() {
   if (!serviceClient) {
-    serviceClient = createClient(config2.supabaseUrl, config2.supabaseServiceRoleKey || config2.supabaseAnonKey, {
+    serviceClient = createClient(config.supabaseUrl, config.supabaseServiceRoleKey || config.supabaseAnonKey, {
       auth: { persistSession: false, autoRefreshToken: false }
     });
   }
   return serviceClient;
 }
 function getUserClient(accessToken) {
-  return createClient(config2.supabaseUrl, config2.supabaseAnonKey, {
+  return createClient(config.supabaseUrl, config.supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -151,8 +151,8 @@ import { createClient as createClient2 } from "@supabase/supabase-js";
 var ShipmentService = class {
   getClient(token) {
     if (token) {
-      const url = config2.supabaseUrl || "https://splsjtguapquznbiacad.supabase.co";
-      const key = config2.supabaseServiceRoleKey || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbHNqdGd1YXBxdXpuYmlhY2FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NzYwNjYsImV4cCI6MjEwNTM1MjA2Nn0.yr8irdxSNMFI-N3K7ueOZV72uKQSVQykDpX9ioY1C4A";
+      const url = config.supabaseUrl || "https://splsjtguapquznbiacad.supabase.co";
+      const key = config.supabaseServiceRoleKey || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbHNqdGd1YXBxdXpuYmlhY2FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NzYwNjYsImV4cCI6MjEwNTM1MjA2Nn0.yr8irdxSNMFI-N3K7ueOZV72uKQSVQykDpX9ioY1C4A";
       return createClient2(url, key, {
         global: { headers: { Authorization: `Bearer ${token}` } },
         auth: { persistSession: false, autoRefreshToken: false }
@@ -549,8 +549,8 @@ import crypto from "crypto";
 import { ProxyAgent } from "undici";
 var proxyAgent = null;
 function proxyDispatcher() {
-  if (!config2.saspayProxyUrl) return void 0;
-  if (!proxyAgent) proxyAgent = new ProxyAgent(config2.saspayProxyUrl);
+  if (!config.saspayProxyUrl) return void 0;
+  if (!proxyAgent) proxyAgent = new ProxyAgent(config.saspayProxyUrl);
   return proxyAgent;
 }
 var SasPayProvider = class _SasPayProvider {
@@ -558,10 +558,10 @@ var SasPayProvider = class _SasPayProvider {
     this.name = "saspay";
   }
   get baseUrl() {
-    return config2.saspayBaseUrl;
+    return config.saspayBaseUrl;
   }
   headers(extra = {}) {
-    return { Authorization: `Bearer ${config2.saspaySecretKey}`, "Content-Type": "application/json", Accept: "application/json", ...extra };
+    return { Authorization: `Bearer ${config.saspaySecretKey}`, "Content-Type": "application/json", Accept: "application/json", ...extra };
   }
   async call(method, path3, body, extraHeaders = {}, viaFixedIp = false) {
     const dispatcher = viaFixedIp ? proxyDispatcher() : void 0;
@@ -604,7 +604,7 @@ var SasPayProvider = class _SasPayProvider {
       customer_phone: params.customer.phone || "",
       return_url: params.returnUrl,
       expires_at: new Date(Date.now() + 48 * 3600 * 1e3).toISOString(),
-      fee_charge_mode: config2.saspayFeeMode,
+      fee_charge_mode: config.saspayFeeMode,
       metadata: {
         order_id: params.orderId,
         order_code: params.orderCode,
@@ -756,12 +756,12 @@ var SasPayProvider = class _SasPayProvider {
       const v = headers[n] ?? headers[n.toLowerCase()];
       return Array.isArray(v) ? v[0] : v;
     };
-    if (!config2.saspayWebhookSecret) return { isValid: false, reason: "SASPAY_WEBHOOK_SECRET non configur\xE9 sur le serveur." };
+    if (!config.saspayWebhookSecret) return { isValid: false, reason: "SASPAY_WEBHOOK_SECRET non configur\xE9 sur le serveur." };
     const signature = (h("x-webhook-signature") || "").trim().toLowerCase();
     const timestamp = h("x-webhook-timestamp") || "";
     if (!signature || !/^\d{9,11}$/.test(timestamp)) return { isValid: false, reason: "En-t\xEAtes de signature manquants." };
     if (Math.abs(Date.now() / 1e3 - Number(timestamp)) > 300) return { isValid: false, reason: "Horodatage hors tol\xE9rance (anti-rejeu)." };
-    const expected = crypto.createHmac("sha256", config2.saspayWebhookSecret).update(`${timestamp}.${raw}`).digest("hex");
+    const expected = crypto.createHmac("sha256", config.saspayWebhookSecret).update(`${timestamp}.${raw}`).digest("hex");
     const a = Buffer.from(expected);
     const b = Buffer.from(signature);
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return { isValid: false, reason: "Signature cryptographique invalide." };
@@ -795,14 +795,14 @@ var PayTechProvider = class _PayTechProvider {
     this.name = "paytech";
   }
   get baseUrl() {
-    return config2.paytechBaseUrl;
+    return config.paytechBaseUrl;
   }
   headers() {
     return {
       "Accept": "application/json",
       "Content-Type": "application/json",
-      "API_KEY": config2.paytechApiKey,
-      "API_SECRET": config2.paytechApiSecret
+      "API_KEY": config.paytechApiKey,
+      "API_SECRET": config.paytechApiSecret
     };
   }
   static mapStatus(typeEvent) {
@@ -838,8 +838,8 @@ var PayTechProvider = class _PayTechProvider {
       currency: params.currency || "XOF",
       ref_command: params.merchantReference || params.orderCode,
       command_name: `Paiement ${params.orderCode} \xB7 Dallou Chine`,
-      env: config2.paytechEnv,
-      ipn_url: `${config2.appUrl}/api/webhooks/paytech`,
+      env: config.paytechEnv,
+      ipn_url: `${config.appUrl}/api/webhooks/paytech`,
       success_url: params.returnUrl,
       cancel_url: params.cancelUrl,
       custom_field: JSON.stringify(metadata)
@@ -894,13 +894,13 @@ var PayTechProvider = class _PayTechProvider {
     if (!payload || typeof payload !== "object") {
       return { isValid: false, reason: "Payload PayTech invalide." };
     }
-    if (!config2.paytechApiSecret || !config2.paytechApiKey) {
+    if (!config.paytechApiSecret || !config.paytechApiKey) {
       return { isValid: false, reason: "Cl\xE9s PAYTECH_API_KEY ou PAYTECH_API_SECRET non configur\xE9es sur le serveur." };
     }
     const receivedSecretHash = String(payload.api_secret_sha256 || "").toLowerCase().trim();
     const receivedKeyHash = String(payload.api_key_sha256 || "").toLowerCase().trim();
-    const expectedSecretHash = crypto2.createHash("sha256").update(config2.paytechApiSecret).digest("hex").toLowerCase();
-    const expectedKeyHash = crypto2.createHash("sha256").update(config2.paytechApiKey).digest("hex").toLowerCase();
+    const expectedSecretHash = crypto2.createHash("sha256").update(config.paytechApiSecret).digest("hex").toLowerCase();
+    const expectedKeyHash = crypto2.createHash("sha256").update(config.paytechApiKey).digest("hex").toLowerCase();
     const secA = Buffer.from(expectedSecretHash);
     const secB = Buffer.from(receivedSecretHash);
     const keyA = Buffer.from(expectedKeyHash);
@@ -960,7 +960,7 @@ var PaymentService = class _PaymentService {
     return activePaymentGateway;
   }
   get isConfigured() {
-    if (this.activeProvider === "paytech") return hasPayTechCredentials2;
+    if (this.activeProvider === "paytech") return hasPayTechCredentials;
     return hasSasPayCredentials && hasSasPayWebhookSecret;
   }
   /**
@@ -969,21 +969,21 @@ var PaymentService = class _PaymentService {
    */
   async readiness() {
     if (this.activeProvider === "paytech") {
-      if (!hasPayTechCredentials2) return "no_key";
+      if (!hasPayTechCredentials) return "no_key";
       if (this.readyCache && this.readyCache.status === "ok" && Date.now() - this.readyCache.at < 5 * 6e4) return "ok";
       try {
         const probe = `ready:${Date.now()}`;
-        const signature = crypto3.createHmac("sha256", config2.paytechApiSecret).update(probe).digest("hex");
+        const signature = crypto3.createHmac("sha256", config.paytechApiSecret).update(probe).digest("hex");
         const { data, error } = await getSupabaseServerClient().rpc("payment_provider_ready", { p_provider: "paytech", p_probe: probe, p_signature: signature });
         const status = error ? "error" : String(data);
-        if (status === "ok" || config2.paytechEnv === "test" && hasPayTechCredentials2) {
+        if (status === "ok" || config.paytechEnv === "test" && hasPayTechCredentials) {
           this.readyCache = { at: Date.now(), status: "ok" };
           return "ok";
         }
         this.readyCache = { at: Date.now(), status };
         return status;
       } catch {
-        return config2.paytechEnv === "test" && hasPayTechCredentials2 ? "ok" : "error";
+        return config.paytechEnv === "test" && hasPayTechCredentials ? "ok" : "error";
       }
     }
     if (!hasSasPayCredentials) return "no_key";
@@ -991,7 +991,7 @@ var PaymentService = class _PaymentService {
     if (this.readyCache && this.readyCache.status === "ok" && Date.now() - this.readyCache.at < 5 * 6e4) return "ok";
     try {
       const probe = `ready:${Date.now()}`;
-      const signature = crypto3.createHmac("sha256", config2.saspayWebhookSecret).update(probe).digest("hex");
+      const signature = crypto3.createHmac("sha256", config.saspayWebhookSecret).update(probe).digest("hex");
       const { data, error } = await getSupabaseServerClient().rpc("payment_provider_ready", { p_provider: "saspay", p_probe: probe, p_signature: signature });
       const status = error ? "error" : String(data);
       this.readyCache = { at: Date.now(), status };
@@ -1012,7 +1012,7 @@ var PaymentService = class _PaymentService {
     }
   }
   baseUrl() {
-    return config2.appUrl && !config2.appUrl.includes("localhost") ? config2.appUrl.replace(/\/+$/, "") : "https://dallouchine.vercel.app";
+    return config.appUrl && !config.appUrl.includes("localhost") ? config.appUrl.replace(/\/+$/, "") : "https://dallouchine.vercel.app";
   }
   /**
    * Crée la tentative de paiement (identité imposée par la base : client connecté, ou équipe pour un lien
@@ -1087,7 +1087,7 @@ var PaymentService = class _PaymentService {
    * serveur peut donc marquer une commande payée.
    */
   async confirmInDatabase(provider, tx, orderId, merchantReference, eventId) {
-    const secret = hasSasPayWebhookSecret ? config2.saspayWebhookSecret : "";
+    const secret = hasSasPayWebhookSecret ? config.saspayWebhookSecret : "";
     if (!secret) return { ok: false, error: "Secret de signature non configur\xE9." };
     const body = JSON.stringify({
       id: eventId,
@@ -1269,7 +1269,7 @@ var paymentService = new PaymentService();
 var paymentsRouter = Router2();
 function appBaseUrl(req) {
   const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
-  if (!host || host.includes("localhost") || host.startsWith("127.")) return config2.appUrl;
+  if (!host || host.includes("localhost") || host.startsWith("127.")) return config.appUrl;
   return `https://${host}`;
 }
 paymentsRouter.post("/create", requireAuth, async (req, res) => {
@@ -1483,7 +1483,7 @@ teamRouter.post("/invite", requireAdmin, async (req, res) => {
       res.status(400).json({ success: false, error: error?.message || "Invitation impossible." });
       return;
     }
-    const inviteUrl = `${config2.appUrl}/invitation?token=${data.token}`;
+    const inviteUrl = `${config.appUrl}/invitation?token=${data.token}`;
     let emailSent = false;
     let emailError;
     if (hasServiceRole && !data.account_exists) {
@@ -1709,7 +1709,7 @@ function extractPageContent(html) {
 }
 var ALLOWED_MEDIA = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 async function analyzeProduct(input) {
-  if (!config2.anthropicApiKey) {
+  if (!config.anthropicApiKey) {
     throw new AnalysisError("L\u2019analyse automatique n\u2019est pas encore activ\xE9e. Envoyez votre demande : notre \xE9quipe s\u2019en charge.", "PROVIDER_NOT_CONFIGURED", 503);
   }
   const images = [...input.images || [], ...input.image ? [input.image] : []].slice(0, 3);
@@ -1784,9 +1784,9 @@ var WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search", max_use
 async function callModel(body) {
   let res;
   try {
-    res = await fetch(`${config2.anthropicBaseUrl}/v1/messages`, {
+    res = await fetch(`${config.anthropicBaseUrl}/v1/messages`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": config2.anthropicApiKey, "anthropic-version": "2023-06-01" },
+      headers: { "content-type": "application/json", "x-api-key": config.anthropicApiKey, "anthropic-version": "2023-06-01" },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(8e4)
     });
@@ -1805,7 +1805,7 @@ async function runAnalysis(content) {
   for (let turn = 0; turn < 4; turn++) {
     const lastTurn = turn === 3;
     const r = await callModel({
-      model: config2.anthropicModel,
+      model: config.anthropicModel,
       max_tokens: 3e3,
       system: SYSTEM,
       tools: useSearch && !lastTurn ? [WEB_SEARCH_TOOL, TOOL] : [TOOL],
@@ -1868,9 +1868,9 @@ var BATCH = 40;
 var FRESH_WINDOW_MS = 48 * 3600 * 1e3;
 var esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 function absoluteLink(link) {
-  if (!link) return config2.appUrl + "/compte";
+  if (!link) return config.appUrl + "/compte";
   if (/^https?:\/\//i.test(link)) return link;
-  return config2.appUrl + (link.startsWith("/") ? link : "/" + link);
+  return config.appUrl + (link.startsWith("/") ? link : "/" + link);
 }
 function renderEmail(title, message, link) {
   const url = absoluteLink(link);
@@ -1896,8 +1896,8 @@ async function sendViaResend(to, subject, html, text) {
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${config2.resendApiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: config2.emailFrom, to: [to], subject, html, text })
+      headers: { Authorization: `Bearer ${config.resendApiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: config.emailFrom, to: [to], subject, html, text })
     });
     if (res.ok) return { ok: true };
     const body = await res.json().catch(() => ({}));
@@ -1945,15 +1945,15 @@ async function dispatchNotificationEmails() {
 // server/api/cronRouter.ts
 var cronRouter = Router5();
 function authorized(req) {
-  if (!config2.cronSecret) return false;
+  if (!config.cronSecret) return false;
   const header = String(req.headers.authorization || "");
   const given = header.startsWith("Bearer ") ? header.slice(7) : String(req.query.secret || "");
   const a = Buffer.from(given);
-  const b = Buffer.from(config2.cronSecret);
+  const b = Buffer.from(config.cronSecret);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 async function handler(req, res) {
-  if (!config2.cronSecret) {
+  if (!config.cronSecret) {
     res.status(503).json({ success: false, error: "CRON_SECRET non configur\xE9 : d\xE9clencheur d\xE9sactiv\xE9." });
     return;
   }
@@ -1976,7 +1976,7 @@ import { Router as Router6 } from "express";
 
 // server/services/AssistantService.ts
 import { createClient as createClient3 } from "@supabase/supabase-js";
-var publicDb = createClient3(config2.supabaseUrl, config2.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+var publicDb = createClient3(config.supabaseUrl, config.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
 var STOPWORDS = new Set(
   "le la les un une des de du d l et ou en au aux \xE0 a pour par sur dans avec sans je tu il elle on nous vous ils ils elles mon ma mes ton ta tes son sa ses notre nos votre vos leur leurs ce cet cette ces que qui quoi dont o\xF9 est es suis sommes etes sont ai as avons avez ont veux voudrais voulez cherche chercher besoin acheter achat prix combien coute co\xFBt produit produits svp bonjour salut merci the a an and or of for to in on with without i you he she we they my your our their this that these those is are am be have has want need looking buy price how much cost product products please hello hi thanks".split(" ")
 );
@@ -2063,9 +2063,9 @@ async function aiAnswer(history, lang, catalog) {
 <catalogue>${context}</catalogue>` } : { role: m.role, content: m.content }
   );
   try {
-    const res = await fetch(`${config2.anthropicBaseUrl}/v1/messages`, {
+    const res = await fetch(`${config.anthropicBaseUrl}/v1/messages`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": config2.anthropicApiKey, "anthropic-version": "2023-06-01" },
+      headers: { "content-type": "application/json", "x-api-key": config.anthropicApiKey, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model: process.env.ANTHROPIC_ASSISTANT_MODEL || "claude-haiku-5-5", max_tokens: 350, temperature: 0.3, system: SYSTEM2(lang), messages }),
       signal: AbortSignal.timeout(25e3)
     });
@@ -2231,9 +2231,9 @@ async function recordEvent(input, meta) {
 
 // server/api/seoRouter.ts
 var seoRouter = Router7();
-var publicDb2 = createClient4(config2.supabaseUrl, config2.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+var publicDb2 = createClient4(config.supabaseUrl, config.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
 var SITE = "Dallou Chine";
-var BASE = () => config2.appUrl;
+var BASE = () => config.appUrl;
 var esc2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var clip = (s, n) => s.length > n ? s.slice(0, n - 1).trimEnd() + "\u2026" : s;
 var plain = (s) => (s || "").replace(/\s+/g, " ").trim();
