@@ -309,10 +309,11 @@ export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   mtn_money: 'MTN MoMo',
   card: 'Carte bancaire',
   geniuspay: 'Paiement en ligne',
-  saspay: 'Paiement en ligne'
+  saspay: 'Paiement en ligne',
+  paytech: 'PayTech (Wave, OM, Free, Carte)'
 };
 
-export const PAYMENT_PROVIDER_LABEL: Record<string, string> = { saspay: 'SasPay', geniuspay: 'GeniusPay', manual: 'Encaissement manuel' };
+export const PAYMENT_PROVIDER_LABEL: Record<string, string> = { paytech: 'PayTech', saspay: 'SasPay', geniuspay: 'GeniusPay', manual: 'Encaissement manuel' };
 
 export const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrateur général',

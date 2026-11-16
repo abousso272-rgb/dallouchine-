@@ -27,7 +27,7 @@ export interface PaymentItem {
   orderId: string;
   orderCode: string;
   userId?: string;
-  provider: 'saspay' | 'manual' | 'geniuspay';
+  provider: 'paytech' | 'saspay' | 'manual' | 'geniuspay';
   providerTransactionId?: string;
   providerReference?: string;
   amount: number;

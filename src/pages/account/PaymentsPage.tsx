@@ -10,7 +10,7 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { Link } from '../../components/ui/Link';
 import { EmptyState, ErrorState, Skeleton } from '../../components/ui/States';
 
-const METHOD: Record<string, string> = { wave: 'Wave', orange_money: 'Orange Money', mtn_money: 'MTN MoMo', card: 'Carte', geniuspay: 'Paiement en ligne', saspay: 'Paiement en ligne' };
+const METHOD: Record<string, string> = { wave: 'Wave', orange_money: 'Orange Money', mtn_money: 'MTN MoMo', card: 'Carte', geniuspay: 'Paiement en ligne', saspay: 'Paiement en ligne', paytech: 'PayTech' };
 
 export default function PaymentsPage() {
   const { user } = useApp();

@@ -137,7 +137,8 @@ export class PaymentService {
     const returnUrl = params.returnUrl || `${base}/paiement/retour?orderId=${attempt.order_id}`;
     const cancelUrl = params.cancelUrl || `${base}/paiement/retour?orderId=${attempt.order_id}&cancelled=1`;
 
-    const session = await this.saspay.createPaymentSession({
+    const connector = provider === 'paytech' ? this.paytech : this.saspay;
+    const session = await connector.createPaymentSession({
       orderId: attempt.order_id,
       orderCode: attempt.tracking_code,
       userId: params.userId,
@@ -192,7 +193,9 @@ export class PaymentService {
    * serveur peut donc marquer une commande payée.
    */
   private async confirmInDatabase(provider: ProviderName, tx: ProviderPaymentStatusResult, orderId: string | undefined, merchantReference: string | undefined, eventId: string) {
-    const secret = hasSasPayWebhookSecret ? config.saspayWebhookSecret : '';
+    const secret = provider === 'paytech'
+      ? (config.paytechApiSecret || '')
+      : (hasSasPayWebhookSecret ? config.saspayWebhookSecret : '');
     if (!secret) return { ok: false as const, error: 'Secret de signature non configuré.' };
     const body = JSON.stringify({
       id: eventId,
@@ -252,6 +255,53 @@ export class PaymentService {
       return { status: code === 'AMOUNT_MISMATCH' ? 422 : code === 'PAYMENT_ATTEMPT_NOT_FOUND' ? 404 : 503, errorCode: code, message: 'Confirmation refusée par la base.' };
     }
     return { status: 200, message: 'Webhook traité avec succès.', data: (confirmed as { result?: unknown }).result };
+  }
+
+  /**
+   * Notification PayTech IPN : signature vérifiée (hash sha256 api_secret et api_key),
+   * puis confirmation en base avec signature Vault.
+   */
+  async handlePayTechWebhook(
+    rawBody: string | Buffer,
+    headers: Record<string, string | string[] | undefined>
+  ): Promise<{ status: number; message: string; errorCode?: string; data?: unknown }> {
+    const verification = await this.paytech.verifyWebhook(rawBody, headers);
+    if (!verification.isValid) {
+      console.warn('[PaymentService] webhook PayTech rejeté :', verification.reason);
+      return { status: 400, errorCode: 'INVALID_SIGNATURE', message: verification.reason || 'Signature invalide.' };
+    }
+    if (verification.status === 'pending') {
+      return { status: 200, message: 'Transaction en attente.' };
+    }
+
+    const tx: ProviderPaymentStatusResult = {
+      providerTransactionId: verification.providerTransactionId || '',
+      status: verification.status,
+      amount: verification.amount || 0,
+      chargedAmount: verification.amount,
+      currency: verification.currency || 'XOF',
+      paidAt: new Date().toISOString()
+    };
+
+    const confirmed = await this.confirmInDatabase(
+      'paytech',
+      tx,
+      verification.orderId,
+      verification.providerReference,
+      verification.eventId || `paytech_${verification.providerTransactionId}_${verification.status}`
+    );
+
+    if (!confirmed.ok) {
+      const code = (confirmed as { result?: { error_code?: string } }).result?.error_code;
+      console.warn('[PaymentService] confirmation PayTech refusée :', code || (confirmed as { error?: string }).error);
+      return {
+        status: code === 'AMOUNT_MISMATCH' ? 422 : code === 'PAYMENT_ATTEMPT_NOT_FOUND' ? 404 : 503,
+        errorCode: code,
+        message: 'Confirmation refusée par la base.'
+      };
+    }
+
+    return { status: 200, message: 'Webhook PayTech traité avec succès.', data: (confirmed as { result?: unknown }).result };
   }
 
   // -------------------------------------------------------------------------------------------

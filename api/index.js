@@ -1037,7 +1037,8 @@ var PaymentService = class _PaymentService {
     const base = this.baseUrl();
     const returnUrl = params.returnUrl || `${base}/paiement/retour?orderId=${attempt.order_id}`;
     const cancelUrl = params.cancelUrl || `${base}/paiement/retour?orderId=${attempt.order_id}&cancelled=1`;
-    const session = await this.saspay.createPaymentSession({
+    const connector = provider === "paytech" ? this.paytech : this.saspay;
+    const session = await connector.createPaymentSession({
       orderId: attempt.order_id,
       orderCode: attempt.tracking_code,
       userId: params.userId,
@@ -1087,7 +1088,7 @@ var PaymentService = class _PaymentService {
    * serveur peut donc marquer une commande payée.
    */
   async confirmInDatabase(provider, tx, orderId, merchantReference, eventId) {
-    const secret = hasSasPayWebhookSecret ? config.saspayWebhookSecret : "";
+    const secret = provider === "paytech" ? config.paytechApiSecret || "" : hasSasPayWebhookSecret ? config.saspayWebhookSecret : "";
     if (!secret) return { ok: false, error: "Secret de signature non configur\xE9." };
     const body = JSON.stringify({
       id: eventId,
@@ -1144,6 +1145,45 @@ var PaymentService = class _PaymentService {
       return { status: code === "AMOUNT_MISMATCH" ? 422 : code === "PAYMENT_ATTEMPT_NOT_FOUND" ? 404 : 503, errorCode: code, message: "Confirmation refus\xE9e par la base." };
     }
     return { status: 200, message: "Webhook trait\xE9 avec succ\xE8s.", data: confirmed.result };
+  }
+  /**
+   * Notification PayTech IPN : signature vérifiée (hash sha256 api_secret et api_key),
+   * puis confirmation en base avec signature Vault.
+   */
+  async handlePayTechWebhook(rawBody, headers) {
+    const verification = await this.paytech.verifyWebhook(rawBody, headers);
+    if (!verification.isValid) {
+      console.warn("[PaymentService] webhook PayTech rejet\xE9 :", verification.reason);
+      return { status: 400, errorCode: "INVALID_SIGNATURE", message: verification.reason || "Signature invalide." };
+    }
+    if (verification.status === "pending") {
+      return { status: 200, message: "Transaction en attente." };
+    }
+    const tx = {
+      providerTransactionId: verification.providerTransactionId || "",
+      status: verification.status,
+      amount: verification.amount || 0,
+      chargedAmount: verification.amount,
+      currency: verification.currency || "XOF",
+      paidAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    const confirmed = await this.confirmInDatabase(
+      "paytech",
+      tx,
+      verification.orderId,
+      verification.providerReference,
+      verification.eventId || `paytech_${verification.providerTransactionId}_${verification.status}`
+    );
+    if (!confirmed.ok) {
+      const code = confirmed.result?.error_code;
+      console.warn("[PaymentService] confirmation PayTech refus\xE9e :", code || confirmed.error);
+      return {
+        status: code === "AMOUNT_MISMATCH" ? 422 : code === "PAYMENT_ATTEMPT_NOT_FOUND" ? 404 : 503,
+        errorCode: code,
+        message: "Confirmation refus\xE9e par la base."
+      };
+    }
+    return { status: 200, message: "Webhook PayTech trait\xE9 avec succ\xE8s.", data: confirmed.result };
   }
   // -------------------------------------------------------------------------------------------
   // Statut
@@ -1330,7 +1370,7 @@ paymentsRouter.post("/checkout", requireAuth, async (req, res) => {
       p_customer_email: String(b.email || req.user.email || "").slice(0, 160),
       p_customer_city: String(b.city || "Dakar").slice(0, 80),
       p_notes: b.notes ? String(b.notes).slice(0, 1e3) : null,
-      p_payment_method: "saspay",
+      p_payment_method: paymentService.activeProvider,
       p_idempotency_key: String(b.idempotencyKey || "").slice(0, 80) || null,
       p_items: items.map((i) => ({ product_id: i.product_id, quantity: Math.round(Number(i.quantity)) }))
     });
@@ -1396,6 +1436,17 @@ var handleSasPayWebhookRoute = async (req, res) => {
   }
 };
 paymentsRouter.post("/webhooks/saspay", handleSasPayWebhookRoute);
+var handlePayTechWebhookRoute = async (req, res) => {
+  try {
+    const rawBody = req.rawBody || JSON.stringify(req.body);
+    const result = await paymentService.handlePayTechWebhook(rawBody, req.headers);
+    res.status(result.status).json(result);
+  } catch (error) {
+    console.error("[payments] webhook paytech:", error?.message || error);
+    res.status(500).json({ status: 500, message: "Erreur interne lors du traitement du webhook PayTech." });
+  }
+};
+paymentsRouter.post("/webhooks/paytech", handlePayTechWebhookRoute);
 paymentsRouter.post("/staff-link", requireRole("admin", "transitaire"), async (req, res) => {
   try {
     const orderId = req.body.orderId;

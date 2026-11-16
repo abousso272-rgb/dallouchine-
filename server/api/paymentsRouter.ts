@@ -85,7 +85,7 @@ paymentsRouter.post('/checkout', requireAuth, async (req: Request, res: Response
       p_customer_email: String(b.email || req.user!.email || '').slice(0, 160),
       p_customer_city: String(b.city || 'Dakar').slice(0, 80),
       p_notes: b.notes ? String(b.notes).slice(0, 1000) : null,
-      p_payment_method: 'saspay',
+      p_payment_method: paymentService.activeProvider,
       p_idempotency_key: String(b.idempotencyKey || '').slice(0, 80) || null,
       p_items: items.map((i: any) => ({ product_id: i.product_id, quantity: Math.round(Number(i.quantity)) }))
     });
@@ -163,6 +163,19 @@ const handleSasPayWebhookRoute = async (req: Request, res: Response): Promise<vo
   }
 };
 paymentsRouter.post('/webhooks/saspay', handleSasPayWebhookRoute);
+
+/** POST /api/webhooks/paytech : notification IPN PayTech (vérification des hash SHA256 des clés). */
+const handlePayTechWebhookRoute = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+    const result = await paymentService.handlePayTechWebhook(rawBody, req.headers);
+    res.status(result.status).json(result);
+  } catch (error: any) {
+    console.error('[payments] webhook paytech:', error?.message || error);
+    res.status(500).json({ status: 500, message: 'Erreur interne lors du traitement du webhook PayTech.' });
+  }
+};
+paymentsRouter.post('/webhooks/paytech', handlePayTechWebhookRoute);
 
 /**
  * POST /api/payments/staff-link  { orderId }
