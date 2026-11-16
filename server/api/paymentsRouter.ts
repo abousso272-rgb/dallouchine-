@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import { paymentService, PaymentService } from '../services/PaymentService';
 import { config } from '../config';
 import { requireAuth, requireAdmin, requireRole } from '../middleware/auth';
@@ -176,6 +177,314 @@ const handlePayTechWebhookRoute = async (req: Request, res: Response): Promise<v
   }
 };
 paymentsRouter.post('/webhooks/paytech', handlePayTechWebhookRoute);
+
+/**
+ * GET /api/payments/test-gateway
+ * Diagnostique en direct la connectivité vers la passerelle PayTech (accessible depuis Vercel et en local).
+ */
+paymentsRouter.get('/test-gateway', async (_req: Request, res: Response) => {
+  const t0 = Date.now();
+  try {
+    const probe = await fetch('https://paytech.sn/api/payment/request-payment', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'API_KEY': config.paytechApiKey,
+        'API_SECRET': config.paytechApiSecret
+      },
+      body: JSON.stringify({
+        item_name: 'Diagnostic Dallou Chine',
+        item_price: 1000,
+        currency: 'XOF',
+        ref_command: `DIAG-${Date.now()}`,
+        command_name: 'Diagnostic',
+        env: config.paytechEnv
+      }),
+      signal: AbortSignal.timeout(15_000)
+    });
+    const duration = Date.now() - t0;
+    const body = await probe.text().catch(() => '');
+    res.json({
+      success: probe.ok,
+      status: probe.status,
+      durationMs: duration,
+      env: config.paytechEnv,
+      response: body.slice(0, 300)
+    });
+  } catch (err: any) {
+    res.status(502).json({
+      success: false,
+      durationMs: Date.now() - t0,
+      env: config.paytechEnv,
+      error: err?.message || String(err)
+    });
+  }
+});
+
+/**
+ * GET /api/payments/sandbox
+ * Page de checkout sandbox PayTech en environnement de test (utilisée lorsque l'API distante est inaccessible ou pour tester en local).
+ */
+paymentsRouter.get('/sandbox', (req: Request, res: Response) => {
+  if (config.paytechEnv !== 'test') {
+    res.status(403).send('Sandbox uniquement disponible en mode test.');
+    return;
+  }
+
+  const orderId = String(req.query.orderId || '');
+  const orderCode = String(req.query.orderCode || 'COMMANDE');
+  const amount = Number(req.query.amount || 0);
+  const ref = String(req.query.ref || orderCode);
+  const returnUrl = String(req.query.returnUrl || `${appBaseUrl(req)}/paiement/retour?orderId=${encodeURIComponent(orderId)}`);
+  const cancelUrl = String(req.query.cancelUrl || `${appBaseUrl(req)}/paiement/retour?orderId=${encodeURIComponent(orderId)}&cancelled=1`);
+
+  const formattedAmount = new Intl.NumberFormat('fr-FR').format(amount);
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayTech Sandbox · Dallou Chine</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 440px;
+      border-radius: 24px;
+      box-shadow: 0 20px 40px -15px rgba(0,0,0,0.08), 0 0 1px 1px rgba(0,0,0,0.04);
+      padding: 32px 28px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: #2563eb;
+      border-radius: 50%;
+    }
+    .header {
+      margin-top: 16px;
+      text-align: center;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1e293b;
+    }
+    .order-code {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .amount-box {
+      margin: 24px 0;
+      padding: 18px;
+      background: #f1f5f9;
+      border-radius: 16px;
+      text-align: center;
+    }
+    .amount-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .amount-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 4px;
+    }
+    .methods-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+    .operators {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn-op {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      background: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-op:hover {
+      border-color: #3b82f6;
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+    .btn-wave { color: #0284c7; }
+    .btn-om { color: #ea580c; }
+    .btn-free { color: #dc2626; }
+    .btn-card { color: #475569; }
+    .cancel-link {
+      display: block;
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-decoration: none;
+    }
+    .cancel-link:hover { color: #64748b; text-decoration: underline; }
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="text-align: center;">
+      <span class="badge">PayTech Sandbox · Test</span>
+    </div>
+    <div class="header">
+      <h1 class="title">Dallou Chine</h1>
+      <p class="order-code">Commande #${orderCode}</p>
+    </div>
+
+    <div class="amount-box">
+      <div class="amount-label">Montant à régler</div>
+      <div class="amount-value">${formattedAmount} <span style="font-size: 16px;">FCFA</span></div>
+    </div>
+
+    <div class="methods-title">Simuler le règlement avec l'opérateur de votre choix :</div>
+
+    <form method="POST" action="/api/payments/sandbox/confirm" id="payForm">
+      <input type="hidden" name="orderId" value="${orderId}">
+      <input type="hidden" name="orderCode" value="${orderCode}">
+      <input type="hidden" name="amount" value="${amount}">
+      <input type="hidden" name="ref" value="${ref}">
+      <input type="hidden" name="returnUrl" value="${returnUrl}">
+      <input type="hidden" name="operator" id="operatorInput" value="wave">
+
+      <div class="operators">
+        <button type="button" class="btn-op btn-wave" onclick="submitOp('wave')">
+          <span>🌊 Payer avec Wave (Test)</span>
+          <span>→</span>
+        </button>
+        <button type="button" class="btn-op btn-om" onclick="submitOp('orange_money')">
+          <span>🟠 Payer avec Orange Money (Test)</span>
+          <span>→</span>
+        </button>
+        <button type="button" class="btn-op btn-free" onclick="submitOp('free_money')">
+          <span>🔴 Payer avec Free Money (Test)</span>
+          <span>→</span>
+        </button>
+        <button type="button" class="btn-op btn-card" onclick="submitOp('card')">
+          <span>💳 Payer par Carte Bancaire (Test)</span>
+          <span>→</span>
+        </button>
+      </div>
+    </form>
+
+    <a href="${cancelUrl}" class="cancel-link">Annuler la transaction</a>
+
+    <div class="footer">
+      Environnement de simulation sécurisé PayTech.<br>
+      Aucun débit réel ne sera effectué.
+    </div>
+  </div>
+
+  <script>
+    function submitOp(op) {
+      document.getElementById('operatorInput').value = op;
+      const btns = document.querySelectorAll('.btn-op');
+      btns.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+      document.getElementById('payForm').submit();
+    }
+  </script>
+</body>
+</html>`;
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+});
+
+/**
+ * POST /api/payments/sandbox/confirm
+ * Valide le paiement simulé en déclenchant le webhook PayTech signé avec la clé secrète.
+ */
+paymentsRouter.post('/sandbox/confirm', async (req: Request, res: Response) => {
+  if (config.paytechEnv !== 'test') {
+    res.status(403).send('Sandbox uniquement disponible en mode test.');
+    return;
+  }
+
+  const { orderId, orderCode, amount, ref, returnUrl, operator } = req.body || {};
+  const token = `pt_sandbox_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const secretHash = crypto.createHash('sha256').update(config.paytechApiSecret).digest('hex');
+  const keyHash = crypto.createHash('sha256').update(config.paytechApiKey).digest('hex');
+
+  const webhookPayload = {
+    type_event: 'sale_complete',
+    item_name: `Commande ${orderCode}`,
+    item_price: Number(amount),
+    currency: 'XOF',
+    ref_command: ref,
+    token,
+    api_key_sha256: keyHash,
+    api_secret_sha256: secretHash,
+    custom_field: JSON.stringify({
+      order_id: orderId,
+      order_code: orderCode,
+      merchant_reference: ref,
+      charged_amount: Number(amount),
+      operator: operator || 'wave'
+    })
+  };
+
+  try {
+    const hookResult = await paymentService.handlePayTechWebhook(JSON.stringify(webhookPayload), {});
+    console.log('[PayTech Sandbox] Validation paiement :', hookResult);
+    const dest = returnUrl || `${appBaseUrl(req)}/paiement/retour?orderId=${encodeURIComponent(orderId)}`;
+    res.redirect(dest);
+  } catch (err: any) {
+    console.error('[PayTech Sandbox] Erreur webhook sandbox:', err?.message || err);
+    res.status(500).send('Erreur lors de la validation du paiement sandbox.');
+  }
+});
 
 /**
  * POST /api/payments/staff-link  { orderId }

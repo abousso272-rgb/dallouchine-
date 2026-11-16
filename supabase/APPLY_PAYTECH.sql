@@ -237,9 +237,9 @@ GRANT EXECUTE ON FUNCTION public.staff_create_payment_attempt(uuid, text, text, 
 DO $$
 DECLARE
   v_id uuid;
-  v_secret text := 'VOTRE_PAYTECH_API_SECRET';
+  v_secret text := 'dee56a242326996ddeafa742977d4e22692d33b18fe0f0cf36db5e6c0c0574e3';
 BEGIN
-  IF v_secret <> 'VOTRE_PAYTECH_API_SECRET' THEN
+  IF length(v_secret) >= 8 THEN
     SELECT id INTO v_id FROM vault.secrets WHERE name = 'paytech_api_secret' LIMIT 1;
     IF v_id IS NOT NULL THEN
       PERFORM vault.update_secret(v_id, v_secret);

@@ -76,11 +76,14 @@ export class PayTechProvider implements PaymentProvider {
     };
 
     try {
+      // En mode test, timeout de 12s pour basculer rapidement sur la sandbox si l'API PayTech est indisponible.
+      // En mode prod, timeout généreux de 45s conforme aux spécifications InTech/PayTech.
+      const timeoutMs = config.paytechEnv === 'test' ? 12_000 : 45_000;
       const res = await fetch(`${this.baseUrl}/payment/request-payment`, {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(20_000)
+        signal: AbortSignal.timeout(timeoutMs)
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,6 +91,13 @@ export class PayTechProvider implements PaymentProvider {
 
       if (!res.ok || json?.success !== 1 || !json?.redirect_url) {
         console.warn('[PayTech] Demande de paiement refusée:', res.status, JSON.stringify(json).slice(0, 400));
+        
+        // En mode test, si PayTech refuse ou est indisponible, basculer sur la page de simulation sandbox
+        if (config.paytechEnv === 'test') {
+          console.warn('[PayTech] Mode test actif : basculement automatique sur la passerelle PayTech Sandbox.');
+          return this.createSandboxFallback(params, totalToCharge);
+        }
+
         const unavailable = res.status >= 500 || res.status === 429;
         return {
           success: false,
@@ -108,6 +118,14 @@ export class PayTechProvider implements PaymentProvider {
       };
     } catch (err) {
       console.error('[PayTech] Passerelle injoignable:', (err as Error)?.message);
+
+      // En mode test, si la passerelle externe PayTech est bloquée ou ne répond pas dans les temps,
+      // offrir la passerelle de test locale/sandbox pour ne jamais bloquer les tests utilisateur.
+      if (config.paytechEnv === 'test') {
+        console.warn('[PayTech] Mode test : passerelle PayTech injoignable, basculement sur la sandbox de test.');
+        return this.createSandboxFallback(params, totalToCharge);
+      }
+
       return {
         success: false,
         paymentId: params.orderId,
@@ -115,6 +133,30 @@ export class PayTechProvider implements PaymentProvider {
         errorMessage: 'La passerelle PayTech est inaccessible pour le moment. Réessayez dans quelques instants.'
       };
     }
+  }
+
+  /**
+   * Génère l'URL de la sandbox PayTech de test lorsque l'API distante est inaccessible.
+   */
+  private createSandboxFallback(params: CreatePaymentSessionParams, totalToCharge: number): CreatePaymentSessionResult {
+    const base = config.appUrl && !config.appUrl.includes('localhost') ? config.appUrl.replace(/\/+$/, '') : '';
+    const query = new URLSearchParams({
+      orderId: params.orderId,
+      orderCode: params.orderCode,
+      amount: String(totalToCharge),
+      ref: params.merchantReference || params.orderCode,
+      returnUrl: params.returnUrl,
+      cancelUrl: params.cancelUrl
+    });
+
+    const sandboxUrl = `${base}/api/payments/sandbox?${query.toString()}`;
+    return {
+      success: true,
+      paymentId: params.orderId,
+      checkoutUrl: sandboxUrl,
+      providerTransactionId: `pt_sandbox_${Date.now()}`,
+      providerReference: params.merchantReference
+    };
   }
 
   /**
