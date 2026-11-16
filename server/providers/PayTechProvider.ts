@@ -109,6 +109,17 @@ export class PayTechProvider implements PaymentProvider {
         };
       }
 
+      // En mode test, PayTech renvoie souvent une URL https://paytech.sn/payment/checkout/{token} qui gèle indéfiniment
+      // (timeout >10s sans données de corps). On vérifie la réactivité de l'URL avec un timeout court.
+      // Si elle ne répond pas immédiatement, basculement automatique sur la Sandbox Dallou Chine.
+      if (config.paytechEnv === 'test') {
+        const isHealthy = await this.pingCheckoutUrl(json.redirect_url, 1800);
+        if (!isHealthy) {
+          console.warn('[PayTech] URL de checkout PayTech inaccessible en mode test (délai dépassé). Basculement vers la sandbox Dallou Chine.');
+          return this.createSandboxFallback(params, totalToCharge);
+        }
+      }
+
       return {
         success: true,
         paymentId: params.orderId,
@@ -136,10 +147,45 @@ export class PayTechProvider implements PaymentProvider {
   }
 
   /**
+   * Vérifie qu'une URL de checkout distante transmet réellement son contenu HTTP.
+   * PayTech en mode test répond parfois HTTP 200 sur les headers puis gèle indéfiniment sur l'envoi du HTML.
+   */
+  private async pingCheckoutUrl(url: string, timeoutMs = 2000): Promise<boolean> {
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Dallou Chine HealthCheck)' },
+        signal: AbortSignal.timeout(timeoutMs)
+      });
+      if (!res.ok) return false;
+      const reader = res.body?.getReader();
+      if (!reader) return false;
+      const chunk = await Promise.race([
+        reader.read(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+      ]);
+      reader.cancel().catch(() => undefined);
+      return !chunk.done && (chunk.value?.length || 0) > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Génère l'URL de la sandbox PayTech de test lorsque l'API distante est inaccessible.
    */
   private createSandboxFallback(params: CreatePaymentSessionParams, totalToCharge: number): CreatePaymentSessionResult {
-    const base = config.appUrl && !config.appUrl.includes('localhost') ? config.appUrl.replace(/\/+$/, '') : '';
+    let base = '';
+    try {
+      if (params.returnUrl && params.returnUrl.startsWith('http')) {
+        base = new URL(params.returnUrl).origin;
+      } else if (config.appUrl && !config.appUrl.includes('localhost')) {
+        base = config.appUrl.replace(/\/+$/, '');
+      }
+    } catch {
+      base = '';
+    }
+
     const query = new URLSearchParams({
       orderId: params.orderId,
       orderCode: params.orderCode,

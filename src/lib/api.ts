@@ -29,24 +29,83 @@ export async function apiFetch<T = unknown>(path: string, init: { method?: strin
   return json as T;
 }
 
+let overlayTimeout: ReturnType<typeof setTimeout> | null = null;
+
 /** Écran plein page « connexion sécurisée » affiché instantanément pendant la préparation du paiement. */
-export function showPaymentOverlay(message = 'Connexion sécurisée au paiement…') {
+export function showPaymentOverlay(message = 'Connexion sécurisée au paiement…', directUrl?: string) {
   if (typeof document === 'undefined') return () => undefined;
-  document.getElementById('payment-overlay')?.remove();
-  const el = document.createElement('div');
-  el.id = 'payment-overlay';
-  el.setAttribute('role', 'status');
-  el.setAttribute('aria-live', 'polite');
-  el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(251,247,242,.94);';
-  el.innerHTML = `
-    <div style="text-align:center;font-family:Manrope,system-ui,sans-serif;color:#0b1620;padding:24px">
-      <div style="width:56px;height:56px;margin:0 auto 18px;border-radius:50%;border:4px solid #fde0cc;border-top-color:#f2560f;animation:payspin .8s linear infinite"></div>
-      <p style="font-size:17px;font-weight:700;margin:0">${message}</p>
-      <p style="font-size:13.5px;color:#5b6573;margin:6px 0 0">Wave · Orange Money · Carte bancaire — ne fermez pas cette page.</p>
-    </div>
-    <style>@keyframes payspin{to{transform:rotate(360deg)}}</style>`;
-  document.body.appendChild(el);
-  return () => el.remove();
+
+  if (overlayTimeout) {
+    clearTimeout(overlayTimeout);
+    overlayTimeout = null;
+  }
+
+  let el = document.getElementById('payment-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'payment-overlay';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(251,247,242,.96);backdrop-filter:blur(4px);';
+    document.body.appendChild(el);
+  }
+
+  const render = (msg: string, isFallback = false, fallbackUrl?: string) => {
+    if (!el) return;
+    el.innerHTML = `
+      <div style="text-align:center;font-family:Manrope,system-ui,sans-serif;color:#0b1620;padding:28px;max-width:440px;margin:0 auto">
+        ${
+          isFallback
+            ? `<div style="width:48px;height:48px;margin:0 auto 16px;border-radius:50%;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:22px">⏳</div>`
+            : `<div style="width:56px;height:56px;margin:0 auto 18px;border-radius:50%;border:4px solid #fde0cc;border-top-color:#f2560f;animation:payspin .8s linear infinite"></div>`
+        }
+        <p style="font-size:17px;font-weight:700;margin:0;line-height:1.4">${msg}</p>
+        <p style="font-size:13.5px;color:#5b6573;margin:8px 0 0">Wave · Orange Money · Carte bancaire</p>
+        ${
+          isFallback
+            ? `
+          <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+            ${
+              fallbackUrl
+                ? `<a href="${fallbackUrl}" style="display:inline-block;padding:11px 20px;background:#f2560f;color:#fff;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 2px 8px rgba(242,86,15,.25)">Accéder à la page de paiement →</a>`
+                : ''
+            }
+            <button id="overlay-close-btn" type="button" style="padding:9px 18px;background:#e5e7eb;color:#374151;border:none;border-radius:10px;font-weight:600;font-size:13.5px;cursor:pointer">Fermer / Réessayer</button>
+          </div>`
+            : ''
+        }
+      </div>
+      <style>@keyframes payspin{to{transform:rotate(360deg)}}</style>`;
+
+    if (isFallback) {
+      document.getElementById('overlay-close-btn')?.addEventListener('click', () => {
+        if (overlayTimeout) clearTimeout(overlayTimeout);
+        el?.remove();
+      });
+    }
+  };
+
+  render(message, false, directUrl);
+
+  // Sécurité anti-blocage : si après 6 secondes l'utilisateur est toujours sur cette page,
+  // afficher le bouton direct et le bouton pour débloquer l'interface.
+  overlayTimeout = setTimeout(() => {
+    if (document.getElementById('payment-overlay')) {
+      render(
+        'La passerelle de paiement prend du temps à répondre…',
+        true,
+        directUrl
+      );
+    }
+  }, 6000);
+
+  return () => {
+    if (overlayTimeout) {
+      clearTimeout(overlayTimeout);
+      overlayTimeout = null;
+    }
+    el?.remove();
+  };
 }
 
 /** Réveille la fonction serveur (évite l'attente au moment de payer). */
@@ -63,7 +122,8 @@ export async function startPayment(orderId: string): Promise<void> {
   try {
     const res = await apiFetch<{ checkoutUrl?: string }>('/api/payments/create', { method: 'POST', body: { orderId } });
     if (!res.checkoutUrl) throw new AppError('La passerelle de paiement n’a pas renvoyé de lien de paiement.');
-    window.location.assign(res.checkoutUrl);
+    showPaymentOverlay('Redirection vers le paiement sécurisé…', res.checkoutUrl);
+    window.location.href = res.checkoutUrl;
   } catch (err) {
     hide();
     throw err;
@@ -85,7 +145,7 @@ export interface CheckoutPayload {
 }
 
 /**
- * Commande + paiement en un seul appel serveur. Redirige vers SasPay si la session est prête ;
+ * Commande + paiement en un seul appel serveur. Redirige vers PayTech si la session est prête ;
  * sinon renvoie l'identifiant de commande (paiement relançable depuis « Mes commandes »).
  */
 export async function checkoutAndPay(p: CheckoutPayload): Promise<{ orderId: string; paymentError?: string }> {
@@ -94,8 +154,8 @@ export async function checkoutAndPay(p: CheckoutPayload): Promise<{ orderId: str
   try {
     const res = await apiFetch<{ orderId: string; checkoutUrl: string | null; paymentError?: string }>('/api/payments/checkout', { method: 'POST', body: p });
     if (res.checkoutUrl) {
-      showPaymentOverlay('Redirection vers le paiement sécurisé…');
-      window.location.assign(res.checkoutUrl);
+      showPaymentOverlay('Redirection vers le paiement sécurisé…', res.checkoutUrl);
+      window.location.href = res.checkoutUrl;
       return { orderId: res.orderId };
     }
     hide();

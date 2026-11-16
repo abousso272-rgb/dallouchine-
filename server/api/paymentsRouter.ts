@@ -8,7 +8,11 @@ export const paymentsRouter = Router();
 
 function appBaseUrl(req: Request): string {
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
-  if (!host || host.includes('localhost') || host.startsWith('127.')) return config.appUrl;
+  const proto = String(req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http')).split(',')[0].trim();
+  if (!host) return config.appUrl;
+  if (host.includes('localhost') || host.startsWith('127.')) {
+    return `${proto}://${host}`;
+  }
   return `https://${host}`;
 }
 

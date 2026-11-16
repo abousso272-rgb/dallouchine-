@@ -868,6 +868,13 @@ var PayTechProvider = class _PayTechProvider {
           errorMessage: unavailable ? "Le service de paiement PayTech est momentan\xE9ment indisponible. Votre commande est conserv\xE9e : relancez le paiement dans un instant." : Array.isArray(json?.errors) ? json.errors.join(", ") : json?.message || `Refus passerelle PayTech (HTTP ${res.status}).`
         };
       }
+      if (config.paytechEnv === "test") {
+        const isHealthy = await this.pingCheckoutUrl(json.redirect_url, 1800);
+        if (!isHealthy) {
+          console.warn("[PayTech] URL de checkout PayTech inaccessible en mode test (d\xE9lai d\xE9pass\xE9). Basculement vers la sandbox Dallou Chine.");
+          return this.createSandboxFallback(params, totalToCharge);
+        }
+      }
       return {
         success: true,
         paymentId: params.orderId,
@@ -890,10 +897,43 @@ var PayTechProvider = class _PayTechProvider {
     }
   }
   /**
+   * Vérifie qu'une URL de checkout distante transmet réellement son contenu HTTP.
+   * PayTech en mode test répond parfois HTTP 200 sur les headers puis gèle indéfiniment sur l'envoi du HTML.
+   */
+  async pingCheckoutUrl(url, timeoutMs = 2e3) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { "User-Agent": "Mozilla/5.0 (Dallou Chine HealthCheck)" },
+        signal: AbortSignal.timeout(timeoutMs)
+      });
+      if (!res.ok) return false;
+      const reader = res.body?.getReader();
+      if (!reader) return false;
+      const chunk = await Promise.race([
+        reader.read(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), timeoutMs))
+      ]);
+      reader.cancel().catch(() => void 0);
+      return !chunk.done && (chunk.value?.length || 0) > 0;
+    } catch {
+      return false;
+    }
+  }
+  /**
    * Génère l'URL de la sandbox PayTech de test lorsque l'API distante est inaccessible.
    */
   createSandboxFallback(params, totalToCharge) {
-    const base = config.appUrl && !config.appUrl.includes("localhost") ? config.appUrl.replace(/\/+$/, "") : "";
+    let base = "";
+    try {
+      if (params.returnUrl && params.returnUrl.startsWith("http")) {
+        base = new URL(params.returnUrl).origin;
+      } else if (config.appUrl && !config.appUrl.includes("localhost")) {
+        base = config.appUrl.replace(/\/+$/, "");
+      }
+    } catch {
+      base = "";
+    }
     const query = new URLSearchParams({
       orderId: params.orderId,
       orderCode: params.orderCode,
@@ -1357,7 +1397,11 @@ var paymentService = new PaymentService();
 var paymentsRouter = Router2();
 function appBaseUrl(req) {
   const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
-  if (!host || host.includes("localhost") || host.startsWith("127.")) return config.appUrl;
+  const proto = String(req.headers["x-forwarded-proto"] || (req.secure ? "https" : "http")).split(",")[0].trim();
+  if (!host) return config.appUrl;
+  if (host.includes("localhost") || host.startsWith("127.")) {
+    return `${proto}://${host}`;
+  }
   return `https://${host}`;
 }
 paymentsRouter.post("/create", requireAuth, async (req, res) => {
