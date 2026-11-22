@@ -501,9 +501,9 @@ function LogisticsBand() {
       <SectionHead
         eyebrow="Logistique"
         id="home-logistics"
-        title="Votre marchandise, suivie de l’usine à Dakar"
-        text="Nous choisissons avec vous le mode de transport adapté à votre budget et à vos délais."
-        link={{ to: '/suivi', label: 'Suivre une commande' }}
+        title="Votre marchandise, expédiée de l’usine à Dakar"
+        text="Nous choisissons avec vous le mode de transport adapté à votre budget et à vos délais (fret maritime groupé ou aérien express)."
+        link={{ to: '/sourcing', label: 'Demander un devis' }}
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         {items.map(it => (
@@ -522,13 +522,11 @@ function LogisticsBand() {
 }
 
 function TrustAndTracking() {
-  const { navigate } = useApp();
-  const [code, setCode] = React.useState('');
   const perks = [
-    { icon: Factory, title: 'Prix usine', text: 'Achat direct fournisseur, sans intermédiaires superflus.' },
-    { icon: ShieldCheck, title: 'Paiement protégé', text: 'Paiement sécurisé, confirmation instantanée.' },
-    { icon: BadgeCheck, title: 'Qualité vérifiée', text: 'Contrôle avant expédition, photos sur demande.' },
-    { icon: PackageSearch, title: 'Suivi transparent', text: 'Statuts, historique et échanges au même endroit.' }
+    { icon: Factory, title: 'Prix usine directs', text: 'Achat direct auprès des fabricants en Chine, sans intermédiaires.' },
+    { icon: ShieldCheck, title: 'Paiement 100% protégé', text: 'Règlement sécurisé par Wave, Orange Money ou Carte avec reçu instantané.' },
+    { icon: BadgeCheck, title: 'Qualité inspectée', text: 'Vérification de conformité avant expédition maritime ou aérienne.' },
+    { icon: Users, title: 'Frais mutualisés', text: 'Achats groupés pour profiter des tarifs de gros et du fret partagé.' }
   ];
   return (
     <section className="container-page mt-20 grid grid-cols-1 gap-4 sm:mt-24 lg:grid-cols-[1.4fr_1fr]">
@@ -545,28 +543,17 @@ function TrustAndTracking() {
       </div>
       <div className="flex flex-col justify-between rounded-[var(--radius-card)] bg-brand-soft p-6 sm:p-7">
         <div>
-          <p className="eyebrow">Suivi</p>
-          <h2 className="mt-2 text-2xl font-semibold">Où en est ma commande ?</h2>
-          <p className="mt-2 text-sm text-muted">Saisissez votre numéro de suivi (ex. AWP-…) pour voir son avancement.</p>
+          <p className="eyebrow">Sourcing sur mesure</p>
+          <h2 className="mt-2 text-2xl font-bold">Un produit spécifique en tête ?</h2>
+          <p className="mt-2 text-[14.5px] leading-relaxed text-muted">
+            Décrivez ce que vous cherchez : notre équipe trouve le fabricant idéal en Chine et vous envoie un devis tout compris en FCFA.
+          </p>
         </div>
-        <form
-          className="mt-6 flex gap-2"
-          onSubmit={e => {
-            e.preventDefault();
-            navigate(`/suivi${code.trim() ? `?code=${encodeURIComponent(code.trim())}` : ''}`);
-          }}
-        >
-          <input
-            value={code}
-            onChange={e => setCode(e.target.value.toUpperCase())}
-            placeholder="AWP-XXXXXXXX"
-            className="num h-[52px] min-w-0 flex-1 rounded-full border border-line-2 bg-white px-5 font-semibold tracking-wide focus:border-brand/50 focus:outline-none"
-            aria-label="Numéro de suivi"
-          />
-          <Button type="submit" variant="dark" size="lg">
-            Suivre
+        <div className="mt-6">
+          <Button to="/sourcing" size="lg" block iconRight={<ArrowRight className="h-4 w-4" />}>
+            Demander un devis gratuit
           </Button>
-        </form>
+        </div>
         <PaymentLogos className="mt-6" />
       </div>
     </section>

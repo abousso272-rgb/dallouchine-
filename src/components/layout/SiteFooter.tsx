@@ -43,10 +43,10 @@ export function SiteFooter() {
           ]}
         />
         <FooterCol
-          title="Suivi"
+          title="Mon compte"
           links={[
-            ['/suivi', 'Suivre une commande'],
             ['/compte', 'Mon espace client'],
+            ['/compte/commandes', 'Mes commandes'],
             ['/compte/demandes', 'Mes demandes & devis'],
             ['/espace-pro', 'Espace professionnel']
           ]}

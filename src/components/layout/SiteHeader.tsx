@@ -56,7 +56,6 @@ export function SiteHeader() {
     window.clearTimeout(megaTimer.current);
     megaTimer.current = window.setTimeout(() => setMegaOpen(false), 160);
   };
-  const askAssistant = () => window.dispatchEvent(new CustomEvent('dc:assistant', { detail: { q: q.trim() } }));
 
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus();
@@ -144,15 +143,6 @@ export function SiteHeader() {
             className="h-10 w-40 rounded-full border border-line bg-white/80 pl-10 pr-16 text-[13.5px] transition-all focus:w-56 2xl:w-56 2xl:focus:w-72 focus:border-brand/50 focus:bg-white focus:outline-none"
             enterKeyHint="search"
           />
-          <button
-            type="button"
-            onClick={askAssistant}
-            title={t('header.ai')}
-            aria-label={t('header.ai')}
-            className="absolute right-1.5 top-1/2 flex h-7 -translate-y-1/2 items-center gap-1 rounded-full bg-brand-gradient px-2.5 text-[11.5px] font-bold text-white shadow-sm hover:brightness-105"
-          >
-            <Sparkles className="h-3 w-3" /> IA
-          </button>
         </form>
 
         <div className="ml-auto flex items-center gap-1 2xl:ml-2">
@@ -165,9 +155,6 @@ export function SiteHeader() {
           >
             <Search className="h-[19px] w-[19px]" />
           </button>
-          <Link to="/suivi" className="hidden h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-white md:flex" aria-label="Suivre une commande" title="Suivre une commande">
-            <PackageSearch className="h-[19px] w-[19px]" />
-          </Link>
           <Link to="/panier" className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-white" aria-label={`Panier (${cartCount})`}>
             <ShoppingBag className="h-[19px] w-[19px]" />
             {cartCount > 0 && (
@@ -321,7 +308,7 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
           )}
           <p className="eyebrow px-3 pb-2">Services</p>
           <nav className="flex flex-col" aria-label="Navigation mobile">
-            {[{ to: '/', labelKey: 'nav.home' as TranslationKey, match: [] as string[], mega: false }, ...MAIN_NAV, { to: '/suivi', labelKey: 'nav.tracking' as TranslationKey, match: ['/suivi'], mega: false }].map(item => {
+            {[{ to: '/', labelKey: 'nav.home' as TranslationKey, match: [] as string[], mega: false }, ...MAIN_NAV].map(item => {
               const active = item.to === '/' ? path === '/' : isActive(path, item.match);
               const row = `flex items-center justify-between rounded-xl px-3 py-3 text-[15px] font-semibold ${active ? 'bg-white text-brand-600 ring-1 ring-brand/20' : 'text-ink'}`;
               if (item.mega && roots.length) {

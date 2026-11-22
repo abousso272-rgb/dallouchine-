@@ -4,7 +4,6 @@ import { PrefsProvider } from './context/PrefsContext';
 import { SiteHeader } from './components/layout/SiteHeader';
 import { SiteFooter } from './components/layout/SiteFooter';
 import { MobileTabBar } from './components/layout/MobileTabBar';
-import { AssistantWidget } from './components/assistant/AssistantWidget';
 import { ConsentBanner } from './components/layout/ConsentBanner';
 import { initAnalytics, trackPageView } from './lib/analytics';
 import { applySeo, isPrivatePath } from './lib/seo';
@@ -176,7 +175,6 @@ function Router() {
       </main>
       <SiteFooter />
       <MobileTabBar />
-      <AssistantWidget />
       <ConsentBanner />
     </div>
   );

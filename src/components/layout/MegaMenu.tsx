@@ -27,8 +27,7 @@ export function MegaMenu({ onClose }: { onClose: () => void }) {
     { to: '/sourcing', icon: Search, label: t('mega.sourcing'), hint: t('mega.sourcingHint') },
     { to: '/automobile', icon: Car, label: t('mega.auto'), hint: t('mega.autoHint') },
     { to: '/pro', icon: Briefcase, label: t('mega.b2b'), hint: t('mega.b2bHint') },
-    { to: '/guide', icon: Compass, label: t('mega.guide'), hint: t('mega.guideHint') },
-    { to: '/suivi', icon: PackageSearch, label: t('mega.tracking'), hint: t('mega.trackingHint') }
+    { to: '/guide', icon: Compass, label: t('mega.guide'), hint: t('mega.guideHint') }
   ];
 
   return (
