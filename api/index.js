@@ -222,8 +222,8 @@ var ShipmentService = class {
    */
   async getPublicTracking(trackingCode) {
     const serverClient = getSupabaseServerClient();
-    const { data, error } = await serverClient.rpc("get_public_shipment_tracking", {
-      p_tracking_code: trackingCode
+    const { data, error } = await serverClient.rpc("track_order_public", {
+      p_code: trackingCode
     });
     if (error || !data?.found) {
       return { found: false };
