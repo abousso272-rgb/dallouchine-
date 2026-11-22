@@ -296,10 +296,28 @@ export default function GroupagePage({ id }: { id: string }) {
                       options={hubs.data.map(h => ({ value: h.id, label: `${h.name} — ${h.district || h.city}` }))}
                     />
                   )}
-                  <div className="flex items-center justify-between rounded-xl bg-paper px-4 py-3">
-                    <span className="text-sm font-semibold">Total à payer</span>
-                    <span className="num font-display text-xl font-semibold">{formatXOF(qty * g.unitPriceXOF)}</span>
+                  <div className="space-y-1.5 rounded-xl bg-paper px-4 py-3">
+                    <div className="flex items-center justify-between text-[13px] text-muted">
+                      <span>Sous-total ({qty} unité{qty > 1 ? 's' : ''})</span>
+                      <span className="num font-medium text-ink">{formatXOF(qty * g.unitPriceXOF)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[12.5px] text-muted">
+                      <span className="flex items-center gap-1">
+                        <span>Frais opérateur mobile money (1 %)</span>
+                        <span className="rounded bg-brand-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-brand">50/50</span>
+                      </span>
+                      <span className="num font-medium text-ink">+{formatXOF(Math.round(qty * g.unitPriceXOF * 0.01))}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-line pt-2">
+                      <span className="text-sm font-bold text-ink">Total à régler</span>
+                      <span className="num font-display text-xl font-bold text-brand-600">
+                        {formatXOF(qty * g.unitPriceXOF + Math.round(qty * g.unitPriceXOF * 0.01))}
+                      </span>
+                    </div>
                   </div>
+                  <p className="text-[11.5px] leading-relaxed text-muted">
+                    Frais PayTech partagés équitablement : 1 % client / 1 % pris en charge par Dallou Chine.
+                  </p>
                   {formError && <InlineAlert tone="danger">{formError}</InlineAlert>}
                   <Button block size="lg" loading={busy} onClick={participate}>
                     Participer et payer

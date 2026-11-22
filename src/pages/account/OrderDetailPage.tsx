@@ -93,6 +93,7 @@ export default function OrderDetailPage({ id }: { id: string }) {
             <div>
               <p className="font-semibold">Paiement en attente</p>
               <p className="text-sm text-muted">Réglez {formatXOF(order.totalXOF)} pour lancer votre commande.</p>
+              <p className="mt-1 text-[11.5px] text-muted">Frais PayTech partagés : 1 % client / 1 % pris en charge par Dallou Chine.</p>
               <PaymentLogos className="mt-3" />
             </div>
             <div className="flex flex-col gap-2 sm:items-end">
