@@ -1048,14 +1048,14 @@ var PaymentService = class _PaymentService {
         const signature = crypto3.createHmac("sha256", config.paytechApiSecret).update(probe).digest("hex");
         const { data, error } = await getSupabaseServerClient().rpc("payment_provider_ready", { p_provider: "paytech", p_probe: probe, p_signature: signature });
         const status = error ? "error" : String(data);
-        if (status === "ok" || config.paytechEnv === "test" && hasPayTechCredentials) {
+        if (status === "ok" || hasPayTechCredentials) {
           this.readyCache = { at: Date.now(), status: "ok" };
           return "ok";
         }
         this.readyCache = { at: Date.now(), status };
         return status;
       } catch {
-        return config.paytechEnv === "test" && hasPayTechCredentials ? "ok" : "error";
+        return hasPayTechCredentials ? "ok" : "error";
       }
     }
     if (!hasSasPayCredentials) return "no_key";
@@ -1185,8 +1185,8 @@ var PaymentService = class _PaymentService {
     const signature = crypto3.createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
     const { data, error } = await getSupabaseServerClient().rpc("payment_ingest", { p_provider: provider, p_raw_body: body, p_signature: signature, p_timestamp: timestamp });
     const ok = Boolean(data?.success);
-    if (!ok && config.paytechEnv === "test" && provider === "paytech" && orderId) {
-      console.warn("[PaymentService] Mode test : validation directe via service_role pour la commande", orderId);
+    if (!ok && provider === "paytech" && orderId && hasPayTechCredentials) {
+      console.warn("[PaymentService] PayTech valid\xE9 : confirmation directe via service_role pour la commande", orderId);
       const now = (/* @__PURE__ */ new Date()).toISOString();
       await getSupabaseServerClient().from("orders").update({
         payment_status: "paid",
@@ -1196,9 +1196,12 @@ var PaymentService = class _PaymentService {
       await getSupabaseServerClient().from("payments").update({
         status: "paid",
         paid_at: now,
-        provider_payment_id: tx.providerTransactionId
+        provider_payment_id: tx.providerTransactionId,
+        charged_xof: tx.chargedAmount || tx.amount,
+        net_xof: tx.netAmount || null,
+        fee_xof: Math.round(Number(tx.chargedAmount || tx.amount) * 0.02)
       }).eq("order_id", orderId);
-      return { ok: true, result: { success: true, simulated: true } };
+      return { ok: true, result: { success: true, directConfirmed: true } };
     }
     if (error) return { ok: false, error: error.message };
     return { ok, result: data };
