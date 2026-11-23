@@ -16,6 +16,8 @@ export const photoSrcSet = (url: string, widths = [480, 800, 1200, 1600]) =>
   widths.map(w => `${url.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`).join(', ');
 
 export const PHOTOS = {
+  hero: unsplash('photo-1586528116311-ad8dd3c8310d', 1400),
+  heroDelivery: unsplash('photo-1580674684081-7617fbf3d745', 1400),
   port: unsplash('photo-1494412574643-ff11b0a5c1c3'),
   ship: unsplash('photo-1605745341112-85968b19335b', 900),
   plane: unsplash('photo-1570710891163-6d3b5c47248b', 900),

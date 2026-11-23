@@ -19,6 +19,7 @@ import {
   PackageSearch,
   Palette,
   PartyPopper,
+  Plane,
   Search,
   Shirt,
   ShieldCheck,
@@ -167,27 +168,60 @@ export function HomePage() {
 function Hero({ groupage, openCount }: { groupage?: Groupage; openCount: number }) {
   return (
     <section className="relative -mt-[76px] overflow-hidden pt-[76px] sm:-mt-[80px] sm:pt-[80px]">
-      {/* halos chauds (affichés uniquement sur grand écran pour garantir un défilement mobile fluide) */}
-      <div className="pointer-events-none absolute -left-40 top-10 hidden h-[420px] w-[420px] rounded-full bg-brand-400/25 blur-[90px] sm:block" aria-hidden />
-      <div className="pointer-events-none absolute -right-32 -top-20 hidden h-[520px] w-[520px] rounded-full bg-brand/20 blur-[110px] sm:block" aria-hidden />
+      {/* Halos lumineux d'ambiance */}
+      <div className="pointer-events-none absolute -left-40 top-10 hidden h-[460px] w-[460px] rounded-full bg-brand-400/20 blur-[100px] sm:block" aria-hidden />
+      <div className="pointer-events-none absolute -right-32 -top-20 hidden h-[560px] w-[560px] rounded-full bg-brand/15 blur-[120px] sm:block" aria-hidden />
       <div className="route-line pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_70%)]" aria-hidden />
 
-      <div className="container-page relative grid grid-cols-1 items-center gap-10 pb-6 pt-8 sm:pb-12 sm:pt-12 lg:grid-cols-[1.02fr_1fr] lg:gap-12 lg:pb-14 lg:pt-14">
+      <div className="container-page relative grid grid-cols-1 items-center gap-10 pb-8 pt-6 sm:pb-14 sm:pt-10 lg:grid-cols-[1.08fr_1fr] lg:gap-14 lg:pb-16 lg:pt-12">
+        {/* Colonne gauche : Titre, arguments forts et boutons d'action */}
         <div className="animate-fade-in-up">
-          <p className="inline-flex items-center gap-2.5 rounded-full border border-brand/20 bg-white/80 py-1.5 pl-2 pr-3.5 text-[13px] font-semibold text-ink shadow-sm backdrop-blur">
-            <FlagCN className="h-4 w-6" /> Chine <ArrowRight className="h-3.5 w-3.5 text-brand" /> Sénégal <FlagSN className="h-4 w-6" />
-          </p>
-          <h1 className="mt-5 text-[40px] font-bold leading-[1.02] tracking-[-0.03em] sm:text-[54px] lg:text-[64px]">
-            Votre passerelle entre <span className="text-brand-gradient">la Chine et l’Afrique</span>
+          <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-brand/20 bg-white/90 py-1.5 pl-2.5 pr-4 text-[12.5px] font-semibold text-ink shadow-sm backdrop-blur">
+            <span className="flex items-center gap-1.5 text-brand-700">
+              <FlagCN className="h-4 w-6 shadow-xs" /> Guangzhou · Yiwu
+            </span>
+            <ArrowRight className="h-3.5 w-3.5 text-brand" />
+            <span className="flex items-center gap-1.5 text-brand-700">
+              <FlagSN className="h-4 w-6 shadow-xs" /> Dakar, Sénégal
+            </span>
+            <span className="hidden h-3.5 w-px bg-line sm:inline-block" />
+            <span className="hidden text-muted sm:inline-block">Fret Aérien & Maritime</span>
+          </div>
+
+          <h1 className="mt-5 text-[38px] font-extrabold leading-[1.04] tracking-[-0.035em] sm:text-[52px] lg:text-[62px]">
+            Achetez en Chine à prix d'usine,{' '}
+            <span className="text-brand-gradient">livré directement à Dakar.</span>
           </h1>
+
           <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-muted sm:text-[18px]">
-            Nous vous aidons à trouver, acheter et faire acheminer vos produits de Chine vers le Sénégal, simplement et en toute transparence.
+            Dallou Chine supprime les intermédiaires : rejoignez des <strong className="font-semibold text-ink">commandes groupées</strong> pour payer le tarif de gros dès 1 pièce, achetez nos références sélectionnées ou confiez-nous votre <strong className="font-semibold text-ink">sourcing sur mesure</strong>.
           </p>
+
+          {/* Boutons d'action principaux */}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button to="/catalogue" size="lg" iconRight={<ArrowRight className="h-4 w-4" />}>
               Explorer les produits
             </Button>
-            <Button to="/pro" size="lg" variant="secondary" icon={<FileText className="h-4 w-4" />}>
+            <Button
+              to="/groupages"
+              size="lg"
+              variant="secondary"
+              icon={<Users className="h-4 w-4 text-brand" />}
+            >
+              Groupages en cours
+              {openCount > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-bold text-brand-700">
+                  {openCount} actif{openCount > 1 ? 's' : ''}
+                </span>
+              )}
+            </Button>
+            <Button
+              to="/sourcing"
+              size="lg"
+              variant="ghost"
+              className="border border-line bg-white/70 hover:bg-white"
+              icon={<Search className="h-4 w-4 text-muted" />}
+            >
               Demander un devis
             </Button>
             <Button
@@ -196,74 +230,119 @@ function Hero({ groupage, openCount }: { groupage?: Groupage; openCount: number 
               icon={<MessageCircle className="h-4 w-4" />}
               onClick={() => window.open(whatsappLink('Bonjour Dallou Chine, je souhaite importer un produit de Chine.'), '_blank', 'noopener')}
             >
-              Parler sur WhatsApp
+              WhatsApp
             </Button>
           </div>
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2.5 text-[13px] font-semibold text-ink/70">
-            <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-jade" /> Paiement sécurisé
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <BadgeCheck className="h-4 w-4 text-jade" /> Contrôle avant expédition
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <PackageSearch className="h-4 w-4 text-jade" /> Suivi en temps réel
-            </span>
+
+          {/* Ligne de réassurance & preuves de confiance */}
+          <div className="mt-8 grid grid-cols-1 gap-2.5 pt-2 sm:grid-cols-3 sm:gap-3">
+            <div className="flex items-center gap-2 rounded-xl bg-white/75 p-2.5 text-[12.5px] font-medium text-ink shadow-xs backdrop-blur">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-jade" />
+              <span>Paiement Wave & OM sécurisé</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl bg-white/75 p-2.5 text-[12.5px] font-medium text-ink shadow-xs backdrop-blur">
+              <BadgeCheck className="h-4 w-4 shrink-0 text-jade" />
+              <span>Inspection photos & vidéo en usine</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl bg-white/75 p-2.5 text-[12.5px] font-medium text-ink shadow-xs backdrop-blur">
+              <Truck className="h-4 w-4 shrink-0 text-brand" />
+              <span>Retrait Almadies ou Livraison</span>
+            </div>
           </div>
         </div>
 
+        {/* Colonne droite : Visuel moderne & cartes d'information interactives */}
         <div className="relative">
-          <div className="relative overflow-hidden rounded-[32px] shadow-[0_30px_80px_-30px_rgb(200_80_20/0.55)] [clip-path:inset(0_round_32px)] lg:rounded-[40px]">
+          {/* Cadre de l'image principale */}
+          <div className="relative overflow-hidden rounded-[28px] border border-white/60 bg-surface shadow-[0_25px_70px_-20px_rgba(235,94,40,0.35)] sm:rounded-[36px]">
             <img
-              src={PHOTOS.port}
-              srcSet={photoSrcSet(PHOTOS.port)}
+              src={PHOTOS.hero}
+              srcSet={photoSrcSet(PHOTOS.hero)}
               sizes="(min-width: 1024px) 600px, 100vw"
-              alt="Port à conteneurs : départ des marchandises de Chine"
+              alt="Entrepôt logistique et préparation des commandes Chine-Dakar"
               fetchPriority="high"
               decoding="async"
-              className="aspect-[5/4] w-full object-cover sm:aspect-[16/11]"
+              className="aspect-[4/3] w-full object-cover transition-transform duration-700 hover:scale-[1.02] sm:aspect-[16/11]"
             />
-            <div className="absolute inset-0 bg-gradient-to-tr from-brand/35 via-transparent to-transparent mix-blend-multiply" aria-hidden />
-            <span className="glass absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold text-ink shadow-sm">
-              <Ship className="h-3.5 w-3.5 text-brand" /> Guangzhou · Yiwu → Dakar
-            </span>
-          </div>
+            {/* Dégradé doux */}
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/20 to-transparent" aria-hidden />
 
-          {/* Cartes flottantes */}
-          <div className="glass absolute -left-3 top-6 hidden items-center gap-3 rounded-2xl px-3.5 py-3 shadow-[var(--shadow-warm)] sm:flex lg:-left-10">
-            <span className="icon-bubble h-10 w-10">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            <div className="leading-tight">
-              <p className="text-[13px] font-bold">Paiement protégé</p>
-              <p className="text-[11.5px] text-muted">Wave · Orange Money · Carte</p>
+            {/* Badge supérieur : hub départ */}
+            <div className="glass absolute left-3 top-3 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11.5px] font-bold text-ink shadow-sm sm:left-4 sm:top-4">
+              <span className="h-2 w-2 rounded-full bg-jade" />
+              <span>Hubs Chine : Guangzhou & Yiwu</span>
+            </div>
+
+            {/* Bandeau d'options de transport en bas de l'image */}
+            <div className="absolute inset-x-3 bottom-3 flex items-center justify-between rounded-2xl bg-white/95 p-3 text-ink shadow-md backdrop-blur sm:inset-x-4 sm:bottom-4 sm:p-3.5">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-soft text-brand-600">
+                  <Plane className="h-4 w-4" />
+                </span>
+                <div className="leading-tight">
+                  <p className="text-[12.5px] font-bold">Fret Aérien Express</p>
+                  <p className="text-[11px] text-muted">7 à 10 jours ouvrés</p>
+                </div>
+              </div>
+              <div className="h-7 w-px bg-line" />
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy/10 text-navy">
+                  <Ship className="h-4 w-4" />
+                </span>
+                <div className="leading-tight">
+                  <p className="text-[12.5px] font-bold">Fret Maritime Éco</p>
+                  <p className="text-[11px] text-muted">30 à 45 jours</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="relative -mt-14 px-3 sm:absolute sm:-bottom-10 sm:right-4 sm:mt-0 sm:w-[340px] sm:px-0 lg:-right-4">
+          {/* Carte flottante 1 : Paiement mobile money localisé */}
+          <div className="glass absolute -left-4 top-10 hidden items-center gap-3 rounded-2xl p-3 shadow-[var(--shadow-warm)] sm:flex lg:-left-8">
+            <span className="icon-bubble h-10 w-10 text-brand">
+              <CreditCard className="h-5 w-5" />
+            </span>
+            <div className="leading-tight">
+              <p className="text-[12.5px] font-bold">Paiement en FCFA</p>
+              <p className="text-[11px] text-muted">Wave · Orange Money (1% partagé)</p>
+            </div>
+          </div>
+
+          {/* Carte flottante 2 : Groupage en cours (ou étapes clés) */}
+          <div className="mt-4 sm:absolute sm:-bottom-8 sm:right-4 sm:mt-0 sm:w-[320px] lg:-right-6">
             {groupage ? (
-              <Link to={`/groupages/${groupage.id}`} className="glass lift block rounded-3xl p-4 shadow-[var(--shadow-warm)]">
-                <div className="flex items-center gap-3">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand/60 motion-reduce:hidden" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand" />
+              <Link
+                to={`/groupages/${groupage.id}`}
+                className="glass lift block rounded-2xl p-3.5 shadow-[0_15px_35px_-10px_rgba(0,0,0,0.18)]"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-600">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand/60" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
+                    </span>
+                    Campagne Groupage
                   </span>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-brand-600">Groupage en cours · {openCount} ouvert{openCount > 1 ? 's' : ''}</p>
+                  <span className="rounded-md bg-brand-soft px-1.5 py-0.5 text-[10.5px] font-bold text-brand-700">
+                    Prix de gros
+                  </span>
                 </div>
-                <div className="mt-3 flex items-center gap-3">
-                  {groupage.image && <img src={groupage.image} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />}
+                <div className="mt-2.5 flex items-center gap-3">
+                  {groupage.image && (
+                    <img src={groupage.image} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover" />
+                  )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-semibold">{groupage.product?.name || groupage.title}</p>
-                    <p className="num text-[12.5px] text-muted">
-                      <span className="font-bold text-brand-600">{formatXOF(groupage.unitPriceXOF)}</span> / unité
+                    <p className="truncate text-[13.5px] font-semibold">{groupage.product?.name || groupage.title}</p>
+                    <p className="text-[12px] text-muted">
+                      <span className="font-bold text-brand-600">{formatXOF(groupage.unitPriceXOF)}</span> / pièce
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center gap-3">
+                <div className="mt-2.5 flex items-center gap-2.5">
                   <div className="flex-1">
                     <ProgressBar value={groupage.reservedQuantity} max={groupage.targetQuantity} size="sm" />
                   </div>
-                  <span className="num text-[12px] font-bold">
+                  <span className="num text-[11.5px] font-bold">
                     {formatNumber(groupage.reservedQuantity)}/{formatNumber(groupage.targetQuantity)}
                   </span>
                 </div>
